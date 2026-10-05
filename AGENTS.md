@@ -17,6 +17,10 @@
 
 ## Linksifty project rules
 
+- `src/linksifty/` is the package root. Keep HTTP and provider adapters at the
+  edge, application orchestration outside routes, and value-scoring rules free
+  of FastAPI, database, and provider SDK imports. Wire concrete integrations
+  in the entrypoint; add layers only for a real second concern.
 - Use `uv` only for dependencies and commands. Do not use `pip install`, manually edit `uv.lock`, or create another virtual environment.
 - Python is 3.11+; use FastAPI and Pydantic v2 APIs only. All functions carry full type annotations and mypy runs in strict mode.
 - HTTP routes contain transport concerns only. Domain services do not depend on FastAPI types. The value score and verdict are pure, deterministic code with one source of truth.
