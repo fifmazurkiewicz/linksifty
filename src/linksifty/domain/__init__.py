@@ -1,0 +1,1 @@
+"""Pure Linksifty domain rules."""
