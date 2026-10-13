@@ -10,7 +10,7 @@ Canonical product roadmap · updated 2026-10-13. [Derived Kanban](roadmap-kanban
 | M4 Source-grounded verdict | In progress | C2.1 URL/DNS safety + pinned connection (mock verified), domain scorer, injected assessment draft | Redirect/body safety, completeness enforcement, provider schema/citations and atomic budget | C2, C3, C4 |
 | M5 Inbox and detail | In progress | Inbox/Add preview uses API | Authentication, filters, detail, read/delete/recovery and persisted threshold | C5, C6 |
 | M6 Chat and source enrichment | Planned | Product contracts only | Grounded chat, five-source checking, official X adapter | C7 |
-| M7 Validation and release | In progress | C8.1 CI workflow locally validated; 73 mock-backed backend tests, mypy/Ruff and frontend lint/build | GitHub run, frontend behavior tests, log redaction, deployment artifacts, real RLS and 20-link evaluation | C8, E1 |
+| M7 Validation and release | In progress | C8.1 GitHub CI and Docker build/smoke verified; 73 mock-backed backend tests, mypy/Ruff and frontend lint/build | Frontend behavior tests, log redaction, deployment artifacts, real RLS and 20-link evaluation | C8, E1 |
 
 ## Delivery rules
 

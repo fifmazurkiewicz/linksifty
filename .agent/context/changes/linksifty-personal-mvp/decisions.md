@@ -106,5 +106,6 @@ frontend host. The native-Python path remains documented as a fallback.
 
 **Checks:** Local Docker/Podman unavailable. GitHub container job performs a real
 build and checks PORT=8123, /health, unauthenticated 401 and UID 10001. Standard
-backend checks pass locally; hosted smoke evidence must be recorded after push.
+backend checks pass locally; GitHub run 38480767728 confirms the image build and
+all smoke assertions on commit 397a769128a7cec4e6f3ba2cf0ba433cdbf048d6.
 This is a partial C8.3 artifact, not completion of the MVP or live deployment.

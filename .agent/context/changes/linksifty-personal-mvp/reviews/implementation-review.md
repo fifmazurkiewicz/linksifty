@@ -65,3 +65,9 @@ No application behavior or frontend bundle changes. Scope follows the user's
 Docker request and D-011. Standard backend checks and workflow syntax pass.
 Approve code slice for image validation in CI; actual Docker smoke and hosted
 Render activation remain pending. Do not mark C8.3 or E1 complete from this review.
+
+
+**Docker verification follow-up:** [run 38480767728](https://github.com/fifmazurkiewicz/linksifty/actions/runs/38480767728) passes actual
+image build, non-default port, health, 401 and UID checks after bounded readiness
+retry correction. Approve the requested Docker artifact. No remaining code
+findings in this slice; live service and unavailable tooling gates remain distinct.

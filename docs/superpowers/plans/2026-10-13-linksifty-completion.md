@@ -687,7 +687,7 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 #### C8.1 — CI dla obu pakietów
 
-**Status:** Done (lokalnie zweryfikowany workflow; wykonanie GitHub pending) · **Zależności:** istniejące lokalne komendy; test UI dołącz po C6.1
+**Status:** Done (lokalnie i GitHub CI zweryfikowane 2026-10-14) · **Zależności:** istniejące lokalne komendy; test UI dołącz po C6.1
 
 **Opis:** Dodaj jobs Python tests/strict mypy/Ruff oraz frontend test/build z lockfiles; sprawdzaj tylko właściwe foldery produktu.
 
@@ -699,7 +699,7 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 - [x] Testy/quality gates oraz evidence.md.
 - [x] Zaktualizowany progress i kanban.
 
-**Evidence 2026-10-13:** `.github/workflows/ci.yml`, locked installs, 37 backend tests, strict mypy/Ruff, frontend lint/build, walidacja YAML i propagacja błędu testu. Frontend behavior tests czekają na C6.1; `agent-toolkit check` nie działa bez runtime. Nie uruchamiano workflow na GitHub.
+**Evidence 2026-10-13:** `.github/workflows/ci.yml`, locked installs, 37 backend tests, strict mypy/Ruff, frontend lint/build, walidacja YAML i propagacja błędu testu. Frontend behavior tests czekają na C6.1; `agent-toolkit check` nie działa bez runtime. GitHub CI run 38480767728 pass na commicie 397a769; container build/smoke również pass.
 
 #### C8.2 — Logi i redakcja danych
 

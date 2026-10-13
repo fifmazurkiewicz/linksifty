@@ -138,3 +138,15 @@
   Source ranges repaired to actual committed lengths. Archify validate/deliver/
   strict-check pass; finalize exits 2 with browser-check skipped (Chrome unavailable).
   No perceptual review or live deployment is claimed.
+
+
+### Final Docker image verification — 2026-10-14
+
+- [GitHub CI run 38480767728](https://github.com/fifmazurkiewicz/linksifty/actions/runs/38480767728): success on commit
+  397a769128a7cec4e6f3ba2cf0ba433cdbf048d6. Backend checks, frontend lint/build
+  and Backend container smoke all pass. The image builds and starts with PORT=8123;
+  health returns status ok, anonymous items return 401, UID is 10001 and no .env
+  exists in the image. The bounded startup-wait correction fixed the initial reset.
+- C8.1 GitHub execution is now evidenced, replacing the previous pending notation.
+  C8.3 is still only a Docker artifact slice; no hosted Render/Supabase or provider
+  activation is claimed. agent-toolkit and Archify browser gates remain unavailable.

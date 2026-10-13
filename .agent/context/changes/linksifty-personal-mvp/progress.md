@@ -12,7 +12,7 @@ Updated 2026-10-14. **Status: coding in progress; MVP incomplete.** Canonical re
 
 ## Active completion cards
 
-Jednostką wykonania jest 40 mniejszych zadań w completion plan. **C2.1 Done:** URL/DNS validation i przypięte połączenie HTTP/TLS, zweryfikowane mock DNS/socket. C8.1 pozostaje Done lokalnie (GitHub pending). C1.1 Blocked: brak lokalnego PostgreSQL do obowiązkowego testu SQL. Ready: C2.2, C3.1, C6.1; pozostałe 34 Planned. WIP = 0/1. Następne: C2.2 (bezpieczne przekierowania).
+Jednostką wykonania jest 40 mniejszych zadań w completion plan. **C2.1 Done:** URL/DNS validation i przypięte połączenie HTTP/TLS, zweryfikowane mock DNS/socket. C8.1 Done; GitHub CI potwierdzone 2026-10-14. C1.1 Blocked: brak lokalnego PostgreSQL do obowiązkowego testu SQL. Ready: C2.2, C3.1, C6.1; pozostałe 34 Planned. WIP = 0/1. Następne: C2.2 (bezpieczne przekierowania).
 
 | Card | Status | Next evidence |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ Google OAuth through Supabase is the requested C6.2 login method. Setup instruct
 
 ## Docker deployment slice — 2026-10-14
 
-User requested Docker packaging for the existing Render service. Dockerfile, deny-by-default context and CI container smoke are implemented; image validation is pending GitHub CI because no local Docker runtime is installed. C8.3/E1 remain incomplete. Native Python is now a fallback.
+User requested Docker packaging for the existing Render service. Dockerfile, deny-by-default context and CI container smoke are implemented. GitHub CI run 38480767728 passes image build, health, runtime PORT, anonymous 401 and UID 10001; no local Docker runtime is installed. C8.3/E1 remain incomplete. Native Python is now a fallback.
 
 ## Known gaps
 
@@ -40,4 +40,4 @@ Jobs are persisted but not executed by a runner. Retry rules and SQL claims need
 
 ## Verification
 
-73 backend tests (38 fetcher/security cases), strict mypy and Ruff passed for C2.1 on 2026-10-13. Frontend lint/build and locked installs passed earlier for C8.1; no frontend changes in C2.1. C8.1 workflow YAML and failure propagation checks passed locally; GitHub execution is pending. No frontend behavior test runner exists yet (C6.1). See evidence.md. The agent-toolkit executable is missing, so its gate has not passed. Diagrams and boards are planning artifacts; their verification is recorded separately. No real provider calls, hosted migrations or deployments were performed.
+73 backend tests (38 fetcher/security cases), strict mypy and Ruff passed for C2.1 on 2026-10-13. Frontend lint/build and locked installs passed earlier for C8.1; no frontend changes in C2.1. C8.1 workflow runs on GitHub; Docker build/smoke and both package jobs passed in run 38480767728 on 2026-10-14. No frontend behavior test runner exists yet (C6.1). See evidence.md. The agent-toolkit executable is missing, so its gate has not passed. Diagrams and boards are planning artifacts; their verification is recorded separately. No real provider calls, hosted migrations or deployments were performed.
