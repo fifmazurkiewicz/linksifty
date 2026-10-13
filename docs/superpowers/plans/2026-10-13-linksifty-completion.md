@@ -555,7 +555,7 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 **Status:** Planned · **Zależności:** C6.1
 
-**Opis:** Dodaj logowanie Supabase, przywrócenie sesji, token w API requestach, wylogowanie i obsługę wygaśnięcia.
+**Opis:** Dodaj logowanie Google OAuth przez Supabase (wybór użytkownika 2026-10-14), przywrócenie sesji, token w API requestach, wylogowanie i obsługę wygaśnięcia. Konfiguracja: docs/deployment/setup.md, sekcja 3.4. Zachowaj wyłączony public signup i dostęp wyłącznie dla wcześniej utworzonego użytkownika.
 
 **Gotowe, gdy:** Bez sesji nie pobieramy prywatnych danych; 401 wraca do loginu; dane poprzedniej sesji są czyszczone.
 
@@ -728,6 +728,10 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 - [ ] Kod i przypadki błędów.
 - [ ] Testy/quality gates oraz evidence.md.
 - [ ] Zaktualizowany progress i kanban.
+
+**Docker slice — user-authorized 2026-10-14:** Replace native-Python hosting instructions with a root Dockerfile for the existing Render backend. Use Python 3.11 + uv 0.12.17, install only locked production dependencies, run non-root, honor PORT and keep secrets outside the build context. Add a CI image build and health/auth smoke check. Vercel remains frontend-only. C8.3 stays Planned as an epic subtask until its remaining runner/login/deployment acceptance is met; this slice does not claim live readiness.
+
+**Slice checks:** Docker build + non-default PORT /health + anonymous 401 + UID 10001; standard backend gates; updated editable deployment diagram/HTML. Local Docker runtime unavailable, so use GitHub Actions after the already-authorized repository push. Record any unavailable gate honestly.
 
 #### C8.4 — Regresja pełnego flow
 

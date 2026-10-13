@@ -73,3 +73,38 @@ assessment is claimed merely from this network-safety slice.
 **Evidence:** 38 fetcher tests include mocked DNS, no-network HTTPX socket/TLS
 checks, environment-proxy exclusion, and deliberate removal of pinning. See
 `evidence.md`, C2.1.
+
+
+## D-010: Google OAuth login through Supabase
+
+**Decision (2026-10-14):** User requests sign-in with a Google/Gmail account.
+Configure Google as a Supabase provider; C6.2 implements the sign-in/session
+workflow. Request identity scopes only, with no Gmail mailbox access. Preserve
+personal-account access: pre-create the confirmed user and keep signup disabled.
+
+**Boundary:** Google Client ID/Secret live in Supabase provider settings. The API
+still receives and verifies Supabase user tokens. This documentation change does
+not implement frontend login or configure external provider permissions.
+
+**Evidence:** Official Google/Supabase provider, callback and identity-linking
+instructions are linked in docs/deployment/setup.md, section 3.4. Password staging
+checks are retained only as an optional diagnostic path for configured users.
+
+
+## D-011: Docker backend on Render
+
+**Decision (2026-10-14):** User requests a Dockerfile to manage deployment after
+Render's Docker runtime rejected the missing file. Root Dockerfile builds Python
+3.11.16 + uv 0.12.17, locked non-editable production dependencies and non-root API
+runtime. PORT is set by the host; secrets are runtime env only. Explicit COPY
+and a deny-by-default Docker context exclude unrelated frontend/session/secrets.
+
+**Trade-offs:** Tool/image versions now live in Dockerfile rather than Render's
+Python settings. A single production stage keeps maintenance simple; no Compose,
+container registry push, database container or paid worker. Vercel remains the
+frontend host. The native-Python path remains documented as a fallback.
+
+**Checks:** Local Docker/Podman unavailable. GitHub container job performs a real
+build and checks PORT=8123, /health, unauthenticated 401 and UID 10001. Standard
+backend checks pass locally; hosted smoke evidence must be recorded after push.
+This is a partial C8.3 artifact, not completion of the MVP or live deployment.

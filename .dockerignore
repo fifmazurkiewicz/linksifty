@@ -1,0 +1,18 @@
+# Only the backend source and its build metadata enter the image context.
+**
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!.python-version
+!README.md
+!backend/
+!backend/pyproject.toml
+!backend/src/
+!backend/src/**
+
+# Exclude local files even if nested in the source tree.
+**/.env
+**/.env.*
+**/.venv
+**/__pycache__
+**/*.pyc

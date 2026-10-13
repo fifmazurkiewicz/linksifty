@@ -33,6 +33,8 @@ The backend job installs `uv.lock` with `uv sync --locked --package linksifty --
 and runs the Python checks above. The frontend job runs `npm ci`, lint, and the
 production build inside `frontend/`, using `frontend/package-lock.json`.
 CI uses Python 3.11, uv 0.12.17, and Node 22.23.2; no provider credentials are needed.
+A third job builds the Docker backend and smoke-checks health, runtime PORT,
+anonymous authentication and the non-root user.
 
 The frontend test step uses `npm run test --if-present` until C6.1 adds its test
 runner. A present, failing test script fails CI; today this step runs no behavior
@@ -49,3 +51,21 @@ Environment values must be exported in the shell or provided by the hosting plat
 ```sh
 uv run --package linksifty uvicorn linksifty.main:app --reload
 ```
+
+
+## Docker backend
+
+The root Dockerfile packages only the backend, with Python 3.11.16, uv 0.12.17
+and locked production dependencies. Build from the repository root:
+
+```sh
+docker build -t linksifty-api .
+docker run --rm -p 8000:8000 --env-file .env linksifty-api
+```
+
+The API runs as a non-root user, defaults to port 8000 and honors `PORT`.
+Credentials are supplied at runtime; `.env` never enters the build context.
+On Render choose Docker, root context `.`, Dockerfile `./Dockerfile`, leave
+Docker Command unset and set the health path to `/health`.
+See the [setup guide](docs/deployment/setup.md) for environment values and current
+MVP limitations. The frontend remains a separate Vercel build.

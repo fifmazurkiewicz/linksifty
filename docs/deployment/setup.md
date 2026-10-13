@@ -1,6 +1,6 @@
 # Linksifty setup: Supabase, Render, Vercel, OpenRouter and X
 
-Checked against repository code and official documentation on **2026-10-13**.
+Checked against repository code and official documentation on **2026-10-14**. Google OAuth is the requested login method.
 Follow the steps in order. Example names and URLs below must be replaced with
 your own. Keep actual keys in your password manager and platform environment
 settings; do not put them in Git or this document.
@@ -91,55 +91,97 @@ Check Table Editor for `settings`, `items`, `source_contents`, `jobs`,
 alone does not prove complete ownership isolation. C1 hardening and a two-user
 SQL test remain release gates. [Supabase tables/SQL Editor](https://supabase.com/docs/guides/database/tables).
 
-### 3.4 Create your user and restrict signup
+### 3.4 Configure Google/Gmail sign-in
 
-1. In **Authentication → Sign In / Providers**, enable email/password sign-in.
-2. Disable **Allow new users to sign up** and anonymous sign-ins for this personal MVP.
-3. In **Authentication → Users**, use the user creation action to create your
-   account with email/password. Ensure the account is confirmed before testing
-   password sign-in; use the dashboard's confirmation option when available.
-4. Keep public signup disabled. Existing users can still sign in.
-5. Record the user's UUID if needed for SQL verification; it is not an API key.
+Google OAuth authenticates your Google account; it does not require reading Gmail.
+Use it as the requested C6.2 login method. The frontend login code is still pending.
 
-Email confirmation/password recovery via email requires working email delivery;
-configure custom SMTP if you choose those flows later. Password sign-in with an
-already confirmed staging user does not require sending an email on each login.
-[Supabase Auth configuration](https://supabase.com/docs/guides/auth/general-configuration).
+1. Open [Google Cloud Console](https://console.cloud.google.com/), create/select a
+   Linksifty project, then open **Google Auth Platform**.
+2. Configure **Branding** (app name/support email). Choose **External** audience
+   for a personal Gmail account. While in Testing, add your Gmail under Test users.
+3. Use identity scopes only: `openid`, `userinfo.email`, `userinfo.profile`.
+   Do not enable Gmail API or request mailbox scopes for login.
+4. **Clients → Create client → Web application**. Add JavaScript origins:
+   `https://<your-app>.vercel.app` and, for development, `http://localhost:5173`.
+   [Google OAuth client setup](https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred).
+5. In Supabase **Authentication → Sign In / Providers → Google**, copy the
+   displayed callback URL. Add it to Google's **Authorized redirect URIs**:
 
-Set final Site URL/redirect URLs after Vercel gives you the stable application URL
-(step 6). No OAuth provider is required for the current email/password plan.
+   ```text
+   https://<project-ref>.supabase.co/auth/v1/callback
+   ```
+
+6. Save Google's Client ID and Client Secret in the **Supabase Google provider**
+   settings and enable the provider. Keep the secret there; do not put it in
+   frontend env, Render or Git. [Supabase Google provider](https://supabase.com/docs/guides/auth/social-login/auth-google).
+7. Supabase **URL Configuration**: Site URL is your stable Vercel origin; allow
+   the frontend return URL used by C6.2 and your local development URL. Google's
+   redirect goes to Supabase; Supabase then returns to your app. No frontend
+   `/auth/callback` handler currently exists; do not assume it is implemented.
+   [Redirect configuration](https://supabase.com/docs/guides/auth/redirect-urls).
+8. Pre-create a **confirmed** Supabase user with your exact Gmail address using
+   dashboard/admin user creation. Keep public signup and anonymous sign-ins
+   disabled. Verified identities with the same email can link to that user;
+   test this during C6.2 rather than enabling unrestricted signup as a workaround.
+   [Identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking).
+
+Google provider configuration adds no current backend env variables. The API
+continues to verify Supabase user access tokens. C6.2 must implement the Google
+sign-in button, return/session handling and Bearer token attachment. Existing
+password-based staging checks in step 10 are an optional diagnostic path for a
+user configured with a password, not the desired product login.
 
 ## 4. Configure the API on Render
 
-### 4.1 Create the web service
+### 4.1 Create or fix the Docker web service
 
-1. Dashboard → **New → Web Service** → connect your GitHub repository.
-2. Name it, for example, `linksifty-api-staging`.
-3. Select the branch containing the deployable code and choose a nearby region.
-4. Runtime: **Python**.
-5. **Root Directory: leave blank** (repository root). Do not set `backend/`:
-   this uv workspace needs the root `pyproject.toml` and `uv.lock`.
-6. Build Command:
+The requested Docker path is now defined by the root `Dockerfile`. Render builds
+the backend image; Vercel still builds the frontend separately.
 
-   ```sh
-   uv sync --locked --package linksifty --no-dev
-   ```
+1. For your existing failed Docker service, open **Settings** and keep Docker.
+   For a new service: **New → Web Service → Git Provider → linksifty**.
+2. Branch: `main`. Runtime/Language: **Docker**.
+3. **Root Directory: leave blank**. Docker build context must be the repository
+   root, which contains `uv.lock` and both workspace manifests.
+4. **Dockerfile Path: `./Dockerfile`**; **Docker Build Context Directory: `.`**
+   (or leave at the repository-root default).
+5. Leave **Docker Command** unset, so the image's CMD starts the API. Native-Python
+   Build/Start command fields do not apply to this path.
+6. Health Check Path: `/health`.
+7. Keep the server-only environment variables from section 4.2 on the service.
+8. After the Docker commit is on GitHub, use **Manual Deploy → Deploy latest commit**
+   for the existing service, or **Create Web Service** for a new one.
+9. Inspect the build logs, then check `/health`. The image runs as UID 10001 and
+   honors Render's runtime `PORT` without baking keys into the image.
 
-7. Start Command:
+[Docker on Render](https://render.com/docs/docker). Python 3.11.16 and uv 0.12.17
+are controlled by Dockerfile image tags. Production dependencies come from
+`uv.lock`; no development tools are installed in the image. The `.dockerignore`
+allows only the backend source/build metadata and excludes env files, frontend,
+Git history, local sessions and virtual environments.
 
-   ```sh
-   uv run --locked --no-sync --package linksifty uvicorn linksifty.main:app --host 0.0.0.0 --port "$PORT"
-   ```
+**Local Docker, when installed:**
 
-8. Health Check Path: `/health`.
-9. Choose the intended instance plan after reviewing its current limits/pricing.
-   A Free web service is adequate for staging if available.
-10. Keep automatic deploys disabled during initial setup if you want to inspect
-    each staging revision manually; enable a CI-gated deploy policy later.
+```sh
+docker build -t linksifty-api .
+docker run --rm -p 8000:8000 --env-file .env linksifty-api
+```
 
-Binding to `0.0.0.0` and Render's `PORT` is required. No Dockerfile, PostgreSQL
-service on Render, disk, cron or separate worker is needed for the approved model.
-[FastAPI hosting](https://render.com/docs/deploy-fastapi).
+Use an existing private `.env` (section 9), not build arguments. Open
+`http://127.0.0.1:8000/health`. To verify a different port:
+
+```sh
+docker run --rm -p 8123:8123 -e PORT=8123 linksifty-api
+```
+
+GitHub CI builds the actual image and checks health, anonymous 401, a non-default
+port and the non-root user without any Supabase/provider credentials.
+
+**Optional native-Python fallback:** set runtime Python, keep Root Directory
+blank, use Build Command `uv sync --locked --package linksifty --no-dev` and
+Start Command `uv run --locked --no-sync --package linksifty uvicorn linksifty.main:app --host 0.0.0.0 --port "$PORT"`.
+Only this fallback needs platform `UV_VERSION`/`PYTHON_VERSION` settings.
 
 ### 4.2 Add Render environment variables
 
@@ -153,15 +195,13 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase legacy service_role JWT | Yes; server-only |
 | `LINKSIFTY_DEMO_MODE` | `false` | Yes; real environment |
 | `FRONTEND_ORIGIN` | Stable Vercel origin, e.g. `https://<your-app>.vercel.app`, no trailing slash | Set after step 5, then restart/redeploy |
-| `UV_VERSION` | `0.12.17` | Set for reproducible builds |
-| `PYTHON_VERSION` | Optional fully qualified version, e.g. `3.11.16` | Repo `.python-version` already selects 3.11; this overrides it |
 | `OPENROUTER_API_KEY` | OpenRouter inference key | Optional preparation; no provider calls are wired yet |
 | `X_API_BEARER_TOKEN` | Official X app-only bearer token | Optional preparation; X adapter is unfinished |
 | `PORT` | Supplied by Render | Do not manually set |
 
-The Python version env variable requires all three version components; the
-repository `.python-version` may use `3.11`. Render supports `UV_VERSION` for uv
-projects with a root lockfile. [Python/package-manager versions](https://render.com/docs/python-version).
+On Docker, changing Render `UV_VERSION` or `PYTHON_VERSION` does not change the
+image; edit the pinned Dockerfile tags instead. Those platform settings are
+only for the native-Python fallback. [Render version settings](https://render.com/docs/python-version).
 
 ### 4.3 Deploy and check health
 
@@ -369,8 +409,9 @@ verify sign-in failures against [password authentication documentation](https://
 | Symptom | Check |
 | --- | --- |
 | Render build cannot find workspace/lockfile | Root Directory must be blank, repository contains root `uv.lock` and `backend/` |
-| `uv` missing or wrong version | Root lockfile present; set `UV_VERSION`; inspect build logs |
-| Render fails to bind a port | Start command includes `--host 0.0.0.0 --port "$PORT"` |
+| Dockerfile missing | Runtime Docker; root/context repository root; Dockerfile Path `./Dockerfile`; deploy revision containing the file |
+| `uv` missing or wrong version | Docker uses the version copied in Dockerfile; native Python uses `UV_VERSION` |
+| Render fails to bind a port | Keep Docker Command empty; image CMD binds `0.0.0.0` and runtime `PORT` |
 | Browser requests localhost after deployment | Set `VITE_API_BASE_URL` in the correct Vercel environment and redeploy |
 | Browser CORS error | Render `FRONTEND_ORIGIN` exactly matches browser origin; no trailing slash; restart API |
 | Vercel preview URL fails but stable URL works | Current backend allows one configured origin; previews need a separate staging arrangement |

@@ -42,3 +42,14 @@ The approved monorepo split changes repository layout, not runtime trust boundar
 - Final project check: `agent-toolkit check`.
 - Frontend tests and production build under the `web/` package manager.
 - Manual external evidence: Supabase migration/RLS validation, Render/Vercel deploy configuration, supplied X credential, selected OpenRouter model/cost, and the 20-link evaluation.
+
+
+## 2026-10-14 Docker amendment
+
+User explicitly requested a Dockerfile after Render selected Docker and failed
+on the missing file. Approved bounded deployment slice: locked production uv
+install, dedicated non-root API container, runtime PORT, excluded secret/build
+context and CI smoke verification. Supabase persistence, Vercel frontend and
+opportunistic runner architecture remain unchanged. Native Python remains an
+optional fallback; Docker becomes the documented Render path. C8.3/E1 remain
+incomplete. No new provider/worker/deployment action is authorized by this file.

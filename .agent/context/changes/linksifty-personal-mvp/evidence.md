@@ -1,5 +1,38 @@
 # Implementation evidence: Linksifty personal MVP
 
+## C8.3 Docker artifact slice — 2026-10-14
+
+- User explicitly requested Dockerfile after a Render Docker build failed because
+  the file was missing. D-011 and plan amendment reviewed before implementation.
+- Root Dockerfile uses python:3.11.16-slim-bookworm and uv:0.12.17, copies workspace
+  manifests/lockfile/README/backend source, installs locked production dependencies
+  non-editably and starts Uvicorn as app UID 10001. exec preserves stop signals;
+  runtime PORT defaults to 8000. No secret ARG/ENV values or inherited .env files.
+- Deny-by-default .dockerignore excludes frontend, Git, sessions, virtualenv and
+  env files. Added CI container build/non-default-port health/auth/non-root smoke.
+  README and setup guide now explain Docker on Render and native-Python fallback.
+- Official uv Docker and Render Docker docs checked. No local Docker/Podman
+  executable: actual image validation delegated to the new GitHub CI job.
+- Local: 73 backend tests, strict mypy, Ruff lint/format, YAML container-job
+  validation and git diff --check pass. agent-toolkit check unavailable (exit 127).
+- Google OAuth documentation changes from the preceding request are preserved.
+  No hosted service, provider key, permission or paid integration was modified.
+  C8.3 remains incomplete beyond this artifact slice.
+
+
+## Google OAuth setup preference — 2026-10-14
+
+- User selected Google/Gmail sign-in through Supabase. Updated setup section 3.4,
+  C6.2 description, derived task disclosure, progress and D-010. No task status
+  changed and no frontend/provider configuration was implemented.
+- Official Google/Supabase docs verify OAuth web client, origins, Supabase callback,
+  provider credential placement, identity-only scopes and matching-email linking.
+  Google secrets are stored in Supabase, not frontend/Render env; no new backend
+  env variables are needed just to enable the hosted provider.
+- Provider setup remains manual and frontend sign-in/session handling remains C6.2.
+  No external account, permission, signup or credential change was performed.
+
+
 ## Manual setup guide — 2026-10-13
 
 - User requested step-by-step Supabase/Render/Vercel/OpenRouter/X and environment instructions. Added docs/deployment/setup.md and linked it from README and the existing Supabase reference.

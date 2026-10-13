@@ -54,3 +54,14 @@ own redirects, streaming limits, extraction and full completeness; the fetcher
 is not yet a complete production acquisition pipeline. Missing agent-toolkit
 runtime remains an outstanding quality gate. No release/archive approval.
 C2.1 Done and C2.2 Ready are reflected in canonical records and derived boards.
+
+
+## C8.3 Docker slice review — 2026-10-14
+
+No non-informational findings in the reviewed local artifact slice. Explicit COPY
+and deny-by-default context prevent credential/session inclusion; production
+lockfile, default-off demo, non-root runtime, exec shutdown and PORT are preserved.
+No application behavior or frontend bundle changes. Scope follows the user's
+Docker request and D-011. Standard backend checks and workflow syntax pass.
+Approve code slice for image validation in CI; actual Docker smoke and hosted
+Render activation remain pending. Do not mark C8.3 or E1 complete from this review.

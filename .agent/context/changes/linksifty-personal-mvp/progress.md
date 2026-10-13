@@ -1,6 +1,6 @@
 # Progress: Linksifty personal MVP
 
-Updated 2026-10-13. **Status: coding in progress; MVP incomplete.** Canonical remaining work: [completion plan](../../../../docs/superpowers/plans/2026-10-13-linksifty-completion.md).
+Updated 2026-10-14. **Status: coding in progress; MVP incomplete.** Canonical remaining work: [completion plan](../../../../docs/superpowers/plans/2026-10-13-linksifty-completion.md).
 
 ## Verified slices
 
@@ -25,6 +25,14 @@ Jednostką wykonania jest 40 mniejszych zadań w completion plan. **C2.1 Done:**
 | C7 Grounded chat/X | Planned | Saved-evidence chat, official X, cited-source cap |
 | C8 Release tooling | In progress | C8.1 CI Done locally; logging/deploy docs/full audit remain |
 | E1 External activation | Blocked (live verification only) | Filip's Supabase/X/OpenRouter configuration and hosted acceptance |
+
+## Login preference — 2026-10-14
+
+Google OAuth through Supabase is the requested C6.2 login method. Setup instructions are in docs/deployment/setup.md, section 3.4. C6.2 remains Planned; no provider settings or login UI were activated.
+
+## Docker deployment slice — 2026-10-14
+
+User requested Docker packaging for the existing Render service. Dockerfile, deny-by-default context and CI container smoke are implemented; image validation is pending GitHub CI because no local Docker runtime is installed. C8.3/E1 remain incomplete. Native Python is now a fallback.
 
 ## Known gaps
 
