@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "c7c26461-400e-4d22-b866-aaa81e76f2c6",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/candidate.json",
+  "output": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.html",
+  "specification": {
+    "sha256": "c533e287d43f25cc795ecc6a16aed1013672df6b6e4b52fbf0220a43adb8107e",
+    "bytes": 3998
+  },
+  "artifact": {
+    "sha256": "7edc0da6331f440375551240cf6430fb968e059a8345c99ca40e670f92e394d8",
+    "bytes": 754531
+  }
+}

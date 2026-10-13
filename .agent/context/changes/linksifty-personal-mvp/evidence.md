@@ -125,3 +125,16 @@
 **Quality evidence:** all eight focused tests pass; strict mypy, Ruff lint/format, and `git diff --check` pass.
 
 **Deliberate simplification:** content completeness uses transparent text markers plus a 200-character floor. It is conservative by design; the browser-rendered/source-specific acquisition layer can add stronger signals later without weakening the no-assessment guardrail.
+
+
+### Docker remote build and diagram evidence
+
+- GitHub run 38480579037 built the Docker image successfully. The first smoke
+  attempt failed with curl exit 56 (connection reset during startup). Added
+  bounded --retry-all-errors/--retry-max-time 30 and retained container stderr
+  in diagnostics; readiness remains required and no failed gate is suppressed.
+- Editable deployment diagram and HTML recorded under the dated .archify folder,
+  pinned to committed Docker sources cd8c83530dd7c7de3a496dce2077b84f75e55c6c.
+  Source ranges repaired to actual committed lengths. Archify validate/deliver/
+  strict-check pass; finalize exits 2 with browser-check skipped (Chrome unavailable).
+  No perceptual review or live deployment is claimed.

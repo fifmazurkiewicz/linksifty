@@ -31,3 +31,18 @@ The new diagrams are planning views: solid current request relationships and lab
 - [Target lifecycle HTML](../../.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html) · [editable JSON](../../.archify/lifecycle-linksifty-target-20261013-010804/candidate.json)
 
 See [completion plan](../superpowers/plans/2026-10-13-linksifty-completion.md) and [Supabase setup](../deployment/supabase.md) for tasks and activation steps.
+
+
+## Docker deployment slice — 2026-10-14
+
+The Render backend is packaged by the root Dockerfile (Python 3.11.16, uv
+0.12.17, locked production dependencies, UID 10001). Runtime PORT and server
+credentials are supplied by Render; Vercel remains frontend-only. GitHub CI
+builds the same Dockerfile and smoke-checks the actual image. A successful image
+build does not prove hosted Supabase/provider or complete MVP behavior.
+
+- [Deployment HTML](../../.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.html)
+- [Editable JSON](../../.archify/architecture-linksifty-docker-20261014-005227/candidate.json)
+
+Archify validation, delivery and strict artifact checks pass. Browser check is
+skipped because Chrome/Chromium is unavailable; no visual QA is claimed.

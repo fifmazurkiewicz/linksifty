@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/candidate.json",
+    "sha256": "c533e287d43f25cc795ecc6a16aed1013672df6b6e4b52fbf0220a43adb8107e",
+    "bytes": 3998
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.html",
+    "sha256": "7edc0da6331f440375551240cf6430fb968e059a8345c99ca40e670f92e394d8",
+    "bytes": 754531
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-docker-20261014-005227/docker-deployment.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 460
+}

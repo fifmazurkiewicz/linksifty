@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Linksifty Docker Deployment: Artifacts and Targets",
+    "output": ".archify/architecture-linksifty-docker-20261014-005227/docker-deployment.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "cd8c83530dd7c7de3a496dce2077b84f75e55c6c",
+      "link_mode": "web"
+    }
+  },
+  "components": [
+    {
+      "id": "repo",
+      "type": "cloud",
+      "label": "GitHub repository",
+      "sublabel": "Dockerfile + locked backend",
+      "pos": [
+        40,
+        230
+      ],
+      "size": [
+        196,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Dockerfile",
+          "line": 1,
+          "end_line": 24
+        },
+        {
+          "path": ".dockerignore",
+          "line": 1,
+          "end_line": 17
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI container",
+      "sublabel": "UID 10001; runtime PORT",
+      "pos": [
+        420,
+        230
+      ],
+      "size": [
+        196,
+        64
+      ],
+      "tag": "image artifact",
+      "sources": [
+        {
+          "path": "Dockerfile",
+          "line": 18,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Supabase",
+      "sublabel": "Auth + owner-scoped REST",
+      "pos": [
+        800,
+        230
+      ],
+      "size": [
+        196,
+        64
+      ],
+      "tag": "live checks pending",
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/supabase_repository.py",
+          "line": 24,
+          "end_line": 90
+        },
+        {
+          "path": "backend/src/linksifty/infrastructure/supabase_auth.py",
+          "line": 27,
+          "end_line": 46
+        }
+      ]
+    },
+    {
+      "id": "ci",
+      "type": "backend",
+      "label": "GitHub CI smoke",
+      "sublabel": "build, health, 401, UID",
+      "pos": [
+        40,
+        430
+      ],
+      "size": [
+        196,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 67,
+          "end_line": 92
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "React + Vite",
+      "sublabel": "login/session UI pending",
+      "pos": [
+        420,
+        30
+      ],
+      "size": [
+        196,
+        64
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/App.tsx",
+          "line": 4,
+          "end_line": 5
+        },
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 139,
+          "end_line": 140
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Render / Docker target",
+      "wraps": [
+        "api"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Vercel target",
+      "wraps": [
+        "web"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "repo",
+      "to": "api",
+      "label": "Docker build",
+      "variant": "dashed"
+    },
+    {
+      "from": "repo",
+      "to": "ci",
+      "label": "build + smoke"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "label": "preview HTTPS"
+    },
+    {
+      "from": "api",
+      "to": "store",
+      "label": "verify + REST",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Image contract",
+      "items": [
+        "Python 3.11.16 and uv 0.12.17",
+        "Locked production install; non-root runtime",
+        "Secrets passed at runtime; narrow build context"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Verification boundaries",
+      "items": [
+        "Render rebuilds from Git, no registry push required",
+        "CI verifies the image without paid integrations",
+        "Hosted login, processing, budget and cleanup remain incomplete"
+      ]
+    }
+  ]
+}
