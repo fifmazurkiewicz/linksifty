@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, slots=True)
@@ -11,10 +11,12 @@ class Settings:
     """Server configuration; values are never exposed through HTTP responses."""
 
     supabase_url: str | None = None
-    supabase_anon_key: str | None = None
-    supabase_service_role_key: str | None = None
-    openrouter_api_key: str | None = None
-    x_api_bearer_token: str | None = None
+    supabase_anon_key: str | None = field(default=None, repr=False)
+    supabase_service_role_key: str | None = field(default=None, repr=False)
+    openrouter_api_key: str | None = field(default=None, repr=False)
+    x_api_bearer_token: str | None = field(default=None, repr=False)
+    demo_mode: bool = False
+    frontend_origin: str | None = None
 
     @property
     def is_configured(self) -> bool:
@@ -37,6 +39,8 @@ class Settings:
             supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
             x_api_bearer_token=os.getenv("X_API_BEARER_TOKEN"),
+            demo_mode=os.getenv("LINKSIFTY_DEMO_MODE", "false").lower() == "true",
+            frontend_origin=os.getenv("FRONTEND_ORIGIN"),
         )
 
     @classmethod
@@ -47,4 +51,5 @@ class Settings:
             supabase_anon_key="test-anon-key",
             supabase_service_role_key="test-service-role-key",
             openrouter_api_key="test-openrouter-key",
+            demo_mode=True,
         )

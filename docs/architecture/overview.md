@@ -1,23 +1,33 @@
-# Linksifty architecture overview
+# Linksifty architecture
 
-## Boundaries
+Updated 2026-10-13. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
 
-- **Web client:** future Vite and React TypeScript application in `web/`; responsible for UI and authenticated API calls only.
-- **API:** FastAPI application in `src/linksifty/`; owns HTTP contracts, authorization checks, service composition, and error mapping.
-- **Domain services:** fetching, assessment, scoring, chat, and processing lifecycle. They do not use FastAPI request or response types.
-- **Scoring:** a pure function taking validated criterion scores and a user threshold. It has no database, LLM, network, or HTTP dependency.
-- **Supabase:** Auth and PostgreSQL. RLS and API-side user-id filtering both prevent cross-user item access.
-- **External integrations:** OpenRouter, X API, and article retrieval occur server-side through narrow adapters. Tests replace every adapter with fakes.
-- **Worker:** future asynchronous processor changes item state after submission. The user need not remain on the page.
+## Implemented request path
 
-## Processing flow
+1. Production API requests require a bearer token. `api/auth.py` asks Supabase's authenticated user endpoint to validate it and returns the verified UUID. Missing/rejected tokens return 401; unavailable authentication returns 503.
+2. FastAPI routes pass that UUID to `ItemService`. The service uses the application repository contract; concrete Supabase HTTP integration is wired in the entrypoint.
+3. Every repository query includes an owner predicate. Submission calls the server-only `submit_fetch_items` transaction to insert item and job together before returning 202. List and detail routes are wired; read/delete repository methods still need routes.
+4. Explicit `LINKSIFTY_DEMO_MODE=true` enables sample responses. Demo responses carry `demo: true`; production defaults to false. The frontend still needs login/session/token handling.
 
-1. Authenticated user submits one to five canonicalized links.
-2. API checks user scope, pending/trial allowance, duplicate items, and remaining spend budget.
-3. Worker fetches source content. Failed or incomplete retrieval changes the item to awaiting manual content and stops.
-4. Validated content is assessed into a typed eight-criterion result. A pure scorer derives score and verdict.
-5. The completed item, source provenance, assessment, and score are stored under the submitting user's ID.
+This path is verified using mocked HTTP; no hosted migration or RLS test has run.
 
-## Trust boundaries
+## Planned processing path
 
-Links, fetched pages, pasted text, LLM responses, MCP outputs, and external API responses are untrusted input. Pydantic models validate every boundary. Credentials live only in server environment variables. Administrators manage account approval only; their role never grants access to other users’ links, notes, assessments, or chats.
+A bounded runner atomically leases queued or expired work, obtains complete content, reserves model cost, validates structured criteria and citations, computes the pure verdict, and commits the final result under the lease token. A failed/partial acquisition stops at `awaiting_manual_content`. Later authenticated visits resume claimable jobs. This runner is not yet implemented.
+
+C2.1 hardens the generic HTTP adapter: reject malformed/credential URLs, resolve and validate every DNS answer, then connect to a pinned public IP with the original Host and TLS SNI. A fresh client per fetch disables environment proxies and prevents inherited credentials/cookies or cross-host TLS pooling. Only tests inject a transport; the production path uses the standard HTTPX transport. The former borrowed-client signature had no production callers. Redirects remain disabled; safe redirect handling, streaming limits, extraction quality and completeness still need C2.2–C2.5. `AssessmentService` currently converts an injected draft into a scored result; it does not yet enforce completeness, citations or budget. OpenRouter/X/chat adapters remain planned.
+
+## Data and trust
+
+Supabase migrations define items, content, jobs, assessments, citations, chat and settings. RLS policies and expiry fields exist; cross-owner foreign keys, client write privileges, retry/lease safety, cleanup execution and database validation remain C1 work. An expiry timestamp does not perform deletion.
+
+Provider credentials remain on the server. Application orchestration depends on contracts; deterministic scoring has no FastAPI/database/provider imports. All fetched/pasted/provider text is untrusted. Every operation, including future chat/read/delete endpoints, must preserve verified owner scope.
+
+## Diagrams
+
+The new diagrams are planning views: solid current request relationships and labelled planned relationships. They are not evidence of deployment. Earlier diagrams are retained as historical design artifacts.
+
+- [Architecture HTML](../../.archify/architecture-linksifty-status-20261013-010804/linksifty-status.html) · [editable JSON](../../.archify/architecture-linksifty-status-20261013-010804/candidate.json)
+- [Target lifecycle HTML](../../.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html) · [editable JSON](../../.archify/lifecycle-linksifty-target-20261013-010804/candidate.json)
+
+See [completion plan](../superpowers/plans/2026-10-13-linksifty-completion.md) and [Supabase setup](../deployment/supabase.md) for tasks and activation steps.

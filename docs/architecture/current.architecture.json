@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {"title": "Linksifty — Current MVP Architecture", "output": "docs/architecture/current.architecture.html", "quality_profile": "showcase"},
+  "components": [
+    {"id": "user", "type": "external", "label": "Authenticated User", "sublabel": "future web client", "pos": [40, 300], "size": [160, 60]},
+    {"id": "web", "type": "cloud", "label": "Web Client", "sublabel": "Vite and React — planned", "pos": [260, 300], "size": [170, 60]},
+    {"id": "api", "type": "backend", "label": "FastAPI Application", "sublabel": "src/linksifty — planned", "pos": [580, 300], "size": [175, 60]},
+    {"id": "supabase", "type": "database", "label": "Supabase", "sublabel": "Auth and Postgres", "pos": [905, 300], "size": [150, 60]},
+    {"id": "worker", "type": "messagebus", "label": "Processing Worker", "sublabel": "future async lifecycle", "pos": [580, 130], "size": [180, 60]},
+    {"id": "sources", "type": "cloud", "label": "Source and AI Adapters", "sublabel": "article, X, OpenRouter", "pos": [905, 130], "size": [180, 60]}
+  ],
+  "connections": [
+    {"from": "user", "to": "web", "label": "HTTPS", "variant": "emphasis"}, {"from": "web", "to": "api", "label": "authenticated API"}, {"from": "api", "to": "supabase", "label": "user-scoped data"}, {"from": "api", "to": "worker", "label": "submit links", "variant": "dashed", "fromSide": "top", "toSide": "bottom"}, {"from": "worker", "to": "sources", "label": "fetch and assess"}
+  ]
+}

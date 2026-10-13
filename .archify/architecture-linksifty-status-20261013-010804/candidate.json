@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Linksifty Architecture: Current and Planned",
+    "output": ".archify/architecture-linksifty-status-20261013-010804/linksifty-status.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "filip",
+      "type": "external",
+      "label": "Filip",
+      "sublabel": "phone or desktop browser",
+      "pos": [
+        40,
+        270
+      ],
+      "size": [
+        140,
+        62
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "React + Vite",
+      "sublabel": "preview; login UI pending",
+      "pos": [
+        280,
+        270
+      ],
+      "size": [
+        158,
+        62
+      ],
+      "tag": "preview"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI API",
+      "sublabel": "auth and owner-scoped persistence",
+      "pos": [
+        600,
+        270
+      ],
+      "size": [
+        196,
+        62
+      ],
+      "tag": "implemented"
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Supabase Auth",
+      "sublabel": "bearer token verification",
+      "pos": [
+        600,
+        100
+      ],
+      "size": [
+        176,
+        62
+      ],
+      "tag": "implemented"
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "Supabase PostgreSQL",
+      "sublabel": "migrations; live checks pending",
+      "pos": [
+        600,
+        450
+      ],
+      "size": [
+        196,
+        62
+      ],
+      "tag": "unverified"
+    },
+    {
+      "id": "webfetch",
+      "type": "external",
+      "label": "Web source",
+      "sublabel": "prototype; safety pending",
+      "pos": [
+        880,
+        90
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "tag": "prototype"
+    },
+    {
+      "id": "xapi",
+      "type": "external",
+      "label": "Official X API",
+      "sublabel": "dedicated adapter pending",
+      "pos": [
+        880,
+        270
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "tag": "planned"
+    },
+    {
+      "id": "openrouter",
+      "type": "external",
+      "label": "OpenRouter",
+      "sublabel": "assessment and chat pending",
+      "pos": [
+        880,
+        450
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "tag": "planned"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Vercel",
+      "wraps": [
+        "web"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Render Free",
+      "wraps": [
+        "api"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Supabase ownership boundary",
+      "wraps": [
+        "auth",
+        "database"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "filip",
+      "to": "web",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "from": "filip",
+      "to": "auth",
+      "label": "planned login",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "label": "preview / bearer",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "auth",
+      "label": "validate identity",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "api",
+      "to": "database",
+      "label": "owner-scoped REST"
+    },
+    {
+      "from": "api",
+      "to": "webfetch",
+      "label": "planned fetch",
+      "variant": "dashed"
+    },
+    {
+      "from": "api",
+      "to": "xapi",
+      "label": "planned X",
+      "variant": "dashed"
+    },
+    {
+      "from": "api",
+      "to": "openrouter",
+      "label": "planned analysis",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Implemented with mocks",
+      "items": [
+        "Bearer tokens verified by Supabase Auth",
+        "List, detail and submission use owner IDs",
+        "Submission creates item and job together"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Remaining coding",
+      "items": [
+        "Job runner and safe source acquisition",
+        "Citation validation and atomic budget",
+        "Login UI, detail, recovery and grounded chat"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "External verification",
+      "items": [
+        "Supabase migrations and RLS not executed",
+        "Provider/model and deployment setup pending",
+        "37 local tests do not prove production readiness"
+      ]
+    }
+  ]
+}

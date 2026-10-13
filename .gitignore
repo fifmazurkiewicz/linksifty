@@ -18,3 +18,10 @@ wheels/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# Frontend-generated files
+frontend/node_modules/
+frontend/dist/
+
+# Local brainstorming sessions (tokens and process state)
+.superpowers/

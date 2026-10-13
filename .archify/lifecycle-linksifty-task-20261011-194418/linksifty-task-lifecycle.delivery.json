@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "1aaeba27-c724-4031-943a-c929524e7451",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/candidate.json",
+  "output": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/linksifty-task-lifecycle.html",
+  "specification": {
+    "sha256": "8696329e8d474b9391aa9726e378f973e6c11ee7c37050f927c2b573fadd5e8d",
+    "bytes": 3749
+  },
+  "artifact": {
+    "sha256": "725fa330821902f7005136fbbe2711c1369674bc3520fb71c3d078c8e40d0718",
+    "bytes": 769891
+  }
+}

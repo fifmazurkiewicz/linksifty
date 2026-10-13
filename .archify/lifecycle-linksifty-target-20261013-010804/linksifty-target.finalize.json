@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "startedAt": "2026-10-12T23:10:11.001Z",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/candidate.json",
+    "sha256": "b28e14638dda9a244b3582847cbea580d436c6ddaebe5cde9975fa5ce0048a17",
+    "bytes": 4789
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+    "sha256": "1cd270624263e510daa9aab6757a34da4b589470097525fb30a59542b5044662",
+    "bytes": 769961
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "lifecycle",
+        "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/candidate.json",
+        "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "b28e14638dda9a244b3582847cbea580d436c6ddaebe5cde9975fa5ce0048a17",
+          "bytes": 4789
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 224,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "lifecycle",
+        "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/candidate.json",
+        "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "65bfbb4e-8bbd-4769-a461-454330ab054a",
+        "ok": true,
+        "command": "deliver",
+        "type": "lifecycle",
+        "input": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/candidate.json",
+        "output": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+        "specification": {
+          "sha256": "b28e14638dda9a244b3582847cbea580d436c6ddaebe5cde9975fa5ce0048a17",
+          "bytes": 4789
+        },
+        "artifact": {
+          "sha256": "1cd270624263e510daa9aab6757a34da4b589470097525fb30a59542b5044662",
+          "bytes": 769961
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 112,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+        "artifact": {
+          "sha256": "1cd270624263e510daa9aab6757a34da4b589470097525fb30a59542b5044662",
+          "bytes": 769961
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 2,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 4,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.011080332409972,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 1,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 24,
+            "minInteriorSegmentPx": 30,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "from": "manual",
+                  "to": "queued",
+                  "label": "content pasted",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "from": "processing",
+                  "to": "sleeping",
+                  "label": "process stops",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "point": [
+                  528,
+                  144
+                ]
+              },
+              {
+                "left": {
+                  "from": "manual",
+                  "to": "queued",
+                  "label": "content pasted",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "from": "processing",
+                  "to": "retry",
+                  "label": "transient error",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "point": [
+                  558,
+                  144
+                ]
+              }
+            ],
+            "detours": [
+              {
+                "relationship": {
+                  "from": "processing",
+                  "to": "retry",
+                  "label": "transient error",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "bends": 4,
+                "stretch": 1
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": false,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "legacy-930",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "limit": "legacy",
+            "requestedTargetPx": null,
+            "requestedTargetMet": null,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "completed"
+            },
+            "minimumSourceTextPx": 7,
+            "minimumProjectedTextPx": 6.011080332409972,
+            "semanticTextCount": 32
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "65bfbb4e-8bbd-4769-a461-454330ab054a"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 8,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "65bfbb4e-8bbd-4769-a461-454330ab054a",
+        "artifact": {
+          "path": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+          "sha256": "1cd270624263e510daa9aab6757a34da4b589470097525fb30a59542b5044662",
+          "bytes": 769961
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "linksifty-target.browser-check.json",
+          "files": []
+        },
+        "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-12T23:10:11.415Z",
+  "durationMs": 414,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  }
+}

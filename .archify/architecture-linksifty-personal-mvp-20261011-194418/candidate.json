@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Linksifty Personal MVP Architecture",
+    "subtitle": "Durable tasks without a paid background worker",
+    "output": ".archify/architecture-linksifty-personal-mvp-20261011-194418/linksifty-personal-mvp.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "filip", "type": "external", "label": "Filip", "sublabel": "phone or desktop browser", "pos": [40, 270], "size": [140, 62] },
+    { "id": "web", "type": "frontend", "label": "React + Vite", "sublabel": "Vercel static web app", "pos": [280, 270], "size": [158, 62] },
+    { "id": "api", "type": "backend", "label": "FastAPI API", "sublabel": "Render Free; wakes on request", "pos": [600, 270], "size": [176, 62], "tag": "opportunistic jobs" },
+    { "id": "auth", "type": "security", "label": "Supabase Auth", "sublabel": "signed-in user identity", "pos": [600, 100], "size": [176, 62] },
+    { "id": "database", "type": "database", "label": "Supabase PostgreSQL", "sublabel": "items, jobs, results, 30-day expiry", "pos": [600, 450], "size": [196, 62], "tag": "RLS" },
+    { "id": "webfetch", "type": "external", "label": "Web source", "sublabel": "HTTP text extraction", "pos": [880, 90], "size": [160, 62] },
+    { "id": "xapi", "type": "external", "label": "Official X API", "sublabel": "dedicated source adapter", "pos": [880, 270], "size": [160, 62] },
+    { "id": "openrouter", "type": "external", "label": "OpenRouter", "sublabel": "structured assessment + chat", "pos": [880, 450], "size": [160, 62] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Vercel", "wraps": ["web"] },
+    { "kind": "region", "label": "Render Free", "wraps": ["api"] },
+    { "kind": "security-group", "label": "Supabase ownership boundary", "wraps": ["auth", "database"] }
+  ],
+  "connections": [
+    { "from": "filip", "to": "web", "label": "HTTPS", "variant": "emphasis" },
+    { "from": "filip", "to": "auth", "label": "sign in", "variant": "security", "fromSide": "top", "toSide": "left" },
+    { "from": "web", "to": "api", "label": "authenticated API calls", "variant": "security" },
+    { "from": "api", "to": "auth", "label": "validate identity", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "from": "api", "to": "database", "label": "persist and claim jobs" },
+    { "from": "api", "to": "webfetch", "label": "fetch page text" },
+    { "from": "api", "to": "xapi", "label": "fetch X post" },
+    { "from": "api", "to": "openrouter", "label": "validated source context" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Browser", "items": ["Submits links or pasted content", "Reads only user-scoped results", "Shows queued work truthfully"] },
+    { "dot": "emerald", "title": "Durable processing", "items": ["Job state is stored before execution", "Render runs jobs only while awake", "Later visits resume claimable work"] },
+    { "dot": "rose", "title": "Trust and retention", "items": ["Provider credentials stay server-side", "RLS scopes every stored record", "Item data expires after 30 days"] }
+  ]
+}

@@ -1,0 +1,225 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Linksifty Target Lifecycle — Runner Pending",
+    "output": ".archify/lifecycle-linksifty-target-20261013-010804/linksifty-target.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Normal processing"
+    },
+    {
+      "id": "waiting",
+      "label": "Manual input or platform sleep"
+    },
+    {
+      "id": "recovery",
+      "label": "Recovery"
+    },
+    {
+      "id": "terminal",
+      "label": "Terminal outcomes"
+    }
+  ],
+  "states": [
+    {
+      "id": "submitted",
+      "type": "start",
+      "label": "Submitted",
+      "sublabel": "URL or pasted content",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "queued",
+      "type": "waiting",
+      "label": "Queued",
+      "sublabel": "durably stored in Supabase",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "processing",
+      "type": "active",
+      "label": "Processing",
+      "sublabel": "API is awake",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "validated",
+      "type": "decision",
+      "label": "Content usable?",
+      "sublabel": "complete source required",
+      "lane": "main",
+      "col": 3,
+      "step": "04"
+    },
+    {
+      "id": "completed",
+      "type": "success",
+      "label": "Completed",
+      "sublabel": "note, score, verdict, citations",
+      "lane": "main",
+      "col": 4,
+      "step": "05"
+    },
+    {
+      "id": "manual",
+      "type": "waiting",
+      "label": "Awaiting manual content",
+      "sublabel": "no assessment yet",
+      "lane": "waiting",
+      "col": 3,
+      "tag": "blocked"
+    },
+    {
+      "id": "sleeping",
+      "type": "waiting",
+      "label": "Paused by API sleep",
+      "sublabel": "job stays durable",
+      "lane": "waiting",
+      "col": 2,
+      "tag": "Render idle"
+    },
+    {
+      "id": "retry",
+      "type": "active",
+      "label": "One safe retry",
+      "sublabel": "transient provider failure",
+      "lane": "recovery",
+      "col": 3,
+      "tag": "attempt 2"
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "Failed",
+      "sublabel": "clear visible reason",
+      "lane": "terminal",
+      "col": 3,
+      "tag": "terminal"
+    },
+    {
+      "id": "expired",
+      "type": "neutral",
+      "label": "Expired",
+      "sublabel": "30-day retention limit",
+      "lane": "terminal",
+      "col": 4,
+      "tag": "terminal"
+    }
+  ],
+  "transitions": [
+    {
+      "from": "submitted",
+      "to": "queued"
+    },
+    {
+      "from": "queued",
+      "to": "processing",
+      "label": "API claims job"
+    },
+    {
+      "from": "processing",
+      "to": "validated"
+    },
+    {
+      "from": "validated",
+      "to": "completed",
+      "label": "yes"
+    },
+    {
+      "from": "validated",
+      "to": "manual",
+      "label": "no",
+      "variant": "security"
+    },
+    {
+      "from": "manual",
+      "to": "queued",
+      "label": "content pasted"
+    },
+    {
+      "from": "processing",
+      "to": "sleeping",
+      "label": "process stops",
+      "variant": "dashed"
+    },
+    {
+      "from": "sleeping",
+      "to": "queued",
+      "label": "next app visit"
+    },
+    {
+      "from": "processing",
+      "to": "retry",
+      "label": "transient error",
+      "variant": "dashed"
+    },
+    {
+      "from": "retry",
+      "to": "queued",
+      "label": "retry once"
+    },
+    {
+      "from": "retry",
+      "to": "failed",
+      "label": "fails again",
+      "variant": "security"
+    },
+    {
+      "from": "completed",
+      "to": "expired",
+      "label": "after 30 days",
+      "variant": "dashed"
+    },
+    {
+      "from": "manual",
+      "to": "expired",
+      "label": "after 30 days",
+      "variant": "dashed"
+    },
+    {
+      "from": "failed",
+      "to": "expired",
+      "label": "after 30 days",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Current baseline",
+      "items": [
+        "Fetch submission and queued job transaction exist",
+        "Pure lease rules and SQL claim are partial",
+        "Runner and end-to-end state writes are pending"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Target safety",
+      "items": [
+        "Lease tokens fence all result writes",
+        "One transient retry; ambiguous paid calls require reconciliation",
+        "Incomplete source never creates an assessment"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Retention is planned",
+      "items": [
+        "Expiry starts at item creation",
+        "Cleanup must delete all expired states",
+        "An expiry timestamp alone does not delete data"
+      ]
+    }
+  ]
+}

@@ -2,32 +2,55 @@
 
 ## Product promise
 
-Linksifty turns an unread backlog of articles and X posts into short, source-grounded notes and a repeatable judgement of what deserves attention. It separates evidence from hype through an explicit assessment and deterministic verdict.
+Linksifty turns a personal backlog of unread web links into concise, source-grounded notes and a repeatable judgment of what deserves attention. It is domain-agnostic: IT, AI, finance, or any other subject are examples of Filip's interests, not product limits.
+
+The product is not a generic summarizer or an open-ended fact-checker. Its main job is to help Filip decide whether a source is **valuable**, **to review**, or **hype**, using visible evidence and an explainable deterministic rule.
 
 ## Primary user and problem
 
-The primary user saves more IT/AI and finance links than they can read. Links are scattered across devices and feeds, so valuable material gets buried beside promotional claims. The product must let that user submit up to five links, return later, and see a clear inbox rather than another research task.
+Filip saves more links than he can read. Valuable material becomes mixed with promotional claims, superficial takes, and items that cannot be opened later. He needs a phone-friendly place to submit a small batch, return later, and see which items merit time.
 
-## MVP contract
+## Personal MVP contract
 
-- Authenticated users submit up to five links; each becomes a separate item.
-- Articles and individual X posts are fetched. A failed, partial, paywalled, or inaccessible fetch stops and requests pasted content; it never invents a note.
-- Each completed item has a concise source-grounded note and eight 1–5 assessments: novelty, evidence, practicality, source credibility, replicability, independent corroboration, absence of conflict of interest, and concreteness.
-- Evidence, replicability, source credibility, and absence of conflict of interest receive double weight. The pure score determines `valuable`, `to_review`, or `hype`; the default valuable threshold is 60% and users can change it.
-- The inbox is responsive, ordered by unread then score, and supports verdict filtering, read state, deletion, and per-item chat.
-- Accounts start pending. Admins approve or reject accounts, but cannot see other users’ items. Pending users have only the agreed bounded trial allowance.
-- Processing is capped at 10 USD per user per month and stops clearly at the limit.
+- Filip signs in with one normal account. Public signup, trials, roles, and administration are deferred.
+- The default input is any ordinary web URL. X is a dedicated source adapter using the official X API; all other standard web pages use the generic web fetcher.
+- A submission accepts up to five links. Filip can instead choose to paste content immediately.
+- Paywalls, login walls, JavaScript-only pages, PDFs, videos, newsletters, partial retrieval, and unsupported pages never produce an assessment. They explain the problem and offer pasted content.
+- A completed item has a concise note, eight criterion scores from 1–5 with rationales, supporting source excerpts, a deterministic weighted score, and one verdict: `valuable`, `to_review`, or `hype`.
+- The assessment can inspect up to five cited sources. It does not claim research beyond the provided source material and those cited links.
+- The inbox opens first. It orders unread items before read items, then by score, and filters by verdict. Each item shows a truthful processing status.
+- The item detail includes the note, criteria, source excerpts, and a chat limited to that item's saved source material.
+- A user can permanently delete an item. All item content, assessments, citations, and chat history are automatically deleted after 30 days.
+- The monthly paid-processing budget has a hard 10 USD cap.
+
+## Assessment and verdict
+
+The eight criteria are novelty, evidence, practicality, source credibility, replicability, independent corroboration, absence of conflict of interest, and concreteness versus superlatives.
+
+Evidence, replicability, source credibility, and absence of conflict of interest have weight `×2`. Novelty, practicality, independent corroboration, and concreteness have weight `×1`. The pure scoring rule converts the weighted total to a percentage:
+
+- `≥ 60%`: valuable
+- `40–59%`: to review
+- `< 40%`: hype
+
+The default valuable threshold is 60%. When Filip changes the threshold, the change applies only to links assessed afterwards. Existing stored scores and verdicts stay unchanged.
 
 ## Success measures
 
-- Twenty real backlog links each reach a completed inbox item or an explicit manual-content request.
-- On a twenty-link sample, the verdict matches the primary user's judgement at least 60% of the time.
-- The core submit, review, filter, and read flow is comfortable on a phone.
+- Twenty real links reach either a completed inbox item or an explicit manual-content request.
+- On those twenty links, the verdict matches Filip's own judgment at least 60% of the time.
+- Submit, review, filter, mark-read, and delete flows are comfortable on a phone.
+
+## Operating constraints
+
+- The static frontend is deployed on Vercel; the FastAPI API runs on Render Free.
+- A Render cold start after idle time is acceptable. There is no paid always-on worker.
+- Job state is persisted in Supabase. The API executes queued work while it is awake; interrupted work remains queued and resumes on a later application visit.
+- Supabase Free is acceptable, including its low-activity project pausing behavior.
 
 ## Non-goals
 
-No bookmark import, Telegram bot, public sharing, BYOK, automatic re-assessment, manual verdict override, topic categorization, Reddit fetching, video/podcast/PDF/newsletter fetching, or deep research beyond the submitted content and up to 20 referenced links.
-
-## Delivery boundary
-
-The MVP deadline is 2026-11-04. If the schedule must be reduced, referenced-link analysis and per-item chat are the first candidates to defer; this does not change the current committed scope.
+- Public signup, pending-user trials, account approval, admin views, and social sharing.
+- Bookmark import, Telegram, topic categorization, manual verdict override, automatic reassessment, and bring-your-own-key.
+- Automatic fetching for video, podcasts, PDFs, newsletters, Reddit, or any blocked/unsupported page.
+- Full-text inbox search, a dedicated analytics platform, a paid background worker, and System One/Jev classification.

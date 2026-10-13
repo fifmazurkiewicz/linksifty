@@ -6,6 +6,11 @@ resolution-markers = [
     "python_full_version < '3.15'",
 ]
 
+[manifest]
+members = [
+    "linksifty",
+]
+
 [[package]]
 name = "annotated-doc"
 version = "0.0.5"
@@ -319,9 +324,10 @@ wheels = [
 [[package]]
 name = "linksifty"
 version = "0.1.0"
-source = { editable = "." }
+source = { editable = "backend" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "uvicorn" },
 ]
 
@@ -336,6 +342,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.142.2" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 

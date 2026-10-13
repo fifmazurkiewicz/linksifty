@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "c5d86d3b-10e4-4859-8d95-0f3c5d38971e",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-personal-mvp-20261011-194418/candidate.json",
+  "output": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-personal-mvp-20261011-194418/linksifty-personal-mvp.html",
+  "specification": {
+    "sha256": "83a5e3a2425ef24071720d9627c1f40a03da327afe852ff34bef04a100c15b57",
+    "bytes": 3101
+  },
+  "artifact": {
+    "sha256": "23fdd5e32f28095b4e78df422478ec10c81607235b238e06a332b9ac404e54fc",
+    "bytes": 762095
+  }
+}

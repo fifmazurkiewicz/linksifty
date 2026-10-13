@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/candidate.json",
+    "sha256": "8696329e8d474b9391aa9726e378f973e6c11ee7c37050f927c2b573fadd5e8d",
+    "bytes": 3749
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/linksifty-task-lifecycle.html",
+    "sha256": "725fa330821902f7005136fbbe2711c1369674bc3520fb71c3d078c8e40d0718",
+    "bytes": 769891
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/linksifty-task-lifecycle.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/linksifty-task-lifecycle.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/linksifty-task-lifecycle.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.archify/lifecycle-linksifty-task-20261011-194418/linksifty-task-lifecycle.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-10T20:19:28.790Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 442
+}

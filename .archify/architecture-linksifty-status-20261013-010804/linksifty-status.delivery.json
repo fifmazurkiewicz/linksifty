@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9a045783-4850-41ba-bff5-c4196b394d0f",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-status-20261013-010804/candidate.json",
+  "output": "/Users/Filip/dev/linksifty/.archify/architecture-linksifty-status-20261013-010804/linksifty-status.html",
+  "specification": {
+    "sha256": "338464893bfa003d2461325e23ddd694fa07bce30203afac833883fbde192259",
+    "bytes": 4548
+  },
+  "artifact": {
+    "sha256": "198aef30933e6e9f8e25b5837a5f61e4b58bca019ff95cf7baef885ba9d64e39",
+    "bytes": 762769
+  }
+}
