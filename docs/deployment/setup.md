@@ -186,8 +186,8 @@ quotes. Keep secret values in the host's secret/environment storage.
 | Variable | Value/source | Needed now? |
 | --- | --- | --- |
 | `SUPABASE_URL` | Your Supabase project HTTPS URL | Yes for authenticated persistence |
-| `SUPABASE_ANON_KEY` | Supabase legacy anon JWT | Yes for the documented baseline |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase legacy service_role JWT | Yes; server-only |
+| `SUPABASE_ANON_KEY` | Supabase publishable key or legacy anon JWT | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase secret key or legacy service_role JWT | Yes; server-only |
 | `LINKSIFTY_DEMO_MODE` | `false` | Yes; real environment |
 | `FRONTEND_ORIGIN` | `https://linksifty.fmazurkiewicz.dev` with no trailing slash | Set after step 5, then restart/redeploy |
 | `LINKSIFTY_ADMIN_EMAIL` | Verified Google account email for the initial administrator | Yes for owner admin access; private server setting |

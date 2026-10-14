@@ -37,3 +37,10 @@ Finish integration review and record the artifact/check evidence. Stage 2 follow
 - Updated Supabase deployment instructions to accept publishable/secret keys and legacy anon/service-role keys in the matching server/browser variables.
 - Added a request-level regression test. It failed against the old Bearer behavior, passed after the fix, and failed again after deliberately restoring the regression.
 - Backend suite passes (94 tests), strict mypy passes, and Ruff check/format pass. `agent-toolkit check` remains unavailable (`command not found`).
+
+## Supabase 503 diagnostic follow-up (2026-10-15)
+
+- The owner confirmed `/v1/me` still returns the generic persistence 503 after key changes. Render access logs do not show the upstream Supabase response details.
+- Added privacy-safe backend logging for the profile RPC's upstream HTTP status and provider error code, plus transport/invalid-response categories. No response body, user data, or credentials are logged.
+- Added a request-level test proving the diagnostic appears for a provider error while its message is not exposed. TDD red/green/deliberate-break evidence is recorded below.
+- Validation passes: 94 backend tests, strict mypy, Ruff check and format. `agent-toolkit check` remains unavailable.

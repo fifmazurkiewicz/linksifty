@@ -106,31 +106,25 @@ def test_profile_bootstrap_uses_verified_identity_and_server_admin_decision() ->
     asyncio.run(run())
 
 
-def test_new_secret_key_is_not_sent_as_a_bearer_token() -> None:
+def test_profile_rpc_logs_safe_provider_diagnostics_for_secret_key(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         assert request.headers["apikey"] == "sb_secret_test"
         assert "Authorization" not in request.headers
-        return httpx.Response(
-            200,
-            json=[
-                {
-                    "user_id": str(USER),
-                    "email": "user@example.com",
-                    "status": "pending",
-                    "trial_links_used": 0,
-                    "created_at": "2026-10-14T10:00:00Z",
-                }
-            ],
-        )
+        return httpx.Response(403, json={"code": "42501", "message": "secret must not log"})
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
-            profile = await SupabaseRepository(
-                "https://supabase.example", "sb_secret_test", client
-            ).get_or_create_profile(USER, "user@example.com", is_admin=False)
-            assert profile.user_id == USER
+            with pytest.raises(RepositoryUnavailable):
+                await SupabaseRepository(
+                    "https://supabase.example", "sb_secret_test", client
+                ).get_or_create_profile(USER, "user@example.com", is_admin=False)
 
     asyncio.run(run())
+    assert "status=403" in caplog.text
+    assert "code=42501" in caplog.text
+    assert "secret must not log" not in caplog.text
 
 
 def test_admin_account_listing_selects_only_account_metadata() -> None:

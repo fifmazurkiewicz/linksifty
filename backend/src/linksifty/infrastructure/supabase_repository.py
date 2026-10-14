@@ -1,5 +1,6 @@
 """User-scoped Supabase REST persistence with validated responses."""
 
+import logging
 from uuid import UUID
 
 import httpx
@@ -30,6 +31,7 @@ class AccountPolicyViolation(Exception):
 
 _items = TypeAdapter(list[ItemRecord])
 _profiles = TypeAdapter(list[AccountProfile])
+_logger = logging.getLogger(__name__)
 
 
 class _ProfileStatusChange(BaseModel):
@@ -115,12 +117,31 @@ class SupabaseRepository:
                 follow_redirects=False,
             )
             if not response.is_success:
+                try:
+                    body = response.json()
+                except ValueError:
+                    body = None
+                code = body.get("code") if isinstance(body, dict) else None
+                safe_code = code if isinstance(code, str) else "unknown"
+                _logger.warning(
+                    "supabase_profile_rpc_failed status=%s code=%s",
+                    response.status_code,
+                    safe_code,
+                )
                 raise RepositoryUnavailable("Persistence temporarily unavailable")
             profiles = _profiles.validate_json(response.content)
             if len(profiles) != 1:
+                _logger.warning("supabase_profile_rpc_invalid_result")
                 raise RepositoryUnavailable("Persistence temporarily unavailable")
             return profiles[0]
-        except (httpx.HTTPError, ValidationError) as error:
+        except httpx.HTTPError as error:
+            _logger.warning(
+                "supabase_profile_rpc_transport_failed error_type=%s",
+                type(error).__name__,
+            )
+            raise RepositoryUnavailable("Persistence temporarily unavailable") from error
+        except ValidationError as error:
+            _logger.warning("supabase_profile_rpc_invalid_payload")
             raise RepositoryUnavailable("Persistence temporarily unavailable") from error
 
     async def _profile_request(

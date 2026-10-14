@@ -25,3 +25,11 @@
 - Deliberate break: temporarily restored unconditional Bearer authorization; the new regression test failed on the missing-header assertion, then the correct implementation was restored.
 - Final backend validation: `UV_CACHE_DIR=/tmp/linksifty-uv-cache uv run --package linksifty pytest backend/tests -q` → **94 passed** (one existing Starlette/httpx deprecation warning); strict mypy passed for 23 source files; Ruff check passed; Ruff format check passed for 64 files.
 - `agent-toolkit check` was attempted and is unavailable (`command not found`). No production keys were read or used; mocked tests use only the placeholder `sb_secret_test`.
+
+## Supabase 503 diagnostic follow-up (2026-10-15)
+
+- TDD red: the new profile-RPC diagnostic test failed before logging was added because the response status and error code were absent from captured logs.
+- Green: `test_profile_rpc_logs_safe_provider_diagnostics_for_secret_key` passes with an HTTP mock returning 403/code `42501`; it also verifies the provider message is not logged.
+- Deliberate break: removed the provider-failure warning and reran the focused test; it failed because the expected status was missing. Restored the warning and reran the full suite.
+- Final verification: backend suite **94 passed** (one existing Starlette/httpx deprecation warning); strict mypy, Ruff check, Ruff format check, and `git diff --check` passed. `agent-toolkit check` is unavailable (`command not found`).
+- Diagnostic fields are limited to operation, HTTP status, Supabase error code, error class, and invalid-response category. No credentials, response message/body, email, or profile data are logged.
