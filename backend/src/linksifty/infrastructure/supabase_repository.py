@@ -1,6 +1,7 @@
 """User-scoped Supabase REST persistence with validated responses."""
 
 import logging
+from datetime import datetime
 from uuid import UUID
 
 import httpx
@@ -29,8 +30,14 @@ class AccountPolicyViolation(Exception):
         super().__init__(reason)
 
 
+class _StoredAccountProfile(AccountProfile):
+    """Full row shape returned by the profile RPC, including its audit timestamp."""
+
+    updated_at: datetime
+
+
 _items = TypeAdapter(list[ItemRecord])
-_profiles = TypeAdapter(list[AccountProfile])
+_profiles = TypeAdapter(list[_StoredAccountProfile])
 _logger = logging.getLogger(__name__)
 
 
@@ -133,7 +140,14 @@ class SupabaseRepository:
             if len(profiles) != 1:
                 _logger.warning("supabase_profile_rpc_invalid_result")
                 raise RepositoryUnavailable("Persistence temporarily unavailable")
-            return profiles[0]
+            stored_profile = profiles[0]
+            return AccountProfile(
+                user_id=stored_profile.user_id,
+                email=stored_profile.email,
+                status=stored_profile.status,
+                trial_links_used=stored_profile.trial_links_used,
+                created_at=stored_profile.created_at,
+            )
         except httpx.HTTPError as error:
             _logger.warning(
                 "supabase_profile_rpc_transport_failed error_type=%s",

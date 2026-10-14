@@ -33,3 +33,13 @@
 - Deliberate break: removed the provider-failure warning and reran the focused test; it failed because the expected status was missing. Restored the warning and reran the full suite.
 - Final verification: backend suite **94 passed** (one existing Starlette/httpx deprecation warning); strict mypy, Ruff check, Ruff format check, and `git diff --check` passed. `agent-toolkit check` is unavailable (`command not found`).
 - Diagnostic fields are limited to operation, HTTP status, Supabase error code, error class, and invalid-response category. No credentials, response message/body, email, or profile data are logged.
+
+## Supabase profile row compatibility fix (2026-10-15)
+
+- The owner supplied Render output `supabase_profile_rpc_invalid_payload`, which is logged only after an HTTP-success response fails Pydantic validation.
+- SQL evidence: `get_or_create_account_profile` returns `SETOF public.account_profiles`; the table includes `updated_at`. The server model `AccountProfile` has `extra="forbid"` and intentionally excludes that persistence-only field. This mismatch caused the 503.
+- TDD red: added `updated_at` to the successful RPC test response; it failed with `updated_at Extra inputs are not permitted`, reproducing production.
+- Green: added a strict internal stored-row model that validates `updated_at`, then projects only the application profile fields. The focused test passes.
+- Deliberate break: temporarily validated the RPC response directly as the strict application profile; the same regression test failed again. Restored the internal row adapter.
+- Full backend suite: **94 passed** (one existing Starlette/httpx deprecation warning); strict mypy, Ruff check, Ruff format check and `git diff --check` passed.
+- Updated production API test fixtures to mirror the full SQL row shape including `updated_at`.

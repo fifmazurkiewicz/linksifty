@@ -38,6 +38,7 @@ def test_authenticated_submission_persists_job_transaction_before_returning() ->
                         "status": "approved",
                         "trial_links_used": 0,
                         "created_at": "2026-10-14T10:00:00Z",
+                        "updated_at": "2026-10-14T10:00:00Z",
                     }
                 ],
             )
@@ -89,6 +90,7 @@ def test_other_users_item_remains_not_found_after_authentication() -> None:
                         "status": "approved",
                         "trial_links_used": 0,
                         "created_at": "2026-10-14T10:00:00Z",
+                        "updated_at": "2026-10-14T10:00:00Z",
                     }
                 ],
             )

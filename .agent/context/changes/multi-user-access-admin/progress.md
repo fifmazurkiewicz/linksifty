@@ -44,3 +44,10 @@ Finish integration review and record the artifact/check evidence. Stage 2 follow
 - Added privacy-safe backend logging for the profile RPC's upstream HTTP status and provider error code, plus transport/invalid-response categories. No response body, user data, or credentials are logged.
 - Added a request-level test proving the diagnostic appears for a provider error while its message is not exposed. TDD red/green/deliberate-break evidence is recorded below.
 - Validation passes: 94 backend tests, strict mypy, Ruff check and format. `agent-toolkit check` remains unavailable.
+
+## Supabase profile row compatibility fix (2026-10-15)
+
+- The owner provided the diagnostic log `supabase_profile_rpc_invalid_payload`. Inspection found the RPC returns `SETOF account_profiles`, including `updated_at`, while the strict application profile contract intentionally rejects unknown database columns.
+- Added an internal full-row model for the RPC response and explicitly maps it to the smaller application contract. This fixes the observed 503 without relaxing the public model's strictness.
+- Updated the repository test to match the actual SQL row shape. Red/green/deliberate-break evidence and final checks are in `evidence.md`.
+- Updated affected authenticated API test fixtures to include `updated_at`; all 94 backend tests and required type/lint/format checks pass.

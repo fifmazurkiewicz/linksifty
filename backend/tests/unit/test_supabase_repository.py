@@ -91,6 +91,7 @@ def test_profile_bootstrap_uses_verified_identity_and_server_admin_decision() ->
                     "status": "approved",
                     "trial_links_used": 0,
                     "created_at": "2026-10-14T10:00:00Z",
+                    "updated_at": "2026-10-14T10:00:00Z",
                 }
             ],
         )
