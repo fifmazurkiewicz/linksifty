@@ -4,11 +4,11 @@ Follow the [complete setup guide](setup.md) for account creation, compatible API
 keys, Auth settings, migrations, Render/Vercel environment variables and staging
 checks. This page is the short Supabase reference.
 
-The current server repository adapter requires the legacy `service_role` JWT
-because it sends that key in an Authorization Bearer header. Do not substitute
-an `sb_secret_...` key without adapting those headers. Supabase recommends the
-new publishable/secret keys and is deprecating legacy keys; key migration remains
-necessary before long-term activation. See the complete guide for official sources.
+The server repository adapter accepts either a legacy `service_role` JWT or a
+new `sb_secret_...` key. Legacy keys are sent in `apikey` and `Authorization:
+Bearer`; new secret keys are sent only in `apikey`, as required by Supabase.
+The browser key may be a publishable `sb_publishable_...` key or legacy `anon`
+JWT. See the complete guide for official sources.
 
 Apply the files in `supabase/migrations/` in filename order. The second migration restricts RPC execution to the server service role and adds transactional submission of items and jobs. No migration has been executed on a hosted project by this agent.
 

@@ -60,7 +60,9 @@ class SupabaseRepository:
 
     def __init__(self, url: str, service_key: str, client: httpx.AsyncClient) -> None:
         self._url = f"{url.rstrip('/')}/rest/v1"
-        self._headers = {"apikey": service_key, "Authorization": f"Bearer {service_key}"}
+        self._headers = {"apikey": service_key}
+        if not service_key.startswith("sb_secret_"):
+            self._headers["Authorization"] = f"Bearer {service_key}"
         self._client = client
 
     async def _request(

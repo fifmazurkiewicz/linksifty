@@ -56,21 +56,18 @@ provider credentials → staging checks → release verification after coding**.
 
 ### 3.2 Collect compatible API keys
 
-Open **Settings → API Keys**. For the current repository configuration, obtain:
+Open **Settings → API Keys** and use either the recommended new keys or legacy
+keys:
 
-- Legacy **anon** JWT → `SUPABASE_ANON_KEY`.
-- Legacy **service_role** JWT → `SUPABASE_SERVICE_ROLE_KEY`, server-only.
+- **Publishable** (`sb_publishable_...`) or legacy **anon** JWT →
+  `SUPABASE_ANON_KEY` on Render and `VITE_SUPABASE_ANON_KEY` on Vercel.
+- **Secret** (`sb_secret_...`) or legacy **service_role** JWT →
+  `SUPABASE_SERVICE_ROLE_KEY` on Render, server-only.
 
-The repository currently sends its service key as both `apikey` and a Bearer
-JWT. Therefore **do not substitute an `sb_secret_...` key into the service-role
-variable without updating the adapter first**. The anon variable is used only
-as `apikey`, but the documented current baseline uses the matching legacy pair.
-
-Supabase now recommends publishable/secret keys and says legacy keys are being
-deprecated by the end of 2026. Migrating the adapter is required before relying
-on this setup long term. If legacy keys are unavailable/disabled, pause backend
-activation and update key handling; do not weaken authentication to work around it.
-[API key types and header rules](https://supabase.com/docs/guides/getting-started/api-keys).
+The backend sends new secret keys only in `apikey`; legacy service-role JWTs are
+sent in both `apikey` and `Authorization: Bearer`. Never put a secret/service-role
+key in Vercel or any `VITE_` variable. Supabase's [API key guide](https://supabase.com/docs/guides/getting-started/api-keys)
+explains the key formats and migration timeline.
 
 ### 3.3 Apply the development schema
 
@@ -372,8 +369,8 @@ LINKSIFTY_ADMIN_EMAIL=<verified-owner-google-email>
 RESEND_API_KEY=<resend-key>
 RESEND_FROM_EMAIL=<verified-sender>
 SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_ANON_KEY=<legacy-anon-JWT>
-SUPABASE_SERVICE_ROLE_KEY=<legacy-service-role-JWT>
+SUPABASE_ANON_KEY=<sb_publishable-key-or-legacy-anon-JWT>
+SUPABASE_SERVICE_ROLE_KEY=<sb_secret-key-or-legacy-service-role-JWT>
 OPENROUTER_API_KEY=
 X_API_BEARER_TOKEN=
 LINKSIFTY_DEMO_MODE=false
@@ -397,7 +394,7 @@ Create untracked `frontend/.env.local`:
 ```dotenv
 VITE_API_BASE_URL=http://127.0.0.1:8000
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<supabase-publishable-or-anon-key>
+VITE_SUPABASE_ANON_KEY=<sb_publishable-key-or-legacy-anon-JWT>
 ```
 
 Inside `frontend/`:

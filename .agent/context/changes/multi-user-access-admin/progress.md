@@ -30,3 +30,10 @@ Finish integration review and record the artifact/check evidence. Stage 2 follow
 - Archify candidate validation, delivery and strict artifact checks pass; browser check is skipped because Chrome/Chromium is unavailable.
 - `agent-toolkit check` remains unavailable because `agent-toolkit` is not on PATH.
 - Stage 1 is implemented locally and has passed the pre-push implementation review. The owner requested pushing to `main`; hosted migrations, environment updates, OAuth/Resend setup and live acceptance remain separate activation steps documented in the setup guide.
+
+## Supabase API key compatibility follow-up (2026-10-15)
+
+- Added support for Supabase's current `sb_secret_...` backend key format. New secret keys are sent only as `apikey`; legacy `service_role` JWTs retain both `apikey` and Bearer headers.
+- Updated Supabase deployment instructions to accept publishable/secret keys and legacy anon/service-role keys in the matching server/browser variables.
+- Added a request-level regression test. It failed against the old Bearer behavior, passed after the fix, and failed again after deliberately restoring the regression.
+- Backend suite passes (94 tests), strict mypy passes, and Ruff check/format pass. `agent-toolkit check` remains unavailable (`command not found`).

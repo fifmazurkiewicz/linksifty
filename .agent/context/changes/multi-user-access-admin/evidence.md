@@ -17,3 +17,11 @@
 - No hosted Supabase migration, Google OAuth, Resend sender, Vercel, or Render settings were changed. The setup guide documents the owner steps. Set the private admin email only in Render as `LINKSIFTY_ADMIN_EMAIL`.
 - Stage 2 USD usage ledger and OpenRouter enforcement remain unimplemented, as approved: they follow Stage 1 and the source-safe assessment runner.
 - The domain remains the configured production frontend origin in the docs; deployment of this local work has not been performed.
+
+## Supabase API key compatibility follow-up (2026-10-15)
+
+- TDD red: `UV_CACHE_DIR=/tmp/linksifty-uv-cache uv run --package linksifty pytest backend/tests/unit/test_supabase_repository.py::test_new_secret_key_is_not_sent_as_a_bearer_token -q` failed because the repository sent `Authorization: Bearer sb_secret_test`.
+- Green: the focused repository test passed after the adapter omitted Authorization for the new `sb_secret_` key prefix. Legacy JWT header behavior remains covered by `test_profile_bootstrap_uses_verified_identity_and_server_admin_decision`.
+- Deliberate break: temporarily restored unconditional Bearer authorization; the new regression test failed on the missing-header assertion, then the correct implementation was restored.
+- Final backend validation: `UV_CACHE_DIR=/tmp/linksifty-uv-cache uv run --package linksifty pytest backend/tests -q` → **94 passed** (one existing Starlette/httpx deprecation warning); strict mypy passed for 23 source files; Ruff check passed; Ruff format check passed for 64 files.
+- `agent-toolkit check` was attempted and is unavailable (`command not found`). No production keys were read or used; mocked tests use only the placeholder `sb_secret_test`.
