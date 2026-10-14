@@ -1,0 +1,187 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Linksifty — docelowy cykl analizy (projekt)",
+    "output": ".agent/context/changes/processing-usage-inbox/lifecycle.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Przetwarzanie linku"
+    },
+    {
+      "id": "waiting",
+      "label": "Wymaga działania"
+    },
+    {
+      "id": "recovery",
+      "label": "Rozstrzygnięcie wywołania"
+    },
+    {
+      "id": "terminal",
+      "label": "Błąd końcowy"
+    }
+  ],
+  "states": [
+    {
+      "id": "queued",
+      "type": "start",
+      "label": "W kolejce",
+      "sublabel": "trwałe zadanie",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "fetch",
+      "type": "active",
+      "label": "Pobieranie",
+      "sublabel": "kontrola kompletności",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "reserve",
+      "type": "decision",
+      "label": "Budżet",
+      "sublabel": "atomowa rezerwacja",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "analyze",
+      "type": "active",
+      "label": "Analiza",
+      "sublabel": "model i zapis wyniku",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "done",
+      "type": "success",
+      "label": "Gotowe",
+      "sublabel": "ocena i cytaty",
+      "lane": "main",
+      "col": 4
+    },
+    {
+      "id": "manual",
+      "type": "waiting",
+      "label": "Wklej treść",
+      "sublabel": "brak pełnej strony",
+      "lane": "waiting",
+      "col": 1
+    },
+    {
+      "id": "budget",
+      "type": "waiting",
+      "label": "Limit USD",
+      "sublabel": "brak dostępnego budżetu",
+      "lane": "waiting",
+      "col": 2
+    },
+    {
+      "id": "unknown",
+      "type": "waiting",
+      "label": "Koszt nieznany",
+      "sublabel": "rezerwacja pozostaje",
+      "lane": "recovery",
+      "col": 3
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "Niepowodzenie",
+      "sublabel": "bez pozornej oceny",
+      "lane": "terminal",
+      "col": 4
+    }
+  ],
+  "transitions": [
+    {
+      "from": "queued",
+      "to": "fetch"
+    },
+    {
+      "from": "fetch",
+      "to": "reserve",
+      "label": "pełna treść"
+    },
+    {
+      "from": "reserve",
+      "to": "analyze",
+      "label": "przyznano"
+    },
+    {
+      "from": "analyze",
+      "to": "done",
+      "label": "zapisano"
+    },
+    {
+      "from": "fetch",
+      "to": "manual",
+      "label": "niepełna",
+      "variant": "security"
+    },
+    {
+      "from": "manual",
+      "to": "reserve",
+      "label": "wklejono"
+    },
+    {
+      "from": "reserve",
+      "to": "budget",
+      "label": "brak środków",
+      "variant": "security"
+    },
+    {
+      "from": "budget",
+      "to": "reserve",
+      "label": "wznów"
+    },
+    {
+      "from": "analyze",
+      "to": "unknown",
+      "label": "timeout",
+      "variant": "security"
+    },
+    {
+      "from": "unknown",
+      "to": "done",
+      "label": "wynik zapisany"
+    },
+    {
+      "from": "unknown",
+      "to": "failed",
+      "label": "rozstrzygnięto błąd"
+    },
+    {
+      "from": "analyze",
+      "to": "failed",
+      "label": "błędny wynik",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Projekt do wdrożenia",
+      "items": [
+        "Diagram jest kontraktem docelowym, nie opisem wdrożonego wykonawcy.",
+        "Postęp pochodzi z trwałego stanu; odbiór wymaga sesji właściciela.",
+        "Zapis obejmuje rozliczenie kosztu i kompletny wynik."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Bezpieczne wznowienie",
+      "items": [
+        "Brak kompletnej treści zatrzymuje analizę przed modelem.",
+        "Limit można podnieść; wznowienie jest świadomą akcją użytkownika.",
+        "Nieznany koszt blokuje powtórne płatne wywołanie tej próby.",
+        "Przerwane lokalne wykonanie odzyskuje dzierżawę bez dublowania kosztów."
+      ]
+    }
+  ]
+}

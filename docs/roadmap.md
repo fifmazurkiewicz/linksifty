@@ -1,6 +1,6 @@
 # Linksifty product roadmap
 
-Canonical product roadmap · updated 2026-10-14. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
+Canonical product roadmap · updated 2026-10-15. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
 
 | Milestone | Status | Current evidence | Remaining deliverable | Completion cards |
 | --- | --- | --- | --- | --- |
@@ -25,6 +25,8 @@ Canonical product roadmap · updated 2026-10-14. [Derived Kanban](roadmap-kanban
 - “Done” distinguishes local code evidence from live service validation. No production readiness is currently claimed.
 
 ## Sequence and blockers
+
+Owner approved the scope of the processing/usage/inbox change on 2026-10-15. Its [written specification](superpowers/specs/2026-10-15-processing-usage-inbox-design.md) is awaiting owner review before technical planning. It refines M3–M5 and M9: real execution and live progress, manual recovery/detail, persisted threshold, actual USD usage and administrator caps. M9 remains Planned; no additional implementation completion is claimed. The [target lifecycle](../.agent/context/changes/processing-usage-inbox/lifecycle.html) is a design artifact, not production evidence.
 
 Epiki C1–C8 mają 40 podzadań wykonawczych C1.1–C8.5 z opisami, testami i zależnościami w completion plan. [Kanban szczegółowy](../.agent/context/changes/linksifty-personal-mvp/plan-kanban.html) pokazuje następne kroki i rozwijaną pełną listę. Roadmapa pozostaje widokiem milestone'ów.
 
