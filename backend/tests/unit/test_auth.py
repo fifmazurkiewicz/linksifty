@@ -16,19 +16,29 @@ from linksifty.main import create_app
 USER_ID = "11111111-1111-4111-8111-111111111111"
 
 
-def test_authenticator_uses_server_verified_identity() -> None:
+def test_authenticator_returns_server_verified_identity() -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/auth/v1/user"
         assert request.headers["Authorization"] == "Bearer test-token"
         assert request.headers["apikey"] == "test-key"
-        return httpx.Response(200, json={"id": USER_ID})
+        return httpx.Response(
+            200,
+            json={
+                "id": USER_ID,
+                "email": "admin@example.com",
+                "email_confirmed_at": "2026-10-14T10:00:00Z",
+            },
+        )
 
-    async def run() -> UUID:
+    async def run() -> object:
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
             auth = SupabaseAuthenticator("https://supabase.example", "test-key", client)
             return await auth.verify("test-token")
 
-    assert asyncio.run(run()) == UUID(USER_ID)
+    identity = asyncio.run(run())
+    assert identity.user_id == UUID(USER_ID)
+    assert identity.email == "admin@example.com"
+    assert identity.email_verified
 
 
 @pytest.mark.parametrize("status", [401, 403])
@@ -44,7 +54,7 @@ def test_invalid_tokens_are_rejected(status: int) -> None:
         asyncio.run(run())
 
 
-@pytest.mark.parametrize("payload", [{}, {"id": "not-a-uuid"}])
+@pytest.mark.parametrize("payload", [{}, {"id": "not-a-uuid"}, {"id": USER_ID}])
 def test_malformed_provider_identity_fails_closed(payload: dict[str, str]) -> None:
     async def run() -> None:
         transport = httpx.MockTransport(lambda _: httpx.Response(200, json=payload))
@@ -93,7 +103,16 @@ def test_authenticator_timeout_does_not_admit_user() -> None:
 def test_verified_production_identity_never_receives_demo_data() -> None:
     settings = Settings(supabase_url="https://supabase.example", supabase_anon_key="test-key")
     with TestClient(create_app(settings)) as client:
-        transport = httpx.MockTransport(lambda _: httpx.Response(200, json={"id": USER_ID}))
+        transport = httpx.MockTransport(
+            lambda _: httpx.Response(
+                200,
+                json={
+                    "id": USER_ID,
+                    "email": "user@example.com",
+                    "email_confirmed_at": "2026-10-14T10:00:00Z",
+                },
+            )
+        )
         async_client = httpx.AsyncClient(transport=transport)
         client.app.state.authenticator = SupabaseAuthenticator(
             settings.supabase_url or "", "test-key", async_client

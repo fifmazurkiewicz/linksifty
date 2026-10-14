@@ -12,12 +12,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, HttpUrl
 
+from linksifty.api import accounts, admin
 from linksifty.api.auth import CurrentUser
+from linksifty.application.account_contracts import AccountService
 from linksifty.application.item_contracts import ItemRecord
 from linksifty.application.item_service import ItemService
 from linksifty.config import Settings
+from linksifty.infrastructure.resend_client import ResendApprovalMailer
 from linksifty.infrastructure.supabase_auth import SupabaseAuthenticator
 from linksifty.infrastructure.supabase_repository import (
+    AccountPolicyViolation,
     RepositoryUnavailable,
     SupabaseRepository,
 )
@@ -86,18 +90,37 @@ def create_app(
                     configuration.supabase_url, configuration.supabase_service_role_key, client
                 )
                 application.state.items = ItemService(repository)
+                mailer = (
+                    ResendApprovalMailer(
+                        configuration.resend_api_key,
+                        configuration.resend_from_email,
+                        client,
+                    )
+                    if configuration.resend_api_key and configuration.resend_from_email
+                    else None
+                )
+                application.state.accounts = AccountService(
+                    repository, configuration.linksifty_admin_email, mailer
+                )
             yield
 
     app = FastAPI(title="Linksifty", lifespan=lifespan)
+    app.include_router(accounts.router)
+    app.include_router(admin.router)
     app.state.settings = configuration
     app.state.authenticator = None
     app.state.items = None
+    app.state.accounts = None
 
     @app.exception_handler(RepositoryUnavailable)
     async def persistence_error(request: Request, error: RepositoryUnavailable) -> JSONResponse:
         return JSONResponse(
             status_code=503, content={"detail": "Persistence temporarily unavailable"}
         )
+
+    @app.exception_handler(AccountPolicyViolation)
+    async def account_policy_error(request: Request, error: AccountPolicyViolation) -> JSONResponse:
+        return JSONResponse(status_code=403, content={"detail": str(error)})
 
     app.add_middleware(
         CORSMiddleware,
@@ -106,7 +129,7 @@ def create_app(
             if configuration.frontend_origin
             else ["http://localhost:5173", "http://127.0.0.1:5173"]
         ),
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PATCH", "PUT"],
         allow_headers=["Content-Type", "Authorization"],
     )
 

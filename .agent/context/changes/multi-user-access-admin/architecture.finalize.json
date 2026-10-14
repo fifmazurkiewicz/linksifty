@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-13T23:47:14.201Z",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.json",
+    "sha256": "1ab9190198da6d11b6433541445fa77c2ed223c60718428bc32783956b978291",
+    "bytes": 3222
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+    "sha256": "abe321712f840c4d6319393055b2630a1afa41fca9763cf46fea773ac143fbd0",
+    "bytes": 761159
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.json",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "1ab9190198da6d11b6433541445fa77c2ed223c60718428bc32783956b978291",
+          "bytes": 3222
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 227,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.json",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "bf1ff389-ca55-417a-8c2b-fe9b0654706d",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.json",
+        "output": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+        "specification": {
+          "sha256": "1ab9190198da6d11b6433541445fa77c2ed223c60718428bc32783956b978291",
+          "bytes": 3222
+        },
+        "artifact": {
+          "sha256": "abe321712f840c4d6319393055b2630a1afa41fca9763cf46fea773ac143fbd0",
+          "bytes": 761159
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 111,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+        "artifact": {
+          "sha256": "abe321712f840c4d6319393055b2630a1afa41fca9763cf46fea773ac143fbd0",
+          "bytes": 761159
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 7.6,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 2,
+            "maxStretch": 1.283,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 16,
+            "minInteriorSegmentPx": 16,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": [
+              {
+                "relationship": {
+                  "id": "session-browser",
+                  "from": "supabase-auth",
+                  "to": "browser",
+                  "label": "redirect + session",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "bends": 4,
+                "stretch": 1.283
+              },
+              {
+                "relationship": {
+                  "id": "verify-token",
+                  "from": "api",
+                  "to": "supabase-auth",
+                  "label": "validate token + email",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "bends": 3,
+                "stretch": 1
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 74,
+            "emptyTopRatio": 0.141,
+            "occupiedTop": 74,
+            "viewBoxTop": 0,
+            "canvasHeight": 526,
+            "typicalNodeHeight": 68,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1072.5,
+            "actualBudgetPx": 1072.5,
+            "actualReaderWidth": 1102.5,
+            "desiredReaderWidth": 1102.5,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "user-browser",
+              "from": "person",
+              "to": "browser"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.5,
+            "semanticTextCount": 24
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "bf1ff389-ca55-417a-8c2b-fe9b0654706d"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 8,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "bf1ff389-ca55-417a-8c2b-fe9b0654706d",
+        "artifact": {
+          "path": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+          "sha256": "abe321712f840c4d6319393055b2630a1afa41fca9763cf46fea773ac143fbd0",
+          "bytes": 761159
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "architecture.browser-check.json",
+          "files": []
+        },
+        "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-13T23:47:14.637Z",
+  "durationMs": 435,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  }
+}

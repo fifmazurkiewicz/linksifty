@@ -1,15 +1,16 @@
 # Linksifty architecture
 
-Updated 2026-10-13. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
+Updated 2026-10-14. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
 
 ## Implemented request path
 
-1. Production API requests require a bearer token. `api/auth.py` asks Supabase's authenticated user endpoint to validate it and returns the verified UUID. Missing/rejected tokens return 401; unavailable authentication returns 503.
+1. The browser starts Google OAuth through Supabase and restores its session. Every API request sends that session's access token. `api/auth.py` asks Supabase's authenticated user endpoint to validate it and returns the verified UUID and email. Missing/rejected tokens return 401; unavailable authentication returns 503.
 2. FastAPI routes pass that UUID to `ItemService`. The service uses the application repository contract; concrete Supabase HTTP integration is wired in the entrypoint.
 3. Every repository query includes an owner predicate. Submission calls the server-only `submit_fetch_items` transaction to insert item and job together before returning 202. List and detail routes are wired; read/delete repository methods still need routes.
-4. Explicit `LINKSIFTY_DEMO_MODE=true` enables sample responses. Demo responses carry `demo: true`; production defaults to false. The frontend still needs login/session/token handling.
+4. `/v1/me` creates a pending profile for new users and reports the verified owner as admin only when `LINKSIFTY_ADMIN_EMAIL` matches. Pending users may submit three trial links; rejected users are blocked. The admin API returns account metadata only and never exposes another user's content. Approval mail is sent through Resend after the status transaction commits.
+5. Explicit `LINKSIFTY_DEMO_MODE=true` enables sample responses. Demo responses carry `demo: true`; production defaults to false.
 
-This path is verified using mocked HTTP; no hosted migration or RLS test has run.
+This path is verified using mocked HTTP and frontend tests; no hosted migration or RLS test has run.
 
 ## Planned processing path
 
@@ -24,6 +25,8 @@ Supabase migrations define items, content, jobs, assessments, citations, chat an
 Provider credentials remain on the server. Application orchestration depends on contracts; deterministic scoring has no FastAPI/database/provider imports. All fetched/pasted/provider text is untrusted. Every operation, including future chat/read/delete endpoints, must preserve verified owner scope.
 
 ## Diagrams
+
+- [Account access and approval HTML](../../.agent/context/changes/multi-user-access-admin/architecture.html) · [editable JSON](../../.agent/context/changes/multi-user-access-admin/architecture.json) (Stage 1 target and local implementation; hosted activation remains manual)
 
 The new diagrams are planning views: solid current request relationships and labelled planned relationships. They are not evidence of deployment. Earlier diagrams are retained as historical design artifacts.
 

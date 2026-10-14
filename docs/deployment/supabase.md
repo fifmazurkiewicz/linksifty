@@ -14,6 +14,14 @@ Apply the files in `supabase/migrations/` in filename order. The second migratio
 
 Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` on the backend. The backend validates each bearer token with `/auth/v1/user` before using its verified UUID for repository queries. Service-role credentials remain server-only.
 
+The Vite app also needs the public `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` on Vercel. Enable Google under **Authentication → Sign
+In / Providers**, configure the Google OAuth web client with Supabase's displayed
+callback URL, and set the Supabase Site URL and redirect allowlist to the exact
+production frontend origin (`https://linksifty.fmazurkiewicz.dev/`) and local
+development origin (`http://localhost:5173/`). Never expose the service-role
+key in Vercel or any `VITE_` variable.
+
 Keep `LINKSIFTY_DEMO_MODE=false` on Render. Set `FRONTEND_ORIGIN` to the exact Vercel frontend origin. Missing or invalid authentication returns 401; unavailable auth or persistence returns 503.
 
 Local demo mode uses sample records and does not persist submissions. Real submission calls `submit_fetch_items` to create each item and queued job in one transaction. Processing jobs is still being implemented, so currently real submissions remain queued.

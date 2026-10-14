@@ -1,9 +1,12 @@
 """Verify bearer tokens using Supabase's authenticated user endpoint."""
 
+from datetime import datetime
 from uuid import UUID
 
 import httpx
 from pydantic import BaseModel, ValidationError
+
+from linksifty.application.account_contracts import AuthenticatedIdentity
 
 
 class InvalidToken(Exception):
@@ -16,6 +19,9 @@ class AuthenticationUnavailable(Exception):
 
 class _UserIdentity(BaseModel):
     id: UUID
+    email: str
+    email_confirmed_at: datetime | None = None
+    confirmed_at: datetime | None = None
 
 
 class SupabaseAuthenticator:
@@ -26,7 +32,7 @@ class SupabaseAuthenticator:
         self._api_key = api_key
         self._client = client
 
-    async def verify(self, token: str) -> UUID:
+    async def verify(self, token: str) -> AuthenticatedIdentity:
         try:
             response = await self._client.get(
                 self._url,
@@ -41,6 +47,11 @@ class SupabaseAuthenticator:
         if response.status_code != 200:
             raise AuthenticationUnavailable
         try:
-            return _UserIdentity.model_validate_json(response.content).id
+            user = _UserIdentity.model_validate_json(response.content)
+            return AuthenticatedIdentity(
+                user_id=user.id,
+                email=user.email,
+                email_verified=bool(user.email_confirmed_at or user.confirmed_at),
+            )
         except ValidationError as error:
             raise AuthenticationUnavailable from error

@@ -1,6 +1,6 @@
-# Linksifty personal MVP roadmap
+# Linksifty product roadmap
 
-Canonical product roadmap · updated 2026-10-13. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
+Canonical product roadmap · updated 2026-10-14. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
 
 | Milestone | Status | Current evidence | Remaining deliverable | Completion cards |
 | --- | --- | --- | --- | --- |
@@ -11,6 +11,8 @@ Canonical product roadmap · updated 2026-10-13. [Derived Kanban](roadmap-kanban
 | M5 Inbox and detail | In progress | Inbox/Add preview uses API | Authentication, filters, detail, read/delete/recovery and persisted threshold | C5, C6 |
 | M6 Chat and source enrichment | Planned | Product contracts only | Grounded chat, five-source checking, official X adapter | C7 |
 | M7 Validation and release | In progress | C8.1 GitHub CI and Docker build/smoke verified; 73 mock-backed backend tests, mypy/Ruff and frontend lint/build | Frontend behavior tests, log redaction, deployment artifacts, real RLS and 20-link evaluation | C8, E1 |
+| M8 Google access and account approval | In progress | Backend access rules, admin API, Resend flow and authenticated frontend implemented locally; mock suites pass | Apply and validate database migrations, configure hosted Google OAuth/Resend, run hosted account-flow check | [Implementation plan](superpowers/plans/2026-10-14-multi-user-access-admin.md) |
+| M9 Per-user model spend | Planned | Existing per-user whole-cent setting; no provider runner or usage ledger | OpenRouter per-call USD ledger, atomic UTC-month reservations, admin caps and user/admin usage views | [Implementation plan](superpowers/plans/2026-10-14-multi-user-access-admin.md) |
 
 ## Delivery rules
 
@@ -19,11 +21,11 @@ Canonical product roadmap · updated 2026-10-13. [Derived Kanban](roadmap-kanban
 - A failed/partial source requests pasted content and creates no assessment.
 - Threshold changes affect future results only; every completed assessment stores its threshold.
 - 30-day deletion requires cleanup execution; an expiry timestamp alone is not deletion.
-- No public signup/admin content access, Jev/System One, or scope expansion.
+- The approved M8/M9 scope supersedes the earlier personal-only exclusion of public signup and account administration. Admins still cannot access another user's content. Jev/System One remains excluded.
 - “Done” distinguishes local code evidence from live service validation. No production readiness is currently claimed.
 
 ## Sequence and blockers
 
 Epiki C1–C8 mają 40 podzadań wykonawczych C1.1–C8.5 z opisami, testami i zależnościami w completion plan. [Kanban szczegółowy](../.agent/context/changes/linksifty-personal-mvp/plan-kanban.html) pokazuje następne kroki i rozwijaną pełną listę. Roadmapa pozostaje widokiem milestone'ów.
 
-C1 and independent C2/C3 tests → C4 → C5 → C6/C7 → C8. E1: Supabase/X/OpenRouter credentials, real database checks and hosted evaluation. C8.1 is Done for current local CI scope. C1.1 awaits a local PostgreSQL runtime for its SQL gate; C2.1 URL/DNS safety is Done (local mocked evidence); C2.2 safe redirects is next Ready. Missing credentials do not block coding. Missing agent-toolkit runtime blocks that particular quality check until restored.
+C1 and independent C2/C3 tests → C4 → C5 → C6/C7 → C8. M8 can proceed alongside the remaining MVP coding; M9 depends on the source-safe assessment pipeline in C2–C4 and then its usage accounting. E1: Supabase/X/OpenRouter credentials, real database checks and hosted evaluation. C8.1 is Done for current local CI scope. C1.1 awaits a local PostgreSQL runtime for its SQL gate; C2.1 URL/DNS safety is Done (local mocked evidence); C2.2 safe redirects is next Ready. Missing credentials do not block coding. Missing agent-toolkit runtime blocks that particular quality check until restored.

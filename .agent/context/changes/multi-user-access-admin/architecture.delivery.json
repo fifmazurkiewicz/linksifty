@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bf1ff389-ca55-417a-8c2b-fe9b0654706d",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/multi-user-access-admin/architecture.html",
+  "specification": {
+    "sha256": "1ab9190198da6d11b6433541445fa77c2ed223c60718428bc32783956b978291",
+    "bytes": 3222
+  },
+  "artifact": {
+    "sha256": "abe321712f840c4d6319393055b2630a1afa41fca9763cf46fea773ac143fbd0",
+    "bytes": 761159
+  }
+}

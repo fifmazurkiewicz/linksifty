@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Linksifty account access and approval",
+    "output": ".agent/context/changes/multi-user-access-admin/architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "person", "type": "external", "label": "User", "sublabel": "Reader or administrator", "pos": [36, 255], "size": [142, 68] },
+    { "id": "browser", "type": "frontend", "label": "Vercel frontend", "sublabel": "Supabase session · admin panel", "pos": [264, 255], "size": [190, 74] },
+    { "id": "google", "type": "external", "label": "Google", "sublabel": "OIDC identity", "pos": [36, 74], "size": [142, 68] },
+    { "id": "supabase-auth", "type": "security", "label": "Supabase Auth", "sublabel": "Google OAuth · verified email", "pos": [264, 74], "size": [190, 68] },
+    { "id": "api", "type": "backend", "label": "FastAPI on Render", "sublabel": "Bearer verification · account policy", "pos": [596, 255], "size": [210, 74] },
+    { "id": "database", "type": "database", "label": "Supabase Postgres", "sublabel": "profiles · notifications · user data", "pos": [884, 145], "size": [220, 74] },
+    { "id": "resend", "type": "external", "label": "Resend", "sublabel": "Approval email after commit", "pos": [884, 390], "size": [220, 68] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Server-only credentials stay on Render", "wraps": ["api"] }
+  ],
+  "connections": [
+    { "id": "user-browser", "from": "person", "to": "browser", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "start-oauth", "from": "browser", "to": "supabase-auth", "label": "Google sign-in", "fromSide": "top", "toSide": "bottom" },
+    { "id": "google-auth", "from": "google", "to": "supabase-auth", "label": "OIDC", "variant": "security" },
+    { "id": "session-browser", "from": "supabase-auth", "to": "browser", "label": "redirect + session", "fromSide": "bottom", "toSide": "top" },
+    { "id": "bearer-api", "from": "browser", "to": "api", "label": "API calls + access token", "variant": "emphasis" },
+    { "id": "verify-token", "from": "api", "to": "supabase-auth", "label": "validate token + email", "fromSide": "top", "toSide": "right", "variant": "security" },
+    { "id": "account-data", "from": "api", "to": "database", "label": "profile, status, trial + email state RPC" },
+    { "id": "owned-data", "from": "api", "to": "database", "label": "content queries scoped to verified user", "fromSide": "bottom", "toSide": "bottom" },
+    { "id": "approval-email", "from": "api", "to": "resend", "label": "only after approval commits", "fromSide": "bottom", "toSide": "left", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Account rules", "items": ["First sign-in creates a pending profile", "Pending accounts may use three trial links", "Only the configured verified identity is admin"] },
+    { "dot": "cyan", "title": "Content isolation", "items": ["Admin views account metadata only", "Every link and assessment query stays user-scoped"] },
+    { "dot": "rose", "title": "Approval email", "items": ["Approval commits before Resend is called", "Delivery failure keeps approval and supports retry"] }
+  ]
+}
