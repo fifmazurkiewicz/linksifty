@@ -3,10 +3,14 @@
 import httpx
 
 from linksifty.application.research_contracts import SearchResponse
+from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 
 
 class BraveSearch:
-    def __init__(self, key: str, client: httpx.AsyncClient) -> None:
+    def __init__(
+        self, key: str, client: httpx.AsyncClient, *, telemetry: LangfuseTelemetry | None = None
+    ) -> None:
+        self._telemetry = telemetry or LangfuseTelemetry()
         self._key = key
         self._client = client
 
@@ -21,6 +25,7 @@ class BraveSearch:
                 timeout=15,
                 follow_redirects=False,
             ) as response:
+                self._telemetry.event("brave.http_response", {"status_code": response.status_code})
                 if response.status_code != 200:
                     return SearchResponse()  # Never assume an unsuccessful request was free.
                 confirmed = True
@@ -28,6 +33,7 @@ class BraveSearch:
                 async for chunk in response.aiter_bytes():
                     body.extend(chunk)
                     if len(body) > 500000:
+                        self._telemetry.event("brave.invalid_response", {"reason": "too_large"})
                         return SearchResponse(confirmed=True)
             import json
 
@@ -42,5 +48,8 @@ class BraveSearch:
                 if isinstance(row, dict) and isinstance(row.get("url"), str)
             )
             return SearchResponse(confirmed=True, urls=urls)
-        except (httpx.HTTPError, ValueError):
+        except (httpx.HTTPError, ValueError) as error:
+            self._telemetry.event(
+                "brave.request_failed", {"exception": type(error).__name__, "confirmed": confirmed}
+            )
             return SearchResponse(confirmed=confirmed)

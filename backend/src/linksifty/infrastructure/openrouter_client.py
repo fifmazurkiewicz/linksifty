@@ -65,12 +65,27 @@ class OpenRouterClient:
     async def assess(
         self, text: str, *, sources: list[EvidenceSource] | None = None
     ) -> ModelResult:
-        with self._telemetry.generation(self._model) as record:
-            result = await self._assess(text, sources=sources or [])
+        messages = [
+            {"role": "system", "content": _SYSTEM},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    [
+                        {"id": "primary", "text": text},
+                        *[{"id": source.id, "text": source.text} for source in sources or []],
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+        with self._telemetry.generation(self._model, input=messages) as record:
+            result = await self._assess(text, sources=sources or [], messages=messages)
             record(result)
             return result
 
-    async def _assess(self, text: str, *, sources: list[EvidenceSource]) -> ModelResult:
+    async def _assess(
+        self, text: str, *, sources: list[EvidenceSource], messages: list[dict[str, str]]
+    ) -> ModelResult:
         self.estimate(text)  # Fail closed even when an adapter caller omits reservation.
         try:
             response = await self._client.post(
@@ -78,19 +93,7 @@ class OpenRouterClient:
                 headers={"Authorization": f"Bearer {self._key}", "X-OpenRouter-Title": "Linksifty"},
                 json={
                     "model": self._model,
-                    "messages": [
-                        {"role": "system", "content": _SYSTEM},
-                        {
-                            "role": "user",
-                            "content": json.dumps(
-                                [
-                                    {"id": "primary", "text": text},
-                                    *[{"id": source.id, "text": source.text} for source in sources],
-                                ],
-                                ensure_ascii=False,
-                            ),
-                        },
-                    ],
+                    "messages": messages,
                     "max_tokens": _MAX_OUTPUT_TOKENS,
                     "provider": {
                         "require_parameters": True,
@@ -113,11 +116,14 @@ class OpenRouterClient:
                 timeout=120,
                 follow_redirects=False,
             )
-        except httpx.HTTPError:
+        except httpx.HTTPError as error:
+            self._telemetry.event("model.transport_error", {"exception": type(error).__name__})
             return ModelResult(failure_reason="provider_unreachable")  # Uncertain: never resend.
+        self._telemetry.event("model.http_response", {"status_code": response.status_code})
         try:
             body = json.loads(response.content, parse_float=Decimal)
         except (ValueError, UnicodeError):
+            self._telemetry.event("model.invalid_response", {"content": response.text})
             return ModelResult(failure_reason="invalid_provider_response")
         if not isinstance(body, dict):
             return ModelResult(failure_reason="invalid_provider_response")
@@ -127,6 +133,11 @@ class OpenRouterClient:
         )
         usage = body.get("usage")
         cost = _cost(usage.get("cost")) if isinstance(usage, dict) else None
+        if not response.is_success:
+            self._telemetry.event(
+                "model.provider_error",
+                {"status_code": response.status_code, "error": body.get("error")},
+            )
         # Explicit request validation/auth/rate/credit rejection cannot have run inference.
         if response.status_code in {400, 401, 402, 403, 404, 422, 429} and not generation_id:
             return ModelResult(cost=Decimal(0), failure_reason="provider_rejected")
@@ -145,6 +156,15 @@ class OpenRouterClient:
             return result
         try:
             choice = body["choices"][0]
+            if isinstance(choice, dict):
+                message = choice.get("message")
+                self._telemetry.event(
+                    "model.response",
+                    {
+                        "finish_reason": choice.get("finish_reason"),
+                        "content": message.get("content") if isinstance(message, dict) else None,
+                    },
+                )
             if choice["finish_reason"] != "stop":
                 result.failure_reason = (
                     "output_truncated"
@@ -158,6 +178,15 @@ class OpenRouterClient:
                 return result
             source_texts = {"primary": text, **{source.id: source.text for source in sources}}
             for criterion in assessment.criteria:
+                self._telemetry.event(
+                    "citation.check",
+                    {
+                        "criterion": criterion.name.value,
+                        "source_id": criterion.source_id,
+                        "excerpt": criterion.excerpt,
+                        "source_known": criterion.source_id in source_texts,
+                    },
+                )
                 if criterion.source_id not in source_texts:
                     result.failure_reason = "unknown_citation_source"
                     return result
@@ -165,6 +194,15 @@ class OpenRouterClient:
                     result.failure_reason = "invalid_schema"
                     return result
                 exact = resolve_excerpt(source_texts[criterion.source_id], criterion.excerpt)
+                self._telemetry.event(
+                    "citation.result",
+                    {
+                        "criterion": criterion.name.value,
+                        "source_id": criterion.source_id,
+                        "matched": exact is not None,
+                        "whitespace_reanchored": exact is not None and exact != criterion.excerpt,
+                    },
+                )
                 if exact is None:
                     result.failure_reason = "invalid_citation"
                     return result

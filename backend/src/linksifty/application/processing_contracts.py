@@ -43,6 +43,7 @@ class ResearchSourceView(BaseModel):
 
 class Telemetry(Protocol):
     def scope(self, name: str, identifier: str) -> AbstractContextManager[None]: ...
+    def event(self, name: str, details: dict[str, object]) -> None: ...
 
 
 class SourceCriterion(BaseModel):

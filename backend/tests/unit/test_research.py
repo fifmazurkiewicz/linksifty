@@ -225,7 +225,7 @@ def test_failed_telemetry_never_repeats_operation_or_exports_content() -> None:
             record(ModelResult(failure_reason="invalid_schema", cost=Decimal("0.001")))
     assert operations == ["called"]
     for call in client.start_observation.call_args_list:
-        assert "input" not in call.kwargs and "output" not in call.kwargs
+        assert call.kwargs.get("input") is None and "output" not in call.kwargs
 
 
 def test_valid_external_passage_is_accepted_with_its_own_source_id() -> None:
