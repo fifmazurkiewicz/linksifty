@@ -17,6 +17,11 @@ It is deliberately paired with a separate implementation of the same product tha
 
 ## Local checks
 
+The top-right appearance button switches the entire interface between light and
+dark mode, including sign-in. It initially uses the system preference and saves
+an explicit choice in this browser. If browser storage is blocked, switching still
+works for the current visit.
+
 ```sh
 uv run --package linksifty pytest backend/tests
 uv run --package linksifty mypy --strict backend/src

@@ -12,6 +12,7 @@ import { SettingsPanel } from './features/settings/SettingsPanel'
 import { UsagePanel } from './features/settings/UsagePanel'
 import { api, ApiError, isUsage, watchActivity, type Account, type Item, type Usage } from './lib/api'
 import { analysisUrl } from './lib/urls'
+import { ThemeToggle } from './ThemeToggle'
 import './App.css'
 
 type Screen = 'Inbox' | 'Add' | 'Settings' | 'Admin'
@@ -223,7 +224,7 @@ function AuthenticatedApp() {
 }
 
 export default function App({ client }: { client?: SupabaseClient | null } = {}) {
-  return <AuthProvider client={client}><SessionScope /></AuthProvider>
+  return <><ThemeToggle /><AuthProvider client={client}><SessionScope /></AuthProvider></>
 }
 
 function SessionScope() {

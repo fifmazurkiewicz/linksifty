@@ -42,6 +42,8 @@ describe('account access', () => {
     const user = userEvent.setup()
     const { signInWithOAuth } = renderApp()
     await user.tab()
+    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveFocus()
+    await user.tab()
     expect(screen.getByRole('button', { name: /continue with google/i })).toHaveFocus()
     await user.keyboard('{Enter}')
     await waitFor(() => expect(signInWithOAuth).toHaveBeenCalledOnce())

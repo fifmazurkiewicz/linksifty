@@ -1,1 +1,43 @@
-:root{font-family:Arial,sans-serif;color:#152237;background:#f5f6f2}*{box-sizing:border-box}body{margin:0}button,textarea{font:inherit}
+:root {
+  font-family: Arial, sans-serif;
+  color-scheme: light;
+  --page: #f5f6f2;
+  --text: #152237;
+  --accent: #eeffae;
+  --muted: #687464;
+  --nav-text: #415046;
+  --selected: #dbe5d6;
+  --surface: #eef0ea;
+  --input-bg: #fff;
+  --border: #cdd3ca;
+  --input-border: #aeb8aa;
+  --focus: #517cbb;
+  --notice: #e5eadf;
+  --notice-text: #314336;
+  --error: #a0342c;
+  --link: #325b87;
+  color: var(--text);
+  background: var(--page);
+}
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --page: #141b20;
+  --text: #e2e9df;
+  --accent: #eeffae;
+  --muted: #a6b4a2;
+  --nav-text: #bdcbb9;
+  --selected: #344333;
+  --surface: #1c2529;
+  --input-bg: #202b30;
+  --border: #435048;
+  --input-border: #647461;
+  --focus: #97bdf5;
+  --notice: #29372c;
+  --notice-text: #d0dfc9;
+  --error: #ffaaa0;
+  --link: #a4c9f2;
+}
+*{box-sizing:border-box}
+body{margin:0}
+button,textarea{font:inherit}
+/* Primary actions keep the established ink/lime pairing in either theme. */
