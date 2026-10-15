@@ -226,3 +226,50 @@ def test_failed_telemetry_never_repeats_operation_or_exports_content() -> None:
     assert operations == ["called"]
     for call in client.start_observation.call_args_list:
         assert "input" not in call.kwargs and "output" not in call.kwargs
+
+
+def test_valid_external_passage_is_accepted_with_its_own_source_id() -> None:
+    from linksifty.domain.models import CriterionName
+
+    payload = {
+        "note": "Compared evidence",
+        "criteria": [
+            {
+                "name": name.value,
+                "score": 3,
+                "rationale": "External passage",
+                "excerpt": "exact external evidence",
+                "source_id": "external-1",
+            }
+            for name in CriterionName
+        ],
+    }
+
+    async def run() -> None:
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda _: httpx.Response(
+                    200,
+                    json={
+                        "usage": {"cost": "0.01"},
+                        "choices": [
+                            {"finish_reason": "stop", "message": {"content": json.dumps(payload)}}
+                        ],
+                    },
+                )
+            )
+        ) as client:
+            result = await OpenRouterClient("test", "openai/gpt-4o-mini", client).assess(
+                "primary material",
+                sources=[
+                    EvidenceSource(
+                        id="external-1",
+                        url="https://evidence.example",
+                        text="exact external evidence",
+                    )
+                ],
+            )
+            assert result.assessment is not None
+            assert result.assessment.criteria[0].source_id == "external-1"
+
+    asyncio.run(run())

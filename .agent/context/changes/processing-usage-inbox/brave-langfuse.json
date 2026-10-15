@@ -1,0 +1,323 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Linksifty — Brave i Langfuse (implementacja lokalna)",
+    "output": ".agent/context/changes/processing-usage-inbox/brave-langfuse.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "0c43a8c6f6453932e7c285538018475aba5c50fe",
+      "provider": "github",
+      "link_mode": "web"
+    }
+  },
+  "lanes": [
+    {
+      "id": "ui",
+      "label": "Interfejs i zgoda"
+    },
+    {
+      "id": "app",
+      "label": "FastAPI i trwałe transakcje"
+    },
+    {
+      "id": "external",
+      "label": "Wywołania zewnętrzne"
+    },
+    {
+      "id": "observe",
+      "label": "Obserwowalność"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "consent",
+      "lane": "ui",
+      "col": 0,
+      "type": "frontend",
+      "label": "Dodanie linku",
+      "sublabel": "Brave: jawny opt-in",
+      "width": 150,
+      "sources": [
+        {
+          "path": "frontend/src/App.tsx",
+          "line": 208
+        }
+      ]
+    },
+    {
+      "id": "detail",
+      "lane": "ui",
+      "col": 5,
+      "type": "frontend",
+      "label": "Wynik i źródła",
+      "sublabel": "status weryfikacji",
+      "width": 150,
+      "sources": [
+        {
+          "path": "frontend/src/features/queue/AssessmentDetail.tsx",
+          "line": 24
+        }
+      ]
+    },
+    {
+      "id": "primary",
+      "lane": "app",
+      "col": 0,
+      "type": "backend",
+      "label": "Źródło pierwotne",
+      "sublabel": "kompletność przed AI",
+      "width": 150,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 223
+        }
+      ]
+    },
+    {
+      "id": "reserve",
+      "lane": "app",
+      "col": 1,
+      "type": "security",
+      "label": "Rezerwacja Brave",
+      "sublabel": "klucz, cena i limit USD",
+      "width": 150,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261015_000007_brave_research.sql",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "lane": "app",
+      "col": 2,
+      "type": "backend",
+      "label": "Sprawdzanie stron",
+      "sublabel": "hash i host: dedup",
+      "width": 150,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 180
+        }
+      ]
+    },
+    {
+      "id": "modelbudget",
+      "lane": "app",
+      "col": 3,
+      "type": "security",
+      "label": "Rezerwacja AI",
+      "sublabel": "pozostały budżet USD",
+      "width": 150,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261015_000005_processing_usage.sql",
+          "line": 83
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "lane": "app",
+      "col": 5,
+      "type": "database",
+      "label": "Zapis wyniku",
+      "sublabel": "źródło, cytat i offset",
+      "width": 150,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261015_000007_brave_research.sql",
+          "line": 79
+        }
+      ]
+    },
+    {
+      "id": "brave",
+      "lane": "external",
+      "col": 1,
+      "type": "cloud",
+      "label": "Brave Search",
+      "sublabel": "1 zapytanie / link",
+      "width": 150,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/brave_client.py",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "id": "pages",
+      "lane": "external",
+      "col": 2,
+      "type": "external",
+      "label": "Dodatkowe strony",
+      "sublabel": "max 5 prób pobrania",
+      "width": 150,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 180
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "lane": "external",
+      "col": 3,
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "8 kryteriów + source_id",
+      "width": 150,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/openrouter_client.py",
+          "line": 72
+        }
+      ]
+    },
+    {
+      "id": "trace",
+      "lane": "observe",
+      "col": 0,
+      "type": "cloud",
+      "label": "Langfuse",
+      "sublabel": "opcjonalne metadane",
+      "width": 150,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/langfuse_telemetry.py",
+          "line": 19
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "submission",
+      "from": "consent",
+      "to": "primary",
+      "variant": "default",
+      "toSide": "left"
+    },
+    {
+      "id": "optin",
+      "from": "primary",
+      "to": "reserve",
+      "variant": "security",
+      "label": "opt-in"
+    },
+    {
+      "id": "request",
+      "from": "reserve",
+      "to": "brave",
+      "variant": "security",
+      "label": "limit OK"
+    },
+    {
+      "id": "candidates",
+      "from": "brave",
+      "to": "verify",
+      "variant": "default",
+      "label": "URL-e kandydatów",
+      "toSide": "left"
+    },
+    {
+      "id": "fetch",
+      "from": "verify",
+      "to": "pages",
+      "variant": "default",
+      "label": "bezpieczny fetch"
+    },
+    {
+      "id": "passages",
+      "from": "pages",
+      "to": "verify",
+      "variant": "dashed",
+      "role": "return",
+      "label": "czytelne fragmenty",
+      "toSide": "bottom"
+    },
+    {
+      "id": "evidence",
+      "from": "verify",
+      "to": "modelbudget",
+      "variant": "default",
+      "label": "zapis źródeł"
+    },
+    {
+      "id": "no_search",
+      "from": "primary",
+      "to": "modelbudget",
+      "variant": "dashed",
+      "role": "branch",
+      "label": "bez wyszukiwania",
+      "route": "up-channel",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "id": "model_call",
+      "from": "modelbudget",
+      "to": "model",
+      "variant": "security",
+      "label": "limit OK"
+    },
+    {
+      "id": "validated",
+      "from": "model",
+      "to": "store",
+      "variant": "default",
+      "label": "walidacja cytatów"
+    },
+    {
+      "id": "ready",
+      "from": "store",
+      "to": "detail",
+      "variant": "default"
+    },
+    {
+      "id": "telemetry",
+      "from": "primary",
+      "to": "trace",
+      "variant": "dashed",
+      "label": "SDK; bez treści"
+    }
+  ],
+  "mainPath": [
+    "consent",
+    "primary",
+    "reserve",
+    "brave",
+    "verify",
+    "modelbudget",
+    "model",
+    "store",
+    "detail"
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Koszty i odzyskiwanie",
+      "items": [
+        "Brave: stawka operatora; OpenRouter: faktyczny koszt",
+        "Niepewne wywołanie pozostaje zarezerwowane; brak automatycznej powtórki",
+        "Brak dostępnych źródeł nie jest potwierdzeniem twierdzenia"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Granice danych",
+      "items": [
+        "Snippety wyszukiwarki nie są dowodem ani zapisem",
+        "Do Langfuse: model, czas, tokeny, koszt i kod błędu; bez promptów i źródeł",
+        "Kod lokalny i testy; aktywacja hostingu wymaga migracji 000007 i kluczy"
+      ]
+    }
+  ]
+}

@@ -18,7 +18,9 @@ Owner approved both scopes and explicitly requested code, documentation, diagram
 - [x] Implement telemetry, Brave adapter, durable search orchestration, source citation validation and migration 000007.
 - [x] Implement informed opt-in, cost wording, status and source provenance UI.
 - [x] Test mock providers and real disposable PostgreSQL. Deliberately disable source attribution/SQL fence to demonstrate failures, then restore.
-- [ ] Complete final quality checks and implementation review, synchronize documentation and diagrams.
+- [x] Complete final available quality checks and implementation review, synchronize documentation and diagrams.
 - [ ] Commit approved changes, fast-forward main as applicable and push origin/main. Never force-push.
+
+Diagram browser check and agent-toolkit unavailable; neither is claimed passed.
 
 No real Brave/OpenRouter/Langfuse key or paid call used. Hosted activation and actual provider acceptance require operator configuration after migration 000007.

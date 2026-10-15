@@ -58,6 +58,8 @@ def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
         assert result.threshold_snapshot == 75
         assert result.verdict == "to_review"
         assert len(result.citations) == 8
+        corroboration = next(c for c in result.criteria if c["name"] == "independent_corroboration")
+        assert corroboration["score"] == 1
         for citation in result.citations:
             assert TEXT[citation.start_position : citation.end_position] == citation.excerpt
         fetch.assert_not_awaited()
