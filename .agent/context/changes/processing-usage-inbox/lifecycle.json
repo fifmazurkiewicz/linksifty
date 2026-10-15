@@ -2,98 +2,99 @@
   "schema_version": 2,
   "diagram_type": "lifecycle",
   "meta": {
-    "title": "Linksifty — cykl analizy i wznowienie (kontrakt lokalny)",
+    "title": "Linksifty — analysis and recovery lifecycle (local contract)",
     "output": ".agent/context/changes/processing-usage-inbox/lifecycle.html",
-    "quality_profile": "showcase"
+    "quality_profile": "showcase",
+    "locale": "en"
   },
   "lanes": [
     {
       "id": "main",
-      "label": "Przetwarzanie linku"
+      "label": "Link processing"
     },
     {
       "id": "waiting",
-      "label": "Wymaga działania"
+      "label": "Needs action"
     },
     {
       "id": "recovery",
-      "label": "Rozstrzygnięcie wywołania"
+      "label": "Call reconciliation"
     },
     {
       "id": "terminal",
-      "label": "Błąd końcowy"
+      "label": "Terminal failure"
     }
   ],
   "states": [
     {
       "id": "queued",
       "type": "start",
-      "label": "W kolejce",
-      "sublabel": "trwałe zadanie",
+      "label": "Queued",
+      "sublabel": "durable job",
       "lane": "main",
       "col": 0
     },
     {
       "id": "fetch",
       "type": "active",
-      "label": "Pobieranie",
-      "sublabel": "kontrola kompletności",
+      "label": "Fetching",
+      "sublabel": "completeness check",
       "lane": "main",
       "col": 1
     },
     {
       "id": "reserve",
       "type": "decision",
-      "label": "Budżet",
-      "sublabel": "atomowa rezerwacja",
+      "label": "Budget",
+      "sublabel": "atomic reservation",
       "lane": "main",
       "col": 2
     },
     {
       "id": "analyze",
       "type": "active",
-      "label": "Analiza",
-      "sublabel": "model i zapis wyniku",
+      "label": "Analysis",
+      "sublabel": "model and saved result",
       "lane": "main",
       "col": 3
     },
     {
       "id": "done",
       "type": "success",
-      "label": "Gotowe",
-      "sublabel": "ocena i cytaty",
+      "label": "Ready",
+      "sublabel": "assessment and citations",
       "lane": "main",
       "col": 4
     },
     {
       "id": "manual",
       "type": "waiting",
-      "label": "Wklej treść",
-      "sublabel": "brak pełnej strony",
+      "label": "Paste content",
+      "sublabel": "page content incomplete",
       "lane": "waiting",
       "col": 1
     },
     {
       "id": "budget",
       "type": "waiting",
-      "label": "Limit USD",
-      "sublabel": "brak dostępnego budżetu",
+      "label": "USD limit",
+      "sublabel": "no available budget",
       "lane": "waiting",
       "col": 2
     },
     {
       "id": "unknown",
       "type": "waiting",
-      "label": "Koszt nieznany",
-      "sublabel": "rezerwacja pozostaje",
+      "label": "Unknown cost",
+      "sublabel": "reservation retained",
       "lane": "recovery",
       "col": 3
     },
     {
       "id": "failed",
       "type": "failure",
-      "label": "Niepowodzenie",
-      "sublabel": "bez pozornej oceny",
+      "label": "Failed",
+      "sublabel": "no fabricated assessment",
       "lane": "terminal",
       "col": 4
     }
@@ -106,39 +107,39 @@
     {
       "from": "fetch",
       "to": "reserve",
-      "label": "pełna treść"
+      "label": "complete text"
     },
     {
       "from": "reserve",
       "to": "analyze",
-      "label": "przyznano"
+      "label": "reserved"
     },
     {
       "from": "analyze",
       "to": "done",
-      "label": "zapisano"
+      "label": "saved"
     },
     {
       "from": "fetch",
       "to": "manual",
-      "label": "niepełna",
+      "label": "incomplete",
       "variant": "security"
     },
     {
       "from": "manual",
       "to": "reserve",
-      "label": "wklejono"
+      "label": "pasted"
     },
     {
       "from": "reserve",
       "to": "budget",
-      "label": "brak środków",
+      "label": "insufficient funds",
       "variant": "security"
     },
     {
       "from": "budget",
       "to": "reserve",
-      "label": "wznów"
+      "label": "resume"
     },
     {
       "from": "analyze",
@@ -149,40 +150,40 @@
     {
       "from": "unknown",
       "to": "done",
-      "label": "wynik zapisany"
+      "label": "saved result"
     },
     {
       "from": "unknown",
       "to": "failed",
-      "label": "rozstrzygnięto błąd"
+      "label": "failure reconciled"
     },
     {
       "from": "analyze",
       "to": "failed",
-      "label": "błędny wynik",
+      "label": "invalid result",
       "variant": "security"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "Kontrakt implementacji",
+      "title": "Implementation contract",
       "items": [
-        "Diagram opisuje kontrakt lokalnego kodu; nie potwierdza aktywacji bazy ani hostingu.",
-        "Strumień SSE wymaga sesji właściciela i odtwarza trwały stan po rozłączeniu.",
-        "Wynik jest zapisany przed rozliczeniem kosztu; końcowy commit wymaga dzierżawy."
+        "This diagram describes the local code contract, not hosted activation.",
+        "SSE requires an owner session and restores durable state after disconnection.",
+        "The result is saved before cost settlement; final publication requires a lease."
       ]
     },
     {
       "dot": "amber",
-      "title": "Bezpieczne wznowienie",
+      "title": "Safe recovery",
       "items": [
-        "Brak kompletnej treści zatrzymuje analizę przed modelem.",
-        "Limit można podnieść; wznowienie jest świadomą akcją użytkownika.",
-        "Nieznany koszt blokuje powtórne płatne wywołanie tej próby.",
-        "Przerwane lokalne wykonanie odzyskuje dzierżawę bez dublowania kosztów.",
-        "Heartbeat co 15 s, dzierżawa 60 s; brak świeżości 45 s pokazuje przerwę.",
-        "Rezerwacja 0,14848 USD obejmuje pełny zweryfikowany kontekst i limit outputu."
+        "Incomplete source content stops processing before the model call.",
+        "The limit can be raised; resuming is an explicit user action.",
+        "Unknown cost prevents another paid call for the same attempt.",
+        "Interrupted local work recovers its lease without duplicate paid calls.",
+        "Heartbeat: 15 s; lease: 60 s; 45 s without freshness shows a pause.",
+        "The 0.14848 USD reservation covers the verified full context and output bound."
       ]
     }
   ]

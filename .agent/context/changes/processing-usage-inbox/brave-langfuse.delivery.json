@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "e49855d3-ddd0-4961-9eef-958c5ed96a8b",
+  "receiptId": "9e06af5d-0168-46b4-a020-df92bcb29f1e",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
   "input": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.json",
   "output": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.html",
   "specification": {
-    "sha256": "cedd6eb05b65a1e3f45dff6b04ba4d21eb341c9ee6b071529d408973a81b8914",
-    "bytes": 7183
+    "sha256": "fde5123659ec9b8793a8b4f6493381af92a7c8983686fe2ec3e129632affa1d2",
+    "bytes": 7131
   },
   "artifact": {
-    "sha256": "283a25d7e9d62138d02efd81a4b913847393e22298975223eccde34886013be7",
-    "bytes": 767788
+    "sha256": "3bab3dfb9c6b611717f9e6448e5afdb6c19db237cbb2df6c822004a476bffbe5",
+    "bytes": 767528
   }
 }

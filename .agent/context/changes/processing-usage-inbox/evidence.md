@@ -118,3 +118,9 @@ Brave/Langfuse workflow generated from committed source 0c43a8c6f6453932e7c28553
 Generated Archify HTML contains template trailing spaces. Preserve its receipt-bound bytes; a path-specific .gitattributes rule disables only blank-at-EOL checks for that generated artifact. Source files retain normal whitespace checks. Full change diff check rerun with this explicit generated-file rule.
 
 Git delivery: fetched origin/main (314c600), fast-forward merged codex/brave-langfuse into main, push returned 314c600..e39d5e8 main -> main, exit 0. Follow-up metadata-only commit records completion. No force, PR, real key or paid-provider test.
+
+## English diagrams — 2026-10-16
+
+Owner requested English diagrams. Translated both editable lifecycle/workflow JSON files and regenerated HTML without changing graph IDs, relationships, sources or runtime code. Set meta.locale=en. Active change/review/roadmap Kanban text also translated; project AGENTS.md records English for future diagrams.
+
+Workflow: specification fde5123659ec9b8793a8b4f6493381af92a7c8983686fe2ec3e129632affa1d2; artifact 3bab3dfb9c6b611717f9e6448e5afdb6c19db237cbb2df6c822004a476bffbe5. Lifecycle: specification b99aedf890b704f7a62eabe0ce70236af3a3f8f915e364ce1f8ffc1b2fdcca8b; artifact 20bade5a200d4f1269e8f3d98127ac660fdd68a2325ef90cbec534f9e97802f3. Latest receipts: brave-langfuse.english/ and lifecycle.english/. Both validate/deliver/strict artifact checks PASS. Finalize exit 2: browser check skipped (Chrome unavailable), no new perceptual inspection. No update notice required. Prior receipt hashes remain historical. No product changes, migrations or paid calls; code tests were not unnecessarily rerun for translation only.

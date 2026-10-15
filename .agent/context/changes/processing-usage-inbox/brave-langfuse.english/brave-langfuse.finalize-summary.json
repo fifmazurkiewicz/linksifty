@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.json",
+    "sha256": "fde5123659ec9b8793a8b4f6493381af92a7c8983686fe2ec3e129632affa1d2",
+    "bytes": 7131
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.html",
+    "sha256": "3bab3dfb9c6b611717f9e6448e5afdb6c19db237cbb2df6c822004a476bffbe5",
+    "bytes": 767528
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.english/brave-langfuse.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.english/brave-langfuse.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/brave-langfuse.english/brave-langfuse.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1016
+}

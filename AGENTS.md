@@ -30,3 +30,5 @@
 - Scope every link, note, assessment, and chat operation to the authenticated user's ID, including for administrators. Admin features may manage accounts but not other users' content.
 - Keep Supabase, OpenRouter, and X credentials server-only. Commit only `.env.example`, never actual values.
 - Tests must mock paid or remote integrations. Before completing a change, run the relevant tests, `uv run --package linksifty mypy --strict backend/src`, `uv run --package linksifty ruff check .`, `uv run --package linksifty ruff format --check .`, and `agent-toolkit check`. Frontend changes also require its tests and build.
+
+- All diagrams must be authored in English, including titles, labels, legends, captions and explanatory cards.

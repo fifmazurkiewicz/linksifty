@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "Linksifty — Brave i Langfuse (implementacja lokalna)",
+    "title": "Linksifty — Brave and Langfuse (local implementation)",
     "output": ".agent/context/changes/processing-usage-inbox/brave-langfuse.html",
     "quality_profile": "showcase",
     "repository": {
@@ -10,24 +10,25 @@
       "revision": "0c43a8c6f6453932e7c285538018475aba5c50fe",
       "provider": "github",
       "link_mode": "web"
-    }
+    },
+    "locale": "en"
   },
   "lanes": [
     {
       "id": "ui",
-      "label": "Interfejs i zgoda"
+      "label": "UI and consent"
     },
     {
       "id": "app",
-      "label": "FastAPI i trwałe transakcje"
+      "label": "FastAPI and durable transactions"
     },
     {
       "id": "external",
-      "label": "Wywołania zewnętrzne"
+      "label": "External services"
     },
     {
       "id": "observe",
-      "label": "Obserwowalność"
+      "label": "Observability"
     }
   ],
   "nodes": [
@@ -36,8 +37,8 @@
       "lane": "ui",
       "col": 0,
       "type": "frontend",
-      "label": "Dodanie linku",
-      "sublabel": "Brave: jawny opt-in",
+      "label": "Submit link",
+      "sublabel": "Brave: explicit opt-in",
       "width": 150,
       "sources": [
         {
@@ -51,8 +52,8 @@
       "lane": "ui",
       "col": 5,
       "type": "frontend",
-      "label": "Wynik i źródła",
-      "sublabel": "status weryfikacji",
+      "label": "Result and sources",
+      "sublabel": "verification status",
       "width": 150,
       "sources": [
         {
@@ -66,8 +67,8 @@
       "lane": "app",
       "col": 0,
       "type": "backend",
-      "label": "Źródło pierwotne",
-      "sublabel": "kompletność przed AI",
+      "label": "Primary source",
+      "sublabel": "completeness before AI",
       "width": 150,
       "sources": [
         {
@@ -81,8 +82,8 @@
       "lane": "app",
       "col": 1,
       "type": "security",
-      "label": "Rezerwacja Brave",
-      "sublabel": "klucz, cena i limit USD",
+      "label": "Reserve Brave cost",
+      "sublabel": "key, rate and USD cap",
       "width": 150,
       "sources": [
         {
@@ -96,8 +97,8 @@
       "lane": "app",
       "col": 2,
       "type": "backend",
-      "label": "Sprawdzanie stron",
-      "sublabel": "hash i host: dedup",
+      "label": "Check sources",
+      "sublabel": "host and content dedup",
       "width": 150,
       "sources": [
         {
@@ -111,8 +112,8 @@
       "lane": "app",
       "col": 3,
       "type": "security",
-      "label": "Rezerwacja AI",
-      "sublabel": "pozostały budżet USD",
+      "label": "Reserve AI cost",
+      "sublabel": "available USD budget",
       "width": 150,
       "sources": [
         {
@@ -126,8 +127,8 @@
       "lane": "app",
       "col": 5,
       "type": "database",
-      "label": "Zapis wyniku",
-      "sublabel": "źródło, cytat i offset",
+      "label": "Save assessment",
+      "sublabel": "source, quote and offset",
       "width": 150,
       "sources": [
         {
@@ -142,7 +143,7 @@
       "col": 1,
       "type": "cloud",
       "label": "Brave Search",
-      "sublabel": "1 zapytanie / link",
+      "sublabel": "1 query per link",
       "width": 150,
       "sources": [
         {
@@ -156,8 +157,8 @@
       "lane": "external",
       "col": 2,
       "type": "external",
-      "label": "Dodatkowe strony",
-      "sublabel": "max 5 prób pobrania",
+      "label": "Additional pages",
+      "sublabel": "up to 5 fetch attempts",
       "width": 150,
       "sources": [
         {
@@ -172,7 +173,7 @@
       "col": 3,
       "type": "cloud",
       "label": "OpenRouter",
-      "sublabel": "8 kryteriów + source_id",
+      "sublabel": "8 criteria + source_id",
       "width": 150,
       "sources": [
         {
@@ -187,7 +188,7 @@
       "col": 0,
       "type": "cloud",
       "label": "Langfuse",
-      "sublabel": "opcjonalne metadane",
+      "sublabel": "optional metadata",
       "width": 150,
       "sources": [
         {
@@ -224,7 +225,7 @@
       "from": "brave",
       "to": "verify",
       "variant": "default",
-      "label": "URL-e kandydatów",
+      "label": "candidate URLs",
       "toSide": "left"
     },
     {
@@ -232,7 +233,7 @@
       "from": "verify",
       "to": "pages",
       "variant": "default",
-      "label": "bezpieczny fetch"
+      "label": "safe fetch"
     },
     {
       "id": "passages",
@@ -240,7 +241,7 @@
       "to": "verify",
       "variant": "dashed",
       "role": "return",
-      "label": "czytelne fragmenty",
+      "label": "readable passages",
       "toSide": "bottom"
     },
     {
@@ -248,7 +249,7 @@
       "from": "verify",
       "to": "modelbudget",
       "variant": "default",
-      "label": "zapis źródeł"
+      "label": "save sources"
     },
     {
       "id": "no_search",
@@ -256,7 +257,7 @@
       "to": "modelbudget",
       "variant": "dashed",
       "role": "branch",
-      "label": "bez wyszukiwania",
+      "label": "without search",
       "route": "up-channel",
       "fromSide": "top",
       "toSide": "top"
@@ -273,7 +274,7 @@
       "from": "model",
       "to": "store",
       "variant": "default",
-      "label": "walidacja cytatów"
+      "label": "validate citations"
     },
     {
       "id": "ready",
@@ -286,7 +287,7 @@
       "from": "primary",
       "to": "trace",
       "variant": "dashed",
-      "label": "SDK; bez treści"
+      "label": "SDK; no content"
     }
   ],
   "mainPath": [
@@ -303,20 +304,20 @@
   "cards": [
     {
       "dot": "amber",
-      "title": "Koszty i odzyskiwanie",
+      "title": "Costs and recovery",
       "items": [
-        "Brave: stawka operatora; OpenRouter: faktyczny koszt",
-        "Niepewne wywołanie pozostaje zarezerwowane; brak automatycznej powtórki",
-        "Brak dostępnych źródeł nie jest potwierdzeniem twierdzenia"
+        "Brave: configured rate; OpenRouter: actual cost",
+        "Uncertain calls remain reserved; no automatic paid retry",
+        "Unavailable sources do not confirm a claim"
       ]
     },
     {
       "dot": "cyan",
-      "title": "Granice danych",
+      "title": "Data boundaries",
       "items": [
-        "Snippety wyszukiwarki nie są dowodem ani zapisem",
-        "Do Langfuse: model, czas, tokeny, koszt i kod błędu; bez promptów i źródeł",
-        "Kod lokalny i testy; aktywacja hostingu wymaga migracji 000007 i kluczy"
+        "Search snippets are not evidence and are not stored",
+        "Langfuse: model, timing, tokens, cost and reason code; no prompts or sources",
+        "Local code and tests; hosted activation needs migration 000007 and keys"
       ]
     }
   ]
