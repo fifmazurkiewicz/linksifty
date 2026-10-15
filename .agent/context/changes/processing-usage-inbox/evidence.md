@@ -136,3 +136,14 @@ RED: duplicate_links.test.sql initially failed nine of twelve assertions (duplic
 - Adapter tests verify duplicate error translation for normal, Brave and resume paths. HTTP returns 409 and does not wake worker. UI blocks known duplicate before submitting and preserves form; server remains authoritative for unloaded items.
 - Exact/whitespace quotations resolve to actual saved bytes; changed words/case and wrong-source attribution still fail. Stored-source SQL fence remains unchanged. No raw provider response or Langfuse trace read; actual production cause remains unconfirmed.
 - Required agent-toolkit attempted: unavailable (127). Local PostgreSQL stopped. No real provider traffic, hosted migration, cleanup/deletion, external billing or push in this maintenance checkpoint.
+
+## Complete relevant Langfuse traces — 2026-10-16
+
+- Initial three behavioral tests RED: missing model input, absent event API, missing skip/recovery events. Recovery article reuse assertion also RED before adding source.reused.
+- GREEN: six focused tests cover rejected output with retained input/content/reason, credential/identity scrubbing and offline SDK failure isolation, no repeated paid recovery, actual SDK in-memory export with shared parent/trace and token/cost fields, Brave HTTP rejection diagnostics, and full primary+supporting article/search/citation/save flow.
+- Deliberate regression: suppress event export, focused event test fails (exit 1, absent search.result); restored implementation then six focused tests PASS. First probe lacked the task's UV cache env and exited 2 before test execution; it is not regression evidence.
+- Full backend: 144 passed (one existing FastAPI/httpx deprecation warning). Strict mypy: 33 files PASS. Ruff check PASS; format check: 85 files PASS. No frontend, schema or dependency changes, so no frontend/SQL rerun required for this slice.
+- agent-toolkit check remains unavailable (127); Graft unavailable. No paid provider calls. Real SDK uses an in-memory exporter and mocked HTTP only, not hosted ingestion.
+- Existing LANGFUSE_ENABLED controls content-inclusive traces by owner request. Configured credentials are redacted from payload text; no authentication headers/account identity/lease tokens are supplied. Generic masking is defense in depth, not complete personal-data anonymization. Traces are bounded/best effort; Langfuse retention is separate from Supabase.
+
+Diagram: brave-langfuse.json/HTML regenerated for local code c844819; spec e7e7dd94f0e19e1a76ff6f8282526b17edf36fb9e892c9decd141f3302e64b79, artifact 701f94d33d68f3aa6b6b098baf041fb28a3cbe93f13005f57bdb56e1f617fbbc. validate/deliver/check pass; finalize exit 2 solely because Chrome unavailable (browser-check skipped, visual review not requested). Receipts: brave-langfuse.content-tracing/. No update notice required.

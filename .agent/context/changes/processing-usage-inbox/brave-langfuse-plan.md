@@ -24,3 +24,7 @@ Owner approved both scopes and explicitly requested code, documentation, diagram
 Diagram browser check and agent-toolkit unavailable; neither is claimed passed.
 
 No real Brave/OpenRouter/Langfuse key or paid call used. Hosted activation and actual provider acceptance require operator configuration after migration 000007.
+
+## Superseding observability decision — 2026-10-16
+
+Owner explicitly requested all relevant logs and article content by default. The earlier metadata-only scope is historical: enabled Langfuse now exports bounded/redacted article/model content and complete relevant analysis events. No additional content toggle, new provider call, migration or blanket HTTP logging. See decisions.md and deployment/setup.md for the current privacy/retention contract.

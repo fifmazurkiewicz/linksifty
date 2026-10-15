@@ -2,12 +2,12 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "Linksifty — Brave and Langfuse (local implementation)",
+    "title": "Linksifty \u2014 Brave and Langfuse (local implementation)",
     "output": ".agent/context/changes/processing-usage-inbox/brave-langfuse.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/fifmazurkiewicz/linksifty.git",
-      "revision": "0c43a8c6f6453932e7c285538018475aba5c50fe",
+      "revision": "c844819d018f146c037c6b76dafad4d6f2bf9aee",
       "provider": "github",
       "link_mode": "web"
     },
@@ -73,7 +73,7 @@
       "sources": [
         {
           "path": "backend/src/linksifty/application/processing_service.py",
-          "line": 223
+          "line": 313
         }
       ]
     },
@@ -103,7 +103,7 @@
       "sources": [
         {
           "path": "backend/src/linksifty/application/processing_service.py",
-          "line": 180
+          "line": 244
         }
       ]
     },
@@ -148,7 +148,7 @@
       "sources": [
         {
           "path": "backend/src/linksifty/infrastructure/brave_client.py",
-          "line": 13
+          "line": 20
         }
       ]
     },
@@ -163,7 +163,7 @@
       "sources": [
         {
           "path": "backend/src/linksifty/application/processing_service.py",
-          "line": 180
+          "line": 244
         }
       ]
     },
@@ -178,7 +178,7 @@
       "sources": [
         {
           "path": "backend/src/linksifty/infrastructure/openrouter_client.py",
-          "line": 72
+          "line": 65
         }
       ]
     },
@@ -188,12 +188,12 @@
       "col": 0,
       "type": "cloud",
       "label": "Langfuse",
-      "sublabel": "optional metadata",
+      "sublabel": "content + events",
       "width": 150,
       "sources": [
         {
           "path": "backend/src/linksifty/infrastructure/langfuse_telemetry.py",
-          "line": 19
+          "line": 60
         }
       ]
     }
@@ -287,7 +287,7 @@
       "from": "primary",
       "to": "trace",
       "variant": "dashed",
-      "label": "SDK; no content"
+      "label": "traced pipeline"
     }
   ],
   "mainPath": [
@@ -316,8 +316,8 @@
       "title": "Data boundaries",
       "items": [
         "Search snippets are not evidence and are not stored",
-        "Langfuse: model, timing, tokens, cost and reason code; no prompts or sources",
-        "Local code and tests; hosted activation needs migration 000007 and keys"
+        "Enabled Langfuse: articles, model messages, outputs and events; secrets redacted",
+        "Local verification; external trace access and retention are operator-managed"
       ]
     }
   ]

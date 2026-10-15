@@ -40,3 +40,10 @@ Nie archiwizować ani nie oznaczać wydania jako gotowego przy otwartych bramkac
 - [x] Duplicate guard: atomic owner-scoped submission and legacy resume protection, frontend prevention, HTTP 409, migration 000008 and real concurrency tests.
 - [x] Citation whitespace repair: recover the exact original passage, preserve source attribution and reject changed words; safe unknown-source diagnostics.
 - [ ] Release maintenance commit, apply 000008 and deploy matching code; confirm the actual invalid-citation case from a future authorized trace. Current local tests do not prove the hosted failure cause.
+
+## Complete relevant tracing — 2026-10-16
+
+- [x] Redacted article/model content enabled by existing Langfuse switch; trace stages, source/search decisions, citations, budget/persistence/recovery and heartbeat.
+- [x] Verify mocked pipeline and real SDK in-memory parentage/export; required available backend checks pass (144 tests).
+- [x] Deliver updated English diagram/docs and record local code snapshot c844819; deterministic diagram gates pass, browser unavailable.
+- [ ] Deploy matching backend and inspect the next owner-authorized hosted trace; configure Langfuse access/retention independently. No new migration for tracing.
