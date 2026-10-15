@@ -12,12 +12,12 @@ Lista pochodna z `plan.md` i kanonicznego `progress.md`.
 - [x] T4: szczegóły z ośmioma kryteriami/cytatami, wklejenie i wznowienie w testach komponentów; zapis progu i budżetu, zachowanie wcześniejszych linków po wysłaniu.
 - [x] T5: 124 testy backendu, mypy, Ruff check/format, 19 testów frontendu, lint, build i diff check.
 - [x] T5: README, setup/Supabase, architektura, retencja/recovery, diagram i roadmapa zaktualizowane.
-- [x] T5: review implementacji i kanoniczne dispositions; cztery ustalenia poprawione, dwie bramki otwarte. Boardy zsynchronizowane.
-- [x] T5: kod przygotowany do lokalnego commita do review, bez push; hash raportowany po jego utworzeniu.
+- [x] T5: review implementacji i kanoniczne dispositions; cztery ustalenia poprawione, bramka bazy zamknięta, agent-toolkit pozostaje otwarty. Boardy zsynchronizowane.
+- [x] T5: implementacja zapisana w `b82959b`; runtime/testy w kolejnym lokalnym commicie, bez push.
 
 ## Otwarte bramki lokalne — wymagane przed wydaniem
 
-- [ ] **T1 / REV-004:** uruchomić migracje i pgTAP w jednorazowym lokalnym PostgreSQL zgodnym z Supabase, następnie runner `backend/tests/integration/check_processing_database.py`. Sprawdzić RLS, bezpośrednie zapisy, fencing, rollover, retencję i rzeczywiste równoległe rezerwacje. Brak psql/runtime; runner zwrócił UNAVAILABLE (77). Pytanie o runtime przekazane właścicielowi.
+- [x] **T1 / REV-004:** lokalny PostgreSQL 17.11 + pgTAP 1.3.4 przygotowany za zgodą właściciela. Wszystkie pięć migracji, 57 asercji pgTAP (RLS na zasianych obcych danych, fencing, rollover, retencja, późne i osierocone wyniki) i rzeczywiste równoległe rezerwacje PASS. Wyłączenie guardu/RLS celowo powodowało FAIL; po przywróceniu PASS. Serwer zatrzymany. Hosted auth i konfiguracja nadal E1.
 - [ ] **T5 / REV-005:** uruchomić wymagane `agent-toolkit check`, gdy istniejący runtime będzie dostępny. Obecnie command not found (127), nie PASS.
 - [ ] **QA wizualne:** inspekcja bieżącego UI desktop/mobile i diagramu po przywróceniu dozwolonego browser/runtime. Narzędzie odrzuciło URL localhost; nie obchodzić blokady. Aktualne testy komponentów przeszły; historyczne screenshots nie zastępują nowego odbioru wizualnego.
 

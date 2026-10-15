@@ -71,3 +71,19 @@ Current browser QA was denied by browser URL security policy; no alternate surfa
 Lifecycle updated to the local contract (not deployed runtime evidence). Latest finalize receipts are in `lifecycle.review-2/`, superseding old root receipts. Candidate SHA-256 `4401fdb6b094051bcc9951909183e9f3c277715a8d34a8e11ff511bca0b4c5a2`; HTML SHA-256 `a7d02bd720aadf6f8330030481a827ec0f28ee30a38d694d25b81331d79056b0`. Validate/deliver/strict check PASS; finalize exit 2, browser check skipped (Chrome unavailable). No fresh perceptual validation claimed.
 
 Review outcome is revise until REV-004/005 close; four code findings fixed. Canonical dispositions: `reviews/review-decisions.md`. No archive or production readiness approval.
+
+## Owner-approved local PostgreSQL gate — 2026-10-15
+
+Owner answered “Przygotuj lokalny runtime testowy”. Installed Homebrew PostgreSQL 17.11 (formula 17.11_1) and its package dependencies; Homebrew also created its unused default cluster. No brew service enabled. pgTAP 1.3.4 obtained from https://api.pgxn.org/dist/pgtap/1.3.4/pgtap-1.3.4.zip; SHA-1 `8bfb8e2cd5ad399ebc4f2e63f0e45e7c45480751` matches official PGXN metadata. Built with PostgreSQL's pg_config and installed extension files. Sources: https://pgtap.org/documentation.html and https://www.postgresql.org/docs/17/app-pg-ctl.html.
+
+Created dedicated `/private/tmp/linksifty-processing-pg17` cluster, database `linksifty_processing_test`, synthetic runner `linksifty_test_runner`; loopback only 127.0.0.1:55439. Initial sandbox initdb failed on shared-memory access; approved escalated initdb/start succeeded. The committed `backend/tests/integration/bootstrap_local_auth.sql` supplies minimal auth.users/auth.uid, Supabase roles and initial grants in a fresh test database only. It is not GoTrue/JWT verification. No real credentials or user data read.
+
+- All five project migrations applied from disk in sorted order, with ON_ERROR_STOP and one transaction each: PASS.
+- `check_processing_database.py`: exit 0; account approval **13**, usage **24**, recovery **20** pgTAP assertions PASS (**57 total**).
+- Recovery tests exercise RPCs as service_role, owner checks, original late-generation binding across retries, no completion before settlement, saved publication/citations, expired lease fencing, orphaned reservation survival and RLS against a seeded foreign row.
+- Two real overlapping 0.60 USD reservations under a 1 USD cap: exactly one admitted, reserved summary 0.60 USD, PASS.
+- Deliberately replaced budget condition with false in test DB only: pgTAP produced `not ok`. Restored function in finally. Deliberately disabled reservation RLS: seeded-foreign-row pgTAP produced `not ok`. Restored RLS in finally. Full gate then PASS. No production migration was edited or applied.
+- After test-runner edit: full backend **124 passed**, strict mypy **29 files PASS**, Ruff check and format **77 files PASS**. Frontend unchanged since prior 19-test/lint/build checkpoint.
+- Server shut down cleanly with pg_ctl fast/wait. Runtime remains installed; test data remains only in temporary cluster, without a running service. No Supabase/hosting or paid integration touched.
+
+REV-004 verified locally. REV-005 (agent-toolkit unavailable), fresh visual acceptance and hosted E1 gates remain open.

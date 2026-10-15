@@ -23,8 +23,8 @@ No Skip decisions. Every remaining gate stays visible until verified.
 - Owner: implementation
 - Rationale: A stored processing stage must not imply an active worker after interruption.
 - Status: verified
-- Follow-up: plan T3 locally fixed; SQL execution is tracked separately by REV-004.
-- Evidence: `../evidence.md`; heartbeat-loss service test, stale-worker Queue test, pending SQL freshness assertions.
+- Follow-up: plan T3 locally fixed; SQL freshness/fencing assertions also passed under REV-004.
+- Evidence: `../evidence.md`; heartbeat-loss service test, stale-worker Queue test, passing SQL freshness assertions.
 
 ## REV-003 — recover saved actual cost
 
@@ -46,9 +46,9 @@ No Skip decisions. Every remaining gate stays visible until verified.
 - Decision: Fix now
 - Owner: implementation, runtime access supplied/approved by owner
 - Rationale: Mandatory proof cannot be inferred from mocked REST calls.
-- Status: open
-- Follow-up: run `backend/tests/integration/check_processing_database.py` against a migrated disposable loopback `_test` database with psql/pgTAP; fix findings before release.
-- Evidence: `../evidence.md`; runtime inventory and exit 77. No passing SQL/concurrency claim.
+- Status: verified
+- Follow-up: rerun the committed gate after schema changes; hosted Supabase/GoTrue and deployment acceptance remain E1.
+- Evidence: `../evidence.md` owner-approved runtime checkpoint: five migrations, 57 pgTAP assertions and overlapping transactions PASS; controlled budget/RLS mutations detected, then restored and PASS.
 
 ## REV-005 — agent-toolkit gate
 

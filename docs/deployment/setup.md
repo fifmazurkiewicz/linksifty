@@ -520,10 +520,36 @@ print it. The gate refuses remote/non-test destinations and installs nothing:
 uv run --package linksifty python backend/tests/integration/check_processing_database.py
 ```
 
-This runs account/processing pgTAP and two overlapping 0.60 USD reservations under
+This runs account/processing/recovery pgTAP (57 assertions) and two overlapping 0.60 USD reservations under
 a 1 USD cap. Only one may be admitted. It cleans up only the random test-owned UUID.
 Exit **77** means unavailable runtime, not a pass. No database gate has passed just
 because the mocked API suite passed.
+
+### Prepared local test runtime (2026-10-15)
+
+The owner-approved local gate passed on PostgreSQL 17.11 with pgTAP 1.3.4.
+Homebrew PostgreSQL is keg-only at `/opt/homebrew/opt/postgresql@17/bin`;
+pgTAP was built from its checksum-verified official PGXN 1.3.4 archive using
+that installation's `pg_config`. No service starts at login.
+
+The temporary cluster `/private/tmp/linksifty-processing-pg17` is stopped. To
+rerun its synthetic fixtures, start it explicitly on loopback, run the gate,
+then stop it:
+
+```sh
+/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /private/tmp/linksifty-processing-pg17 -l /private/tmp/linksifty-processing-pg17/server.log -o "-h 127.0.0.1 -p 55439 -k /private/tmp/linksifty-processing-pg17" -w start
+PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH" LINKSIFTY_TEST_DATABASE_URL=postgresql://linksifty_test_runner@127.0.0.1:55439/linksifty_processing_test uv run --package linksifty python backend/tests/integration/check_processing_database.py
+/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /private/tmp/linksifty-processing-pg17 -m fast -w stop
+```
+
+This URL contains only the synthetic local role and disposable database, no
+credential. Temporary directories may be removed by the OS. To recreate, use
+`initdb` with a fresh dedicated cluster, create a database ending `_test`, load
+`backend/tests/integration/bootstrap_local_auth.sql` as its owner, then apply
+all `supabase/migrations/*.sql` in lexical order with `psql -v ON_ERROR_STOP=1 -1`.
+The bootstrap requires a fresh `auth` schema and cluster roles. It mirrors the
+minimal auth/table-grant contract only; it does not run GoTrue, PostgREST or JWT
+verification. Never apply this fixture to hosted Supabase or an existing cluster.
 
 ### Hosted Stage 2 acceptance (explicit paid approval required)
 

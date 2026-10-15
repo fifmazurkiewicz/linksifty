@@ -141,7 +141,11 @@ def main() -> int:
             "UNAVAILABLE: local psql and LINKSIFTY_TEST_DATABASE_URL are required; no checks passed"
         )
         return 77
-    for name in ("account_approval.test.sql", "processing_usage.test.sql"):
+    for name in (
+        "account_approval.test.sql",
+        "processing_usage.test.sql",
+        "processing_recovery.test.sql",
+    ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
             raise AssertionError(f"pgTAP failed: {name}")

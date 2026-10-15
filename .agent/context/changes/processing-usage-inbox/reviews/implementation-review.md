@@ -1,7 +1,7 @@
 # Implementation review — 2026-10-15
 
 Outcome: local implementation reviewed; **revise / release gates still open** until
-PostgreSQL/RLS/concurrency and the required agent-toolkit gate run. No risk Skip,
+the required agent-toolkit gate runs. PostgreSQL/RLS/concurrency now pass locally. No risk Skip,
 archive, hosted readiness or independent-agent review is claimed.
 
 ## Resolved findings
@@ -18,8 +18,8 @@ Disposition: `review-decisions.md#rev-001`.
 
 A stage alone does not prove execution. Added fenced 15-second heartbeats,
 60-second leases, a separate 45-second freshness flag and paused UI copy. Unit/UI
-tests cover heartbeat cancellation and stale presentation. SQL assertions are in
-the pending database gate. Disposition: `review-decisions.md#rev-002`.
+tests cover heartbeat cancellation and stale presentation. SQL freshness/fencing assertions also pass in
+the disposable database gate. Disposition: `review-decisions.md#rev-002`.
 
 ### REV-003 — recovery ignored a saved actual cost (high)
 
@@ -29,16 +29,21 @@ Recovery now settles the saved actual amount first, without another provider cal
 The behavioral test failed before the fix and passes after it.
 Disposition: `review-decisions.md#rev-003`.
 
-## Open release gates
+## Database verification
 
-### REV-004 — database semantics not executed (high)
+### REV-004 — database semantics (high, now verified locally)
 
 SQL defines monetary locking, lease fencing, owner isolation, direct-write denial
 and retention. HTTP mocks cannot validate PostgreSQL behavior. pgTAP plus a
 loopback-only disposable-database harness now test sequential rules and overlapping
-reservations, but the gate exited 77 because psql/runtime is unavailable. Owner was
-asked whether to prepare a local runtime or provide a disposable instance. Until
-then, do not merge/release as database-verified. Disposition: `review-decisions.md#rev-004`.
+reservations, and the owner approved preparing a local runtime. PostgreSQL 17.11 / pgTAP 1.3.4
+now pass all five migrations, 57 assertions and overlapping reservations. A new
+recovery suite exercises service-role RPCs, original-reservation binding, expired
+leases, orphaned generation metadata and RLS against actual foreign rows. Controlled
+budget/RLS mutations fail as expected, then all checks pass after restoration.
+Minimal auth fixtures do not certify hosted GoTrue/JWT/configuration; that remains E1. Disposition: `review-decisions.md#rev-004`.
+
+## Open release gate
 
 ### REV-005 — required toolkit check unavailable (medium)
 
@@ -53,7 +58,7 @@ this gate open, not silently passed. Disposition: `review-decisions.md#rev-005`.
   source of truth. Partial acquisition does not reserve or call the model.
 - Every content/settings/event operation uses verified owner scope. Administrators
   manage account cost metadata only. Client write privileges are revoked in SQL;
-  SQL/RLS proof remains the gate above.
+  Local SQL/RLS proof now passes; hosted auth/configuration remains E1.
 - Current-month totals survive 30-day detail cleanup; unknown reservations remain
   counted. Retention schedule is supplied for explicit activation, not executed.
 - Frontend preserves the established visual language, semantic controls, keyboard

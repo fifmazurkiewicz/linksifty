@@ -30,7 +30,7 @@ Files: new `supabase/migrations/20261015_000005_processing_usage.sql`, `supabase
 Interfaces: `UsageSummary` (decimal USD fields, UTC reset); `UserSettings`; `ProcessingJob` (lease token/source/threshold/reservation); `ProcessingRepository` owner-scoped operations. SQL locks owner settings for reservation/settlement, fences job writes, stores result before settlement, and uses server-only mutation functions.
 - [x] Write failing repository/API tests verifying ownership, money precision and setting validation.
 - [x] Add atomic reservation/settlement, scoped settings/budget functions, pasted-source transaction, job stage/result functions, result view and cleanup.
-- [ ] Run focused tests and SQL checks; missing PostgreSQL runtime is recorded, not waived.
+- [x] Run focused tests and SQL checks: all five migrations, 57 pgTAP assertions and overlapping reservations PASS on disposable PostgreSQL 17.11.
 
 ### 2. Safe acquisition and provider execution
 
@@ -73,4 +73,4 @@ T2 replaces heuristic estimation with the verified full-context reservation and 
 
 ## Resume outcome — 2026-10-15
 
-T2–T4 complete locally. T1 remains blocked on PostgreSQL/pgTAP execution; T5 remains blocked on required agent-toolkit availability. All available final checks passed (124 backend / 19 frontend), documentation and review completed. Historical pause text above records the earlier checkpoint; the owner has since resumed work. See `progress.md`, `tasks.md` and review dispositions for current status. No release/hosted acceptance is claimed.
+T2–T4 complete locally. T1 database gate now passed after owner-approved local runtime preparation; T5 remains blocked on required agent-toolkit availability. All available final checks passed (124 backend / 19 frontend), documentation and review completed. Historical pause text above records the earlier checkpoint; the owner has since resumed work. See `progress.md`, `tasks.md` and review dispositions for current status. No release/hosted acceptance is claimed.

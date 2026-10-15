@@ -16,7 +16,7 @@ Kanoniczny zapis wykonania: ten plik. Zakres: `plan.md`; lista pozostałych prac
 
 | ID | Wynik | Stan |
 | --- | --- | --- |
-| T1 | Ustawienia, rejestr USD, transakcje, migracja i testy bazy | Blocked: implementacja i testy napisane; PostgreSQL/pgTAP/RLS/concurrency nieuruchomione. |
+| T1 | Ustawienia, rejestr USD, transakcje, migracja i testy bazy | Done lokalnie: pięć migracji, 57 asercji pgTAP, rzeczywiste równoległe rezerwacje i wykrywanie regresji PASS. |
 | T2 | Bezpieczne pobieranie i wykonawca OpenRouter | Done lokalnie: pełny bound modelu, recovery, limity, utrata dzierżawy, osierocone rezerwacje; testy green. |
 | T3 | API i postęp SSE | Done lokalnie: scope, reconnect, wygaśnięcie konta, heartbeat i paused UI; hosted cold start pozostaje E1. |
 | T4 | Kolejka, wyniki, Settings, limity admina | Done lokalnie: testy rzeczywistych komponentów, lint/build; nowa inspekcja wizualna niedostępna. |
@@ -40,13 +40,13 @@ Kanoniczny zapis wykonania: ten plik. Zakres: `plan.md`; lista pozostałych prac
 - Frontend: **19 passed**; lint PASS; production build PASS.
 - `git diff --check`: PASS.
 - `agent-toolkit check`: exit 127, brak polecenia — otwarta REV-005.
-- Gate PostgreSQL: exit 77, brak psql/runtime — otwarta REV-004. Testy pgTAP i rzeczywistych równoległych transakcji są przygotowane, niezaliczone.
+- Gate PostgreSQL: **PASS, exit 0** na PostgreSQL 17.11 / pgTAP 1.3.4. Pięć migracji zastosowanych; 57 asercji i równoległe rezerwacje przeszły. REV-004 zamknięta dla lokalnych semantyk bazy; hosted auth pozostaje E1.
 - Archify validate/deliver/check PASS; browser-check skipped (Chrome unavailable). Najnowszy receipt: `lifecycle.review-2/`.
 - Próba aktualnego browser QA została odrzucona przez politykę URL narzędzia. Nie obchodzono ograniczenia. Aktualne testy komponentów potwierdzają szczegóły, wklejenie, wznowienie i edycję ustawień; dawne screenshots są historycznym dowodem mockowanego QA.
 
 ## Otwarte zależności i przekazanie
 
-Wysłano pytanie o przygotowanie lokalnego PostgreSQL/pgTAP albo wskazanie jednorazowej bazy testowej; brak odpowiedzi nie jest zgodą na instalację. Agent-toolkit i Graft są niedostępne; do orientacji użyto ukierunkowanych odczytów repozytorium.
-Nie zastosowano migracji ani harmonogramu w Supabase i nie aktywowano hostingu. Brak dowodu rzeczywistego kosztu/SSE na hostingu. Nie archiwizować ani nie uznawać za gotowe do wydania przed zamknięciem bramek. Kod przygotowany do lokalnego commita do review; nic nie jest wypychane.
+Właściciel zatwierdził przygotowanie lokalnego runtime. Zainstalowano PostgreSQL 17 przez Homebrew i pgTAP 1.3.4 z oficjalnego PGXN (checksum zweryfikowana). Jednorazowy klaster `/private/tmp/linksifty-processing-pg17` i baza `linksifty_processing_test` zawierają wyłącznie fikcyjne dane. Serwer testowy zatrzymany po testach; bez usługi startowej. Minimalny fixture auth nie zastępuje hosted Supabase/GoTrue/JWT. Agent-toolkit i Graft pozostają niedostępne.
+Nie zastosowano migracji ani harmonogramu w Supabase i nie aktywowano hostingu. Brak dowodu rzeczywistego kosztu/SSE na hostingu. Nie archiwizować ani nie uznawać za gotowe do wydania przed zamknięciem bramek. Implementacja zapisana w lokalnym commicie `b82959b`; dodatkowe testy/runtime docs przygotowane w kolejnym commicie. Nic nie jest wypychane.
 
 Szczegóły dowodów: `evidence.md`; ustalenia review: `reviews/review-decisions.md`.
