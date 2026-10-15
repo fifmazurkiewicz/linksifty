@@ -145,6 +145,7 @@ def main() -> int:
         "account_approval.test.sql",
         "processing_usage.test.sql",
         "processing_recovery.test.sql",
+        "processing_hash.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:

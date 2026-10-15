@@ -74,3 +74,7 @@ T2 replaces heuristic estimation with the verified full-context reservation and 
 ## Resume outcome — 2026-10-15
 
 T2–T4 complete locally. T1 database gate now passed after owner-approved local runtime preparation; T5 remains blocked on required agent-toolkit availability. All available final checks passed (124 backend / 19 frontend), documentation and review completed. Historical pause text above records the earlier checkpoint; the owner has since resumed work. See `progress.md`, `tasks.md` and review dispositions for current status. No release/hosted acceptance is claimed.
+
+## Corrective follow-up — source hash portability
+
+Owner reports migrations applied and Settings working, then provides stuck checking-content UI and processing_interrupted logs. Reproduce source writes with pgcrypto under extensions (Supabase layout); replace the schema-dependent digest call in both source-writing RPCs using built-in SHA256 in follow-up migration 000006. Preserve all lease/owner/permission guards. Add fetched/pasted Unicode hash and permission regression tests; test full migration chain on a fresh matching fixture. No new architecture, external activation or paid retry.

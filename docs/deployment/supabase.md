@@ -35,3 +35,13 @@ heartbeats. After validating it in a disposable database, explicitly enable
 `supabase/retention.sql` for cleanup while the app is inactive. Settled cost detail
 expires after 30 days; current-month totals and unresolved reservations remain.
 See setup section 13 for the pgTAP/concurrency gate and unknown-cost reconciliation.
+
+### Source-saving compatibility fix (000006)
+
+After 000005, apply `20261015_000006_source_hash.sql`. Supabase may keep pgcrypto
+in `extensions`, outside the processing RPCs' fixed `public` search path. The
+follow-up uses PostgreSQL's native SHA256 for fetched/pasted content, preserving
+permissions and lease/owner checks. Affected jobs can remain at checking content
+with a generic processing_interrupted warning. Refresh the queue after migration;
+expired pre-inference jobs are recovered automatically. Do not submit duplicates
+or clear unresolved cost reservations. No backend redeploy is needed for this SQL fix.

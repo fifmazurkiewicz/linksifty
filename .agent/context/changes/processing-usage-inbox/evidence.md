@@ -87,3 +87,14 @@ Created dedicated `/private/tmp/linksifty-processing-pg17` cluster, database `li
 - Server shut down cleanly with pg_ctl fast/wait. Runtime remains installed; test data remains only in temporary cluster, without a running service. No Supabase/hosting or paid integration touched.
 
 REV-004 verified locally. REV-005 (agent-toolkit unavailable), fresh visual acceptance and hosted E1 gates remain open.
+
+## Source hash portability correction — 2026-10-15
+
+User confirmed hosted migrations applied and Settings working, then supplied stuck checking-content screenshot and Render warning processing_interrupted. That warning alone does not establish the hosted SQL exception. Focused code inspection found unqualified digest in save_job_source and paste_item_content, both restricted to search_path public. Official Supabase PostgreSQL schema installs pgcrypto under extensions: https://github.com/supabase/postgres/blob/develop/migrations/schema-17.sql. PostgreSQL built-in SHA256 documented at https://www.postgresql.org/docs/17/functions-binarystring.html.
+
+- RED: with pgcrypto moved to extensions, new processing_hash.test.sql failed five of six assertions; both RPCs raised SQLSTATE 42883, function digest(text, unknown) does not exist. Reproduces the stage interruption without any provider call. Prior public-schema-only fixture missed this compatibility issue.
+- GREEN: additive migration 20261015_000006_source_hash.sql replaces only the two functions, preserving guards and explicit service-role permissions; hashes UTF8 through pg_catalog.sha256 instead of extension lookup. Six focused assertions pass (paste, fetched source, correct Unicode hash, counts, client denial).
+- Updated fresh bootstrap preinstalls pgcrypto in extensions. Second dedicated cluster /private/tmp/linksifty-processing-hash-pg17 on loopback 55440, database linksifty_hash_test: exact fixture and all SIX migrations from disk applied successfully. Complete gate: 63 pgTAP assertions plus overlapping reservations PASS.
+- Deliberate regression: reinstalling both old function bodies in the disposable DB makes hash test fail; restoring 000006 in finally makes all six assertions green again.
+- Full backend 124 passed; strict mypy 29 files PASS; Ruff check/format 77 files PASS. Frontend unchanged. agent-toolkit still unavailable (127). Both temporary servers stopped cleanly.
+- No hosted SQL, deployment, paid request or push performed for this correction. Hosted error matching remains inferred pending owner application/confirmation. Applying 000006 then reopening queue should permit lease recovery for a pre-inference interruption; no duplicate submission or reservation clearing required.

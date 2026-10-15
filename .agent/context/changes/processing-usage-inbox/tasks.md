@@ -17,7 +17,7 @@ Lista pochodna z `plan.md` i kanonicznego `progress.md`.
 
 ## Otwarte bramki lokalne — wymagane przed wydaniem
 
-- [x] **T1 / REV-004:** lokalny PostgreSQL 17.11 + pgTAP 1.3.4 przygotowany za zgodą właściciela. Wszystkie pięć migracji, 57 asercji pgTAP (RLS na zasianych obcych danych, fencing, rollover, retencja, późne i osierocone wyniki) i rzeczywiste równoległe rezerwacje PASS. Wyłączenie guardu/RLS celowo powodowało FAIL; po przywróceniu PASS. Serwer zatrzymany. Hosted auth i konfiguracja nadal E1.
+- [x] **T1 / REV-004:** lokalny PostgreSQL 17.11 + pgTAP 1.3.4 przygotowany za zgodą właściciela. Wszystkie sześć migracji, 63 asercji pgTAP (RLS na zasianych obcych danych, fencing, rollover, retencja, późne i osierocone wyniki) i rzeczywiste równoległe rezerwacje PASS. Wyłączenie guardu/RLS celowo powodowało FAIL; po przywróceniu PASS. Serwer zatrzymany. Hosted auth i konfiguracja nadal E1.
 - [ ] **T5 / REV-005:** uruchomić wymagane `agent-toolkit check`, gdy istniejący runtime będzie dostępny. Obecnie command not found (127), nie PASS.
 - [ ] **QA wizualne:** inspekcja bieżącego UI desktop/mobile i diagramu po przywróceniu dozwolonego browser/runtime. Narzędzie odrzuciło URL localhost; nie obchodzić blokady. Aktualne testy komponentów przeszły; historyczne screenshots nie zastępują nowego odbioru wizualnego.
 
@@ -28,3 +28,6 @@ Lista pochodna z `plan.md` i kanonicznego `progress.md`.
 - [ ] Przeprowadzić autoryzowany odbiór na rzeczywistych linkach: faktyczne USD, limit 0, wklejenie, recovery i retencja. Wymaga odrębnej zgody na płatne próby i wskazanego środowiska.
 
 Nie archiwizować ani nie oznaczać wydania jako gotowego przy otwartych bramkach. Testy providerów pozostają mockowane; żadnych instalacji/aktywacji zewnętrznych nie wykonano.
+
+- [x] Corrective follow-up: 000006 fixes source hashes with pgcrypto in extensions; six new regression assertions pass.
+- [ ] Owner applies 000006 on hosted Supabase and confirms stuck queue recovery; no duplicate URL needed.

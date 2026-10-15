@@ -520,14 +520,14 @@ print it. The gate refuses remote/non-test destinations and installs nothing:
 uv run --package linksifty python backend/tests/integration/check_processing_database.py
 ```
 
-This runs account/processing/recovery pgTAP (57 assertions) and two overlapping 0.60 USD reservations under
+This runs account/processing/recovery pgTAP (63 assertions) and two overlapping 0.60 USD reservations under
 a 1 USD cap. Only one may be admitted. It cleans up only the random test-owned UUID.
 Exit **77** means unavailable runtime, not a pass. No database gate has passed just
 because the mocked API suite passed.
 
 ### Prepared local test runtime (2026-10-15)
 
-The owner-approved local gate passed on PostgreSQL 17.11 with pgTAP 1.3.4.
+The owner-approved local gate (through migration 000006) passed on PostgreSQL 17.11 with pgTAP 1.3.4.
 Homebrew PostgreSQL is keg-only at `/opt/homebrew/opt/postgresql@17/bin`;
 pgTAP was built from its checksum-verified official PGXN 1.3.4 archive using
 that installation's `pg_config`. No service starts at login.
@@ -550,6 +550,16 @@ all `supabase/migrations/*.sql` in lexical order with `psql -v ON_ERROR_STOP=1 -
 The bootstrap requires a fresh `auth` schema and cluster roles. It mirrors the
 minimal auth/table-grant contract only; it does not run GoTrue, PostgREST or JWT
 verification. Never apply this fixture to hosted Supabase or an existing cluster.
+
+### Stuck at checking readable content after 000005
+
+Apply `supabase/migrations/20261015_000006_source_hash.sql` in Supabase SQL Editor.
+It replaces extension-schema-dependent `digest()` calls in fetched/pasted source
+writes with built-in SHA256; it preserves the fixed search path and permissions.
+An `extensions`-schema pgcrypto fixture reproduces the old SQLSTATE 42883 error.
+Refresh afterward: interrupted jobs without an uncertain paid call can recover
+after their 60-second lease expires. Do not resubmit the URL or reset reservations.
+This fix requires SQL only, without a frontend/backend redeploy.
 
 ### Hosted Stage 2 acceptance (explicit paid approval required)
 

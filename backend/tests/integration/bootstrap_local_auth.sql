@@ -35,4 +35,7 @@ grant execute on function auth.uid() to anon, authenticated, service_role;
 -- Mirror Supabase's initial table grants, before migrations revoke client writes.
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+-- Match hosted Supabase: pgcrypto is outside the RPC public search_path.
+create schema extensions;
+create extension pgcrypto with schema extensions;
 create extension pgtap;

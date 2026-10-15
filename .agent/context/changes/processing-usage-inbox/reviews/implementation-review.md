@@ -85,3 +85,7 @@ paste rejects NUL at the request boundary. The focused test failed before the fi
 and all acquisition tests pass afterward. This intentionally uses manual fallback
 rather than a custom decompression implementation. Disposition:
 `review-decisions.md#rev-006`.
+
+### REV-007 — source hash portability (high, fixed)
+
+Supabase installs pgcrypto under extensions; public-only RPC search paths cannot resolve unqualified digest. A matching fixture reproduces SQLSTATE 42883 for fetched and pasted source writes. Additive migration 000006 replaces the extension-dependent hash with native SHA256 over explicit UTF8. Owner/lease guards and service-role-only grants preserved. Fresh matching schema plus six migrations, 63 assertions and concurrency pass; reverting old function bodies deliberately fails the new tests. Hosted application remains owner work. See canonical REV-007 disposition; overall revise remains due unavailable toolkit.

@@ -73,3 +73,15 @@ No Skip decisions. Every remaining gate stays visible until verified.
 - Status: verified
 - Follow-up: plan T2; manual fallback for unsupported responses.
 - Evidence: `../evidence.md`; acquisition red/green test and 42 passing fetcher cases.
+
+## REV-007 — extension-schema-dependent source hash
+
+- Finding: `implementation-review.md#rev-007--source-hash-portability-high-fixed`
+- Severity: high
+- Impact: correctness / hosted compatibility
+- Decision: Fix now
+- Owner: implementation
+- Rationale: Source writes must work with Supabase pgcrypto in extensions without broadening a security-definer search path. Use native SHA256 and preserve the hash format.
+- Status: verified
+- Follow-up: owner applies additive migration 000006 in Supabase, refreshes queue, confirms recovery; hosted application not performed here.
+- Evidence: `../evidence.md` source-hash red/green and deliberate regression; fresh six-migration chain, 63 assertions and concurrency PASS.
