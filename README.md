@@ -86,3 +86,7 @@ Cost records retain 30 days, with unresolved reservations and current-month tota
 preserved. Enable and verify the database retention schedule for inactive users.
 See [setup section 13](docs/deployment/setup.md#13-processing-usage-retention-and-recovery)
 for database gates, activation and recovery. No hosted readiness is implied.
+
+### Optional Brave + Langfuse
+
+The Add screen supports explicit Brave source checking for public links (one search, up to five fetched pages), after migration `000007` and server-only key/verified plan-rate configuration. Search charges share the USD cap with actual OpenRouter costs. Metadata-only Langfuse diagnostics are opt-in and cannot block processing. No secret goes into the frontend. See [setup](docs/deployment/setup.md#brave-source-discovery-and-langfuse-tracing-migration-000007). Real provider activation remains an operator step; source deduplication is heuristic, not proof of independent fact verification.

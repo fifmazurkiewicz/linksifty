@@ -3,6 +3,7 @@ import type { Item } from '../../lib/api'
 
 const stages: Record<string, string> = {
   queued: 'Waiting for processing', fetching: 'Fetching the page', checking_content: 'Checking readable content',
+  searching_sources: 'Searching additional sources with Brave', checking_sources: 'Fetching and checking additional pages',
   waiting_analysis: 'Checking budget before analysis', analyzing: 'Analyzing information', saving: 'Saving your assessment',
   completed: 'Ready to read', cost_unknown: 'Waiting for the provider cost to be confirmed',
   budget_exhausted: 'Monthly budget reached', not_configured: 'Analysis is not configured',
@@ -14,6 +15,12 @@ const reasons: Record<string, string> = {
   unsupported: 'This source format is not supported.', too_large: 'The page exceeds the size limit.',
   too_short: 'Not enough readable text was available.', unsafe_url: 'The page cannot be safely fetched.',
   unavailable: 'The page could not be fetched.', blocked: 'The page blocked access.',
+}
+const modelReasons: Record<string, string> = {
+  output_truncated: 'The model response reached the output limit.', invalid_schema: 'The response did not match the required assessment format.',
+  invalid_criteria: 'The response omitted or repeated a scoring criterion.', invalid_citation: 'A quoted passage did not match its attributed source.',
+  invalid_provider_response: 'The provider returned an unreadable response.', provider_rejected: 'The provider rejected the request.',
+  provider_incomplete: 'The provider did not finish the response.', provider_unreachable: 'The provider could not be reached.',
 }
 const retryable = new Set(['budget_exhausted', 'not_configured', 'invalid_model_output', 'provider_rejected'])
 
@@ -51,6 +58,7 @@ export function Queue({ items, onOpen, onPaste, onResume, busy }: {
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
           {item.updated_at && <p className="hint">Updated {new Date(item.updated_at).toLocaleTimeString()}</p>}
+          {stage === 'invalid_model_output' && item.failure_reason && modelReasons[item.failure_reason] && <p>{modelReasons[item.failure_reason]}</p>}
           {stage === 'cost_unknown' && <p>The amount remains reserved. This paid request will not be repeated.</p>}
           {stage === 'budget_exhausted' && <p>Ask an administrator to raise your limit, or resume after the monthly reset.</p>}
         </div>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +16,12 @@ class Settings:
     supabase_service_role_key: str | None = field(default=None, repr=False)
     openrouter_api_key: str | None = field(default=None, repr=False)
     openrouter_model: str = "openai/gpt-4o-mini"
+    brave_search_api_key: str | None = field(default=None, repr=False)
+    brave_search_price: Decimal = Decimal(0)
+    langfuse_enabled: bool = False
+    langfuse_public_key: str | None = field(default=None, repr=False)
+    langfuse_secret_key: str | None = field(default=None, repr=False)
+    langfuse_base_url: str = "https://cloud.langfuse.com"
     resend_api_key: str | None = field(default=None, repr=False)
     resend_from_email: str | None = None
     x_api_bearer_token: str | None = field(default=None, repr=False)
@@ -37,7 +44,19 @@ class Settings:
     @classmethod
     def from_environment(cls) -> Settings:
         """Build settings without loading files or logging secret values."""
+        try:
+            search_price = Decimal(os.getenv("BRAVE_SEARCH_PRICE_PER_REQUEST_USD", "0"))
+            if not search_price.is_finite() or not 0 <= search_price <= 1000000:
+                search_price = Decimal(0)
+        except InvalidOperation:
+            search_price = Decimal(0)
         return cls(
+            brave_search_api_key=os.getenv("BRAVE_SEARCH_API_KEY"),
+            brave_search_price=search_price,
+            langfuse_enabled=os.getenv("LANGFUSE_ENABLED", "false").lower() == "true",
+            langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            langfuse_base_url=os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
             supabase_url=os.getenv("SUPABASE_URL"),
             supabase_anon_key=os.getenv("SUPABASE_ANON_KEY"),
             supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),

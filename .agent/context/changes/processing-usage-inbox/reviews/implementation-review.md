@@ -89,3 +89,11 @@ rather than a custom decompression implementation. Disposition:
 ### REV-007 — source hash portability (high, fixed)
 
 Supabase installs pgcrypto under extensions; public-only RPC search paths cannot resolve unqualified digest. A matching fixture reproduces SQLSTATE 42883 for fetched and pasted source writes. Additive migration 000006 replaces the extension-dependent hash with native SHA256 over explicit UTF8. Owner/lease guards and service-role-only grants preserved. Fresh matching schema plus six migrations, 63 assertions and concurrency pass; reverting old function bodies deliberately fails the new tests. Hosted application remains owner work. See canonical REV-007 disposition; overall revise remains due unavailable toolkit.
+
+## Brave / Langfuse extension review — 2026-10-16
+
+Local code meets approved integration scope. No new general orchestration framework; HTTPX reused for Brave and paid provider; Langfuse SDK stays in infrastructure, injected scopes depend on an application Protocol. Credentials repr-hidden/server-only; default telemetry off and search unavailable without an explicit key and positive verified rate. Browser checkbox authorizes the short public-article query and disclosed plan charge. Pasted text does not opt into search.
+
+Search request is reserved before side effect; persisted pointer prevents automatic resend after crash/timeout. Search snippets never enter assessment or storage; fetched evidence bounded to five sources with source identity/position checks both adapter and SQL. Partial primary acquisition still stops before inference. Existing owner/RLS/fencing and UTC month accounting preserved. Same-host and exact-body dedup are heuristic; do not describe them as proof of independence or a complete fact-checker. Model rejection is categorized; costs still accounted when output is rejected.
+
+Current code findings REV-008/009 are locally addressed by this extension; actual provider behavior still needs authorized hosted acceptance. No raw prompt/response/source/query/user email sent in tracing; exceptions reduced to class name only. SDK errors do not rerun body or stop processing. Required agent-toolkit remains unavailable; overall release outcome stays revise. Diagram browser check has its own evidence and must not be inferred from code tests.

@@ -54,3 +54,11 @@ Szczegóły dowodów: `evidence.md`; ustalenia review: `reviews/review-decisions
 ## Corrective follow-up
 
 User reports hosted 000005 applied and Settings working. Supplied stuck checking-content and interruption warning prompted a matching-schema regression test: pgcrypto in extensions makes old source-write digest calls fail (42883). Added 000006 using built-in SHA256, preserving all guards; fresh six-migration gate and 63 assertions PASS. Correction is local; user must apply 000006, then refresh for safe lease recovery. Hosted exception inferred from matching reproduction, not directly inspected. Both local clusters stopped. REV-007 verified locally; agent-toolkit and hosted acceptance remain open.
+
+## Retrieval coverage audit — 2026-10-15
+
+Owner requested checking all retrieval/source-search points and supplied two unusable-result records. Audit confirms single-source acquisition/analysis implemented, but external discovery/corroboration, max-five source checks and official X/chat remain planned M6/C7 capabilities. Hosted success is unproven; model rejection lacks diagnostic categories. See reviews/information-retrieval-audit.md and open REV-008/009. Read-only review; no product behavior changed. Focused 62 tests passed with mocks.
+
+## Approved Brave / Langfuse execution — 2026-10-16
+
+Owner approved integration scope and authorized code/docs/diagram updates and push to main. See brave-langfuse-plan.md. Implemented informed opt-in Brave discovery plus up to five source fetches, source identities and exact citations, atomic shared-budget search reservations, uncertain-request no-repeat handling, categorized model rejection and optional metadata-only Langfuse spans. Migration 000007 required for activation. Local tests pass; final verification/diagram/commit underway. Keys absent and no real provider traffic. REV-008/009 locally addressed; real hosted rejection reason still unconfirmed until tracing enabled by operator.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -11,6 +13,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from langfuse import Langfuse
 from pydantic import BaseModel, Field, HttpUrl, ValidationError
 
 from linksifty.api import accounts, admin, processing
@@ -20,7 +23,9 @@ from linksifty.application.item_contracts import ItemRecord
 from linksifty.application.item_service import ItemService
 from linksifty.application.processing_service import ProcessingService
 from linksifty.config import Settings
+from linksifty.infrastructure.brave_client import BraveSearch
 from linksifty.infrastructure.http_fetcher import fetch_public_text
+from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 from linksifty.infrastructure.openrouter_client import OpenRouterClient
 from linksifty.infrastructure.processing_repository import ProcessingRepository
 from linksifty.infrastructure.resend_client import ResendApprovalMailer
@@ -38,6 +43,7 @@ class SourceInput(BaseModel):
 
 class SubmitItems(BaseModel):
     sources: list[SourceInput] = Field(min_length=1, max_length=5)
+    web_search: bool = False
 
 
 class ItemResponse(BaseModel):
@@ -97,6 +103,23 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        telemetry = LangfuseTelemetry()
+        if (
+            configuration.langfuse_enabled
+            and configuration.langfuse_public_key
+            and configuration.langfuse_secret_key
+        ):
+            try:
+                telemetry = LangfuseTelemetry(
+                    Langfuse(
+                        public_key=configuration.langfuse_public_key,
+                        secret_key=configuration.langfuse_secret_key,
+                        base_url=configuration.langfuse_base_url,
+                        timeout=3,
+                    )
+                )
+            except Exception:
+                logging.getLogger(__name__).warning("telemetry_unavailable")
         async with httpx.AsyncClient(transport=transport) as client:
             if configuration.supabase_url and configuration.supabase_anon_key:
                 application.state.authenticator = SupabaseAuthenticator(
@@ -124,13 +147,23 @@ def create_app(
                 )
                 provider = (
                     OpenRouterClient(
-                        configuration.openrouter_api_key, configuration.openrouter_model, client
+                        configuration.openrouter_api_key,
+                        configuration.openrouter_model,
+                        client,
+                        telemetry,
                     )
                     if configuration.openrouter_api_key
                     else None
                 )
                 application.state.processing = ProcessingService(
-                    processing_repository, provider, fetch_public_text
+                    processing_repository,
+                    provider,
+                    fetch_public_text,
+                    search=BraveSearch(configuration.brave_search_api_key, client)
+                    if configuration.brave_search_api_key
+                    else None,
+                    search_price=configuration.brave_search_price,
+                    telemetry=telemetry,
                 )
             try:
                 yield
@@ -138,6 +171,7 @@ def create_app(
                 processor: ProcessingService | None = application.state.processing
                 if processor is not None:
                     await processor.close()
+                await asyncio.to_thread(telemetry.close)
 
     app = FastAPI(title="Linksifty", lifespan=lifespan)
     app.include_router(accounts.router)
@@ -213,6 +247,16 @@ def create_app(
             return _response(record)
         raise HTTPException(status_code=404, detail="Item not found")
 
+    @app.get("/v1/capabilities")
+    async def capabilities(user_id: CurrentUser) -> dict[str, object]:
+        processor: ProcessingService | None = app.state.processing
+        return {
+            "web_search": processor.search_available if processor else False,
+            "search_price_usd": str(processor.search_price)
+            if processor and processor.search_available
+            else None,
+        }
+
     @app.post("/v1/items", response_model=InboxResponse, status_code=202)
     async def submit_items(submission: SubmitItems, user_id: CurrentUser) -> InboxResponse:
         """Persist items and queued jobs together before acknowledging submission."""
@@ -220,10 +264,18 @@ def create_app(
             service: ItemService | None = app.state.items
             if service is None:
                 raise HTTPException(503, "Persistence is not configured")
-            records = await service.submit(
-                user_id, [str(source.url) for source in submission.sources]
-            )
-            processor: ProcessingService | None = app.state.processing
+            if submission.web_search:
+                processor = app.state.processing
+                if processor is None or not processor.search_available:
+                    raise HTTPException(503, "Brave search is not configured")
+                records = await processor.submit_search(
+                    user_id, [str(source.url) for source in submission.sources]
+                )
+            else:
+                records = await service.submit(
+                    user_id, [str(source.url) for source in submission.sources]
+                )
+            processor = app.state.processing
             if processor is not None:
                 processor.wake(user_id)
             return InboxResponse(items=[_response(item) for item in records])

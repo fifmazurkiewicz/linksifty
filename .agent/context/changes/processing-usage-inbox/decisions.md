@@ -20,3 +20,7 @@
 Owner resumed work on 2026-10-15. Replace the byte/token heuristic with a full-context upper bound for the verified `openai/gpt-4o-mini` model (128,000 prompt-token ceiling plus 4,096 output tokens, at enforced $1/$5 per-million caps). Reserve $0.14848, then settle the actual cost; an unverified model fails closed. This intentionally reserves more than the typical call and removes tokenizer/framing assumptions without a new dependency.
 
 Add a 15-second worker heartbeat and a 60-second fenced lease. Persist liveness independently of stage; list snapshots expose whether the last heartbeat is fresh (45 seconds). UI must display paused/interrupted work instead of claiming that a stale stage is running. Existing paid-attempt reservations remain authoritative after lease loss.
+
+## Approved Brave/Langfuse extension
+
+Owner approved both scopes and requested implementation/docs/diagrams/main push. See brave-langfuse-plan.md. Brave chosen because it was the discussed engine; HTTPX reused, no search framework or broker. Official Langfuse SDK added through uv with <6 major bound. Metadata-only explicit spans preserve content isolation. Shared monetary cap includes search charges at a configured plan rate, clearly distinct from actual OpenRouter cost. External search requires an informed per-submission checkbox; disabled without key/rate. No server-key entry in UI or committed secret. Native SHA256/owner/lease fences preserved.

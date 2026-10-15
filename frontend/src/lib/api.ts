@@ -71,6 +71,8 @@ export type Usage = {
 }
 
 export type Assessment = {
+  research_status?: string
+  research_sources?: { id: string; url: string }[]
   note: string
   score: number
   verdict: string

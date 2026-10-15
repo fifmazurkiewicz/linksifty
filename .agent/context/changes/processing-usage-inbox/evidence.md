@@ -98,3 +98,15 @@ User confirmed hosted migrations applied and Settings working, then supplied stu
 - Deliberate regression: reinstalling both old function bodies in the disposable DB makes hash test fail; restoring 000006 in finally makes all six assertions green again.
 - Full backend 124 passed; strict mypy 29 files PASS; Ruff check/format 77 files PASS. Frontend unchanged. agent-toolkit still unavailable (127). Both temporary servers stopped cleanly.
 - No hosted SQL, deployment, paid request or push performed for this correction. Hosted error matching remains inferred pending owner application/confirmation. Applying 000006 then reopening queue should permit lease recovery for a pre-inference interruption; no duplicate submission or reservation clearing required.
+
+## Retrieval coverage review — 2026-10-15
+
+Focused code review against MVP specification and completion plan C2/C3/C7; Graft unavailable. `pytest backend/tests/unit/test_http_fetcher.py backend/tests/unit/test_content_policy.py backend/tests/unit/test_openrouter.py backend/tests/unit/test_processing_service.py backend/tests/unit/test_scoring.py` (usual offline uv prefix): **62 passed**. No paid fetch/model tests or hosted inspection. Screenshot supplied by owner shows spent 0.00251 USD, reserved 0, two Needs action rows and Ready 0. It establishes displayed failure, not raw provider cause or per-attempt cost. Canonical audit and dispositions recorded; no acceptance-validation relaxation or automatic paid retry.
+
+## Brave/Langfuse extension checkpoints — 2026-10-15/16
+
+RED: new research tests initially failed on missing capability/import; pgTAP Brave test failed on absent submit_search_items before 000007. After implementation, adapter/schema/source tests green. Behavioral regression proof: disabling per-source excerpt attribution makes external-to-primary misattribution test fail; original code restored in finally. Removing SQL stored-source excerpt fence in disposable DB makes pgTAP fail; original function restored in finally, then all suites PASS.
+
+Local PostgreSQL 17.11 migration 000007 applied successfully after existing six; pgTAP suites 13+24+20+6+14 = 77 assertions PASS, plus two overlapping 0.60 USD reservations admit exactly one under 1 USD. No real provider calls. Frontend informed-consent test verifies unchecked default, displayed rate, and explicit web_search submission; 20 frontend tests PASS, lint/build PASS. Final counts/checks recorded below after final review.
+
+Final code checks for approved extension: backend **131 passed**, strict mypy **32 files PASS**, Ruff check PASS / format **81 files PASS**; frontend **20 passed**, lint/build PASS (73 modules, JS 247.26 kB, gzip 76.60 kB). `git diff --check` PASS. `agent-toolkit check` attempted: 127 command not found, not waived or reported passed. PostgreSQL gate **77 assertions PASS** plus overlapping reservations. Diagram checks follow in subsequent receipt. No real provider/telemetry traffic.

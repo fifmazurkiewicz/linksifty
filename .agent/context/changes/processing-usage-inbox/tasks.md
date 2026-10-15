@@ -31,3 +31,8 @@ Nie archiwizować ani nie oznaczać wydania jako gotowego przy otwartych bramkac
 
 - [x] Corrective follow-up: 000006 fixes source hashes with pgcrypto in extensions; six new regression assertions pass.
 - [ ] Owner applies 000006 on hosted Supabase and confirms stuck queue recovery; no duplicate URL needed.
+
+- [x] REV-008 / C7.2: approved extension implements opt-in Brave, max-five fetches, heuristic dedup, exact provenance and shared cost controls; hosted acceptance pending.
+- [x] REV-009: safe model rejection reasons and metadata-only Langfuse integration implemented. Actual hosted failure diagnosis/happy-path acceptance remain unproven until operator activation.
+
+- [ ] Operator: apply 000007, configure Brave key + verified plan rate and Langfuse keys/region, enable tracing, then perform authorized hosted acceptance.

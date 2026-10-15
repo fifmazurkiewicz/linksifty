@@ -1,0 +1,3 @@
+# Approved extension plan review — 2026-10-16
+
+Owner explicitly approved scopes and requested implementation/docs/diagrams/main push. Plan extends existing service flow, preserves owner scope, source guards and cost uncertainty. Search activation requires informed consent, key and verified rate; metadata-only telemetry stays optional. No paid provider call or external project creation is authorized by local tests. Migrations, concurrency, source attribution and telemetry failure isolation assigned concrete checks. Proceed with local implementation; hosted provider acceptance and unavailable toolkit remain gates, not inferred successes.

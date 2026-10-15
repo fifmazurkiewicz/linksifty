@@ -10,6 +10,7 @@ from linksifty.application.processing_contracts import (
     ModelResult,
     PendingReservation,
     ProcessingJob,
+    ResearchContext,
     Reservation,
     UsageSummary,
     UserSettings,
@@ -18,6 +19,28 @@ from linksifty.infrastructure.supabase_repository import RepositoryUnavailable, 
 
 
 class ProcessingRepository(SupabaseRepository):
+    async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
+        return [
+            ItemRecord.model_validate(row)
+            for row in await self._rpc("submit_search_items", user_id, p_urls=urls)
+        ]
+
+    async def reserve_search(self, job: ProcessingJob, amount: Decimal) -> Reservation | None:
+        rows = await self._rpc(
+            "reserve_web_search", job.user_id, **self._job_values(job), p_amount=str(amount)
+        )
+        return Reservation.model_validate(rows[0]) if rows else None
+
+    async def save_research(self, job: ProcessingJob, context: ResearchContext) -> bool:
+        return bool(
+            await self._rpc(
+                "save_research_context",
+                job.user_id,
+                **self._job_values(job),
+                p_context=context.model_dump(mode="json"),
+            )
+        )
+
     async def orphaned_reservations(self, user_id: UUID) -> list[PendingReservation]:
         rows = await self._profile_request(
             "GET",
@@ -164,8 +187,27 @@ class ProcessingRepository(SupabaseRepository):
                 "order": "start_position.asc",
             },
         )
+        jobs = await self._profile_request(
+            "GET",
+            "jobs",
+            params={
+                "user_id": f"eq.{user_id}",
+                "item_id": f"eq.{item_id}",
+                "select": "search_context",
+                "limit": "1",
+            },
+        )
+        context = (
+            ResearchContext.model_validate(jobs[0].get("search_context") or {})
+            if jobs
+            else ResearchContext()
+        )
         return AssessmentView.model_validate(
             {
+                "research_status": context.status,
+                "research_sources": [
+                    {"id": source.id, "url": source.url} for source in context.sources
+                ],
                 **rows[0],
                 "citations": [CitationView.model_validate(citation) for citation in citations],
             }

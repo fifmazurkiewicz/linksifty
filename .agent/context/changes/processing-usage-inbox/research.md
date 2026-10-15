@@ -18,3 +18,9 @@ Graft is unavailable in this session; focused repository reads used. No official
 - `command -v` checks found no psql, Docker, Supabase CLI or agent-toolkit. Focused Homebrew binary inventory also found no psql/postgres/initdb/pgTAP runtime. No automatic install attempted; owner was asked about providing/preparing a disposable runtime.
 - Local browser tab acquisition was denied by the browser URL policy. Do not retry through alternate surfaces. Current UI behavior is exercised by jsdom/component tests; prior screenshots remain prior-run evidence only.
 - Archify contract updated for heartbeat/freshness and exact reservation; deterministic validate/deliver/check pass. Automated browser gate skipped because Chrome/Chromium is unavailable; no full-finalize success claim.
+
+## Brave / Langfuse verified contracts — 2026-10-15/16
+
+Graft unavailable; existing service/provider/SQL/API/UI traced with focused reads. No search service existed before this extension. Brave API endpoint and X-Subscription-Token header verified in https://api-dashboard.search.brave.com/api-reference/web/search/get. https://brave.com/search/api/ notes plan-dependent storage rights: do not persist search response/snippets; fetch source content independently and retain only application evidence. No account-specific billing plan inspected or assumed.
+
+https://langfuse.com/docs/observability/sdk/overview documents Python SDK v5, Cloud EU base URL https://cloud.langfuse.com and current observation APIs; self-hosted v3 requires an older compatible SDK. uv resolved langfuse 5.0.1. Constructor/start_observation/update/end signatures inspected locally. Do not use legacy ingestion endpoint or OpenAI auto instrumentation that would capture messages. SDK initialization does not enable this integration without explicit application settings.

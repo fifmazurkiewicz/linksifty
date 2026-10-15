@@ -30,6 +30,8 @@ function AuthenticatedApp() {
   const [links, setLinks] = useState('')
   const [text, setText] = useState('')
   const [inputMode, setInputMode] = useState<'links' | 'paste'>('links')
+  const [webSearch, setWebSearch] = useState(false)
+  const [searchPrice, setSearchPrice] = useState<string | null>(null)
   const [live, setLive] = useState('Connecting to live progress…')
   const urls = links.split('\n').map(value => value.trim()).filter(Boolean)
   const maxLinks = account?.status === 'pending' ? Math.min(5, account.trial_links_remaining) : 5
@@ -105,6 +107,15 @@ function AuthenticatedApp() {
     return () => { controller.abort(); if (timer) clearTimeout(timer) }
   }, [session, activeJobs, account?.status, signOut])
 
+  useEffect(() => {
+    if (!session || !account || account.status === 'rejected') return
+    const controller = new AbortController()
+    void api<{ web_search: boolean; search_price_usd: string | null }>('/v1/capabilities', session, { signal: controller.signal })
+      .then(value => { if (!controller.signal.aborted) setSearchPrice(value.web_search ? value.search_price_usd : null) })
+      .catch(() => { if (!controller.signal.aborted) setSearchPrice(null) })
+    return () => controller.abort()
+  }, [session, account])
+
   if (authLoading || (session && !account && state === 'loading')) {
     return <main className="auth-screen"><p role="status">Loading your account…</p></main>
   }
@@ -121,7 +132,7 @@ function AuthenticatedApp() {
     setBusy(true); setMessage(null)
     try {
       await api(inputMode === 'links' ? '/v1/items' : '/v1/items/paste', session, {
-        method: 'POST', body: JSON.stringify(inputMode === 'links' ? { sources: urls.map(url => ({ url })) } : { text }),
+        method: 'POST', body: JSON.stringify(inputMode === 'links' ? { sources: urls.map(url => ({ url })), web_search: webSearch && searchPrice !== null } : { text }),
       })
       setLinks(''); setText(''); setScreen('Inbox'); setView(null)
       await loadItems(); await refreshAccount()
@@ -193,7 +204,11 @@ function AuthenticatedApp() {
           <label htmlFor="new-content">Full source text</label><textarea id="new-content" value={text} onChange={event => setText(event.target.value)} />
           <p className="hint">At least 200 readable characters, up to 100 KB. One article uses one trial link.</p>
         </>}
-        <p className="hint">Submitting starts analysis and uses your monthly OpenRouter budget.</p>
+        {inputMode === 'links' && <>
+          <label className="search-consent"><input type="checkbox" checked={webSearch && searchPrice !== null} disabled={searchPrice === null || busy} onChange={event => setWebSearch(event.target.checked)} /> Search additional sources with Brave</label>
+          <p className="hint">{searchPrice !== null ? `One search per link (${searchPrice} USD at the configured plan rate), plus AI analysis, uses your monthly budget. A short query from this public article is sent to Brave. Up to five additional pages are checked.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
+        </>}
+        <p className="hint">Submitting starts analysis and uses your monthly budget.</p>
         <button className="primary" disabled={busy || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>
       </form>}
       {screen === 'Settings' && <><SettingsPanel session={session} /><UsagePanel usage={usage} error={usageError} /></>}

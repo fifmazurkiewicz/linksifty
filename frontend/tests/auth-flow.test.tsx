@@ -196,3 +196,25 @@ it('allows pasted recovery of an accepted trial link even after trial links are 
   expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/v1/items/manual/content'), expect.objectContaining({ method: 'PUT' }))
   expect(await screen.findByText(/waiting for processing/i)).toBeInTheDocument()
 })
+
+it('requires explicit consent and shows the Brave plan charge before submitting', async () => {
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  let submitted: Record<string, unknown> | undefined
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', email: 'reader@example.test', status: 'approved', role: 'user', trial_links_remaining: 3 }))
+    if (url.endsWith('/v1/capabilities')) return new Response(JSON.stringify({ web_search: true, search_price_usd: '0.005' }))
+    if (url.endsWith('/v1/items') && init?.method === 'POST') submitted = JSON.parse(String(init.body))
+    return new Response(JSON.stringify({ items: [] }))
+  })
+  renderApp(session)
+  fireEvent.click(await screen.findByRole('button', { name: 'Add links' }))
+  const checkbox = await screen.findByRole('checkbox', { name: /search additional sources with brave/i })
+  await waitFor(() => expect(checkbox).toBeEnabled())
+  expect(checkbox).not.toBeChecked()
+  expect(screen.getByText(/0.005 USD at the configured plan rate/)).toBeInTheDocument()
+  fireEvent.click(checkbox)
+  fireEvent.change(screen.getByLabelText(/one public url per line/i), { target: { value: 'https://public.example/article' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Submit links' }))
+  await waitFor(() => expect(submitted?.web_search).toBe(true))
+})

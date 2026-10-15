@@ -577,3 +577,28 @@ This fix requires SQL only, without a frontend/backend redeploy.
 
 Code completion does not itself authorize production migration, deployment or
 unbounded paid tests. Record those acceptance results separately.
+
+## Brave source discovery and Langfuse tracing (migration 000007)
+
+Apply `supabase/migrations/20261015_000007_brave_research.sql` after 000006, then deploy the matching backend/frontend. It adds opt-in job research state, separate search reservation/provider metadata, source IDs and stronger exact citation checks. No migration or external configuration has been applied to hosted services by this agent.
+
+Configure these **server-only Render** variables (never VITE variables):
+
+| Variable | Purpose |
+| --- | --- |
+| `BRAVE_SEARCH_API_KEY` | Brave Search API project key |
+| `BRAVE_SEARCH_PRICE_PER_REQUEST_USD` | Positive USD/request rate verified against your subscribed plan; default 0 disables search |
+| `LANGFUSE_ENABLED` | `true` enables tracing; default `false` |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Langfuse project credentials |
+| `LANGFUSE_BASE_URL` | Project region URL; EU default `https://cloud.langfuse.com` |
+| `LANGFUSE_TRACING_ENVIRONMENT` | e.g. `production` |
+
+Brave uses one Web Search API query per opted-in public link, at most ten transient URL candidates and at most five extra page fetch attempts. The unchecked Add checkbox discloses query transfer and plan charge. Pasted text is not sent to Brave. Missing key/rate disables this capability; ordinary single-source analysis remains available. We do not infer a free tier or inspect your account/subscription. Search queries are short terms from a public article URL (fallback: initial source words); they are sent only to Brave. Search response snippets/payloads are not persisted or used as proof. Retain plan rights appropriate for your use; article passages are fetched separately with existing source guards.
+
+One host per candidate and identical normalized-content hashes reduce duplicates; this does not establish publisher independence. Only successfully fetched readable content enters comparison, bounded to 12K characters per source. Detail shows which pages were supplied and warns when extra sources were unavailable/unverified. Corroboration cannot receive a high score from primary-only evidence. URL/ID/excerpt offsets are validated against stored text; no search snippet alone counts as confirmation. Official X API and grounded chat remain separate work.
+
+Usage totals now combine **actual OpenRouter cost and Brave requests at the configured plan rate**. The latter is plan-derived, not a returned invoice amount. Both consume the same per-user monthly USD cap. Search reserves before sending; confirmed successful HTTP responses settle at configured rate, even if no usable URLs returned. Unknown/non-successful outcomes stay reserved conservatively; no automatic paid search repeat. If needed, verify outcome in Brave billing first, then use the existing authorized settle_analysis maintenance path with the original reservation. Never clear or resend by guessing zero. Repeating model analysis reuses stored research instead of buying another search.
+
+Langfuse records root processing, fetch/research spans and an LLM generation with model, timings, token usage, accepted/rejected status, safe reason code and known cost. Job ID is opaque for correlation; no email, user ID, URL/query, prompt, source text, model response or credentials are exported. Explicit spans are used instead of message-capturing automatic instrumentation. Failures reduce to exception class names, SDK failures do not affect processing, and shutdown flushes in a worker thread. Use SDK 5 with current Cloud or a compatible v4 server; self-hosted v3 requires a separately reviewed older compatible SDK.
+
+Test with mocks first. Before an authorized paid hosted test, apply migration, configure keys/rate/region and deploy, then opt one public link into search. Verify stages, source provenance, configured search charge plus actual model cost, private metadata-only trace, invalid-output reason and no duplicate request on recovery. No key values should be pasted into chat. See [official Brave reference](https://api-dashboard.search.brave.com/api-reference/web/search/get) and [Langfuse SDK documentation](https://langfuse.com/docs/observability/sdk/overview).

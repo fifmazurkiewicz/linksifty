@@ -45,3 +45,5 @@ permissions and lease/owner checks. Affected jobs can remain at checking content
 with a generic processing_interrupted warning. Refresh the queue after migration;
 expired pre-inference jobs are recovered automatically. Do not submit duplicates
 or clear unresolved cost reservations. No backend redeploy is needed for this SQL fix.
+
+Brave source checking additionally requires `20261015_000007_brave_research.sql` after 000006: research consent/context, provider-scoped reservations, source identity and table-side citation validation. Apply before enabling the Brave key/rate. It notifies PostgREST to reload schema.

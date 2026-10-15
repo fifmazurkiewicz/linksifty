@@ -1,9 +1,12 @@
 """Resume bounded owner-scoped work independently of the browser connection."""
 
 import asyncio
+import hashlib
 import logging
 from collections.abc import Awaitable, Callable
+from contextlib import nullcontext
 from decimal import Decimal
+from urllib.parse import unquote, urlparse
 from uuid import UUID, uuid4
 
 from linksifty.application.item_contracts import ItemRecord
@@ -11,14 +14,18 @@ from linksifty.application.processing_contracts import (
     AssessmentProvider,
     AssessmentView,
     CitationView,
+    EvidenceSource,
     ProcessingJob,
     ProcessingStore,
+    ResearchContext,
+    Telemetry,
     UsageSummary,
     UserSettings,
 )
+from linksifty.application.research_contracts import SearchProvider
 from linksifty.domain.acquisition import FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
-from linksifty.domain.models import AssessmentDraft, Criterion
+from linksifty.domain.models import AssessmentDraft, Criterion, CriterionName
 from linksifty.domain.scoring import complete_assessment
 
 _logger = logging.getLogger(__name__)
@@ -31,12 +38,34 @@ class ProcessingService:
         store: ProcessingStore,
         provider: AssessmentProvider | None,
         fetch: Callable[[str], Awaitable[FetchResult]],
+        *,
+        search: SearchProvider | None = None,
+        search_price: Decimal = Decimal(0),
+        telemetry: Telemetry | None = None,
     ) -> None:
+        self._search = search
+        self._search_price = search_price
+        self._telemetry = telemetry
         self._store = store
         self._provider = provider
         self._fetch = fetch
         self._tasks: dict[UUID, asyncio.Task[None]] = {}
         self._slots = asyncio.Semaphore(3)
+
+    @property
+    def search_available(self) -> bool:
+        return self._search is not None and self._search_price > 0
+
+    @property
+    def search_price(self) -> Decimal:
+        return self._search_price
+
+    async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
+        if not self.search_available:
+            raise ValueError("Web search is not configured")
+        records = await self._store.submit_search(user_id, urls)
+        self.wake(user_id)
+        return records
 
     async def usage(self, user_id: UUID) -> UsageSummary:
         return await self._store.usage(user_id)
@@ -107,7 +136,7 @@ class ProcessingService:
             self._tasks.pop(user_id, None)
 
     async def _execute(self, job: ProcessingJob) -> None:
-        operation = asyncio.create_task(self.process(job))
+        operation = asyncio.create_task(self._traced_process(job))
         try:
             while True:
                 done, _ = await asyncio.wait({operation}, timeout=HEARTBEAT_SECONDS)
@@ -121,6 +150,76 @@ class ProcessingService:
                 operation.cancel()
             await asyncio.gather(operation, return_exceptions=True)
 
+    async def _traced_process(self, job: ProcessingJob) -> None:
+        with self._telemetry.scope("processing", str(job.id)) if self._telemetry else nullcontext():
+            await self.process(job)
+
+    async def research(self, job: ProcessingJob, text: str) -> ResearchContext:
+        if job.search_context is not None:
+            return job.search_context
+        context = ResearchContext(status="unavailable")
+        if job.search_reservation_id is not None:
+            context.status = "uncertain"  # A previous search may have been billed; never resend.
+        elif self.search_available and self._search is not None:
+            reservation = await self._store.reserve_search(job, self._search_price)
+            if reservation is None:
+                context.status = "budget_exhausted"
+            else:
+                job.search_reservation_id = reservation.id
+                if not await self._store.stage(job, "searching_sources"):
+                    raise RuntimeError("lease_lost")
+                slug = unquote(urlparse(job.original_url or "").path.rsplit("/", 1)[-1])
+                query = " ".join(slug.replace("-", " ").replace("_", " ").split())[:250]
+                response = await self._search.search(query or " ".join(text.split())[:250])
+                if not response.confirmed:
+                    context.status = "uncertain"
+                else:
+                    await self._store.settle(job.user_id, reservation.id, self._search_price)
+                    context.status = "no_sources"
+                    domains = {urlparse(job.original_url or "").hostname}
+                    hashes = {hashlib.sha256(" ".join(text.split()).encode()).hexdigest()}
+                    attempts = 0
+                    for url in response.urls:
+                        try:
+                            parsed = urlparse(url)
+                            host = parsed.hostname
+                        except ValueError:
+                            continue
+                        if (
+                            host is None
+                            or host in domains
+                            or parsed.scheme not in {"http", "https"}
+                        ):
+                            continue
+                        domains.add(host)
+                        if attempts == 5:
+                            break
+                        attempts += 1
+                        if not await self._store.stage(job, "checking_sources"):
+                            raise RuntimeError("lease_lost")
+                        fetched = await self._fetch(url)
+                        if (
+                            fetched.text is None
+                            or evaluate_content(fetched.text, fetched=True).readiness
+                            is not ContentReadiness.READY
+                        ):
+                            continue
+                        # A bounded passage, not a claim to hold the complete external page.
+                        passage = fetched.text[:12000]
+                        digest = hashlib.sha256(" ".join(fetched.text.split()).encode()).hexdigest()
+                        if digest in hashes:
+                            continue
+                        hashes.add(digest)
+                        context.sources.append(
+                            EvidenceSource(id=str(uuid4()), url=url, text=passage)
+                        )
+                    if context.sources:
+                        context.status = "ready"
+        if not await self._store.save_research(job, context):
+            raise RuntimeError("lease_lost")
+        job.search_context = context
+        return context
+
     async def process(self, job: ProcessingJob) -> None:
         provider = self._provider
         if provider is None:
@@ -130,7 +229,12 @@ class ProcessingService:
         if text is None:
             if not await self._store.stage(job, "fetching"):
                 return
-            fetched = await self._fetch(job.original_url or "")
+            with (
+                self._telemetry.scope("source.fetch", str(job.id))
+                if self._telemetry
+                else nullcontext()
+            ):
+                fetched = await self._fetch(job.original_url or "")
             if fetched.text is None:
                 await self._store.stage(
                     job, str(fetched.failure or "unavailable"), "awaiting_manual_content"
@@ -150,6 +254,14 @@ class ProcessingService:
         if evaluate_content(text, fetched=False).readiness is not ContentReadiness.READY:
             await self._store.stage(job, "too_short", "awaiting_manual_content")
             return
+        research = ResearchContext()
+        if job.web_search:
+            with (
+                self._telemetry.scope("web.research", str(job.id))
+                if self._telemetry
+                else nullcontext()
+            ):
+                research = await self.research(job, text)
         result = job.model_result
         if job.reservation_id is not None:
             # Any existing reservation means the paid attempt may already have been sent.
@@ -179,7 +291,11 @@ class ProcessingService:
             job.threshold_snapshot = reservation.threshold_snapshot
             if not await self._store.stage(job, "analyzing"):
                 return
-            result = await provider.assess(text)
+            result = (
+                await provider.assess(text, sources=research.sources)
+                if research.sources
+                else await provider.assess(text)
+            )
             recorded = await self._store.record_result(job, result)
             if result.cost is not None:
                 await self._store.settle(job.user_id, reservation.id, result.cost)
@@ -194,10 +310,15 @@ class ProcessingService:
         if job.threshold_snapshot is None:
             await self._store.stage(job, "invalid_model_output", "failed")
             return
+        source_texts = {"primary": text, **{source.id: source.text for source in research.sources}}
+        source_urls = {
+            "primary": job.original_url,
+            **{source.id: source.url for source in research.sources},
+        }
         citations: list[CitationView] = []
         criteria: list[Criterion] = []
         for criterion in result.assessment.criteria:
-            start = text.find(criterion.excerpt)
+            start = source_texts.get(criterion.source_id, "").find(criterion.excerpt)
             if start < 0:
                 await self._store.stage(job, "invalid_model_output", "failed")
                 return
@@ -208,9 +329,19 @@ class ProcessingService:
                     excerpt=criterion.excerpt,
                     start_position=start,
                     end_position=start + len(criterion.excerpt),
-                    source_url=job.original_url,
+                    source_url=source_urls.get(criterion.source_id),
+                    source_id=criterion.source_id,
                 )
             )
+            independently_cited = bool(research.sources) and criterion.source_id != "primary"
+            if (
+                criterion.name is CriterionName.INDEPENDENT_CORROBORATION
+                and not independently_cited
+            ):
+                criterion.score = 1
+                criterion.rationale = (
+                    "Independent corroboration was not established. " + criterion.rationale
+                )
             criteria.append(
                 Criterion(criterion.name, criterion.score, criterion.rationale, (str(identifier),))
             )

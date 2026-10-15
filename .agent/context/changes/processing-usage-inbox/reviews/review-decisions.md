@@ -85,3 +85,29 @@ No Skip decisions. Every remaining gate stays visible until verified.
 - Status: verified
 - Follow-up: owner applies additive migration 000006 in Supabase, refreshes queue, confirms recovery; hosted application not performed here.
 - Evidence: `../evidence.md` source-hash red/green and deliberate regression; fresh six-migration chain, 63 assertions and concurrency PASS.
+
+## REV-008 — external source checking absent
+
+- Finding: `information-retrieval-audit.md#rev-008--broad-source-checking-scope-remains-absent-high`
+- Severity: high
+- Impact: plan fidelity / correctness
+- Decision: Fix now
+- Owner: implementation; scope/provider decisions require product owner
+- Rationale: Full product retrieval is incomplete; latest narrow scope explicitly excluded it, so preserve M6/C7.2 as planned rather than claim success.
+- Status: verified
+- Follow-up: owner subsequently approved Brave/Langfuse implementation. Local max-five discovery/fetch, dedup/provenance and shared budget implemented; hosted key/plan activation and real acceptance remain E1.
+- Evidence: `information-retrieval-audit.md`; prompt forbids browse, no search adapter/service, C7.2 planned.
+
+## REV-009 — opaque model output rejection
+
+- Finding: `information-retrieval-audit.md#rev-009--unusable-provider-output-has-no-diagnostic-category-medium`
+- Severity: medium
+- Impact: correctness / user / operations
+- Decision: Fix now
+- Owner: implementation
+- Rationale: Distinguish safe rejection categories before spending on repeated attempts; preserve exact-source validation.
+- Status: verified
+- Follow-up: redacted failure codes and explicit Langfuse metadata tracing implemented/tested; use next authorized hosted trace to diagnose the actual rejection. Exact evidence acceptance is preserved.
+- Evidence: `information-retrieval-audit.md`; screenshot has Ready 0 and spent amount, adapter returns assessment=None for multiple causes.
+
+Brave/Langfuse follow-up evidence: `../brave-langfuse-plan.md`, `../evidence.md`; local verification is not hosted provider acceptance.

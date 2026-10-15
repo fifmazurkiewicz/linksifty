@@ -1,6 +1,6 @@
 # Linksifty architecture
 
-Updated 2026-10-15. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
+Updated 2026-10-16. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
 
 ## Implemented request path
 
@@ -10,7 +10,7 @@ Updated 2026-10-15. The repository is a monorepo: `backend/` is the uv-managed F
 4. `/v1/me` creates a pending profile for new users and reports the verified owner as admin only when `LINKSIFTY_ADMIN_EMAIL` matches. Pending users may submit three trial links; rejected users are blocked. The admin API returns account metadata only and never exposes another user's content. Approval mail is sent through Resend after the status transaction commits.
 5. Explicit `LINKSIFTY_DEMO_MODE=true` enables sample responses. Demo responses carry `demo: true`; production defaults to false.
 
-This path is verified using mocked HTTP and frontend tests; no hosted migration or RLS test has run.
+This path is verified using mocked HTTP/frontend tests and local pgTAP/RLS gates. The owner reports hosted migrations through 000006 applied; this agent has not independently run hosted acceptance.
 
 ## Locally implemented processing path
 
@@ -101,3 +101,15 @@ build does not prove hosted Supabase/provider or complete MVP behavior.
 
 Archify validation, delivery and strict artifact checks pass. Browser check is
 skipped because Chrome/Chromium is unavailable; no visual QA is claimed.
+
+## Optional source discovery and diagnostics
+
+`main.py` additionally composes BraveSearch (existing HTTPX) and LangfuseTelemetry (official SDK at the infrastructure edge). The application only depends on SearchProvider and a scope Protocol. No new worker/broker or general agent framework.
+
+An explicit unchecked Add checkbox discloses a short public-article query and the configured request charge. `/v1/capabilities` enables it only with a server key and positive verified plan rate. `/v1/items` carries `web_search`; a server-only transaction persists consent with the original item/job trial accounting. Pasted content remains outside search. Migration 000007 is required before activation.
+
+The job first validates/acquires the primary source. Research reserves a separate provider-tagged amount under the same owner budget lock, sends one query, then checks at most five additional pages through the safe fetcher. Transient search responses/snippets are not evidence or stored. Normalized content hashes and host checks reduce duplicates; these heuristics do not prove independence. Bounded fetched passages and source identities are owner-scoped in job search_context and expire with the item. A confirmed search response settles at operator-configured plan price; uncertain outcomes remain reserved and are never automatically resent. Model retries reuse persisted research. Usage labels disclose actual OpenRouter cost versus plan-derived Brave charge.
+
+The model receives primary/additional source texts, not a browsing tool. Every returned citation names its source; adapter and SQL validate exact text/offsets against stored material. Independent corroboration is scored minimally without an external supporting citation. Detail exposes checked-source URLs and unavailable/uncertain status. No claim of complete factual verification, official X integration or grounded chat.
+
+Explicit Langfuse root/fetch/research/generation observations capture timing, model, safe rejection code, token/cost metadata and opaque job ID only. Source, prompt, response, query, URL, user identity and secrets are not exported. Exceptions are reduced to class names; telemetry errors neither repeat nor stop business work. SDK shutdown is flushed outside the event loop. Langfuse defaults off and creates no dependency on hosted availability.

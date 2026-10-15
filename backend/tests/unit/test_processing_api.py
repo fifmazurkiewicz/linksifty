@@ -145,3 +145,19 @@ def test_account_rejection_ends_stream_before_private_snapshot() -> None:
         await response.body_iterator.aclose()
 
     asyncio.run(run())
+
+
+def test_search_submission_is_not_silently_enabled_without_configuration() -> None:
+    from linksifty.application.item_service import ItemService
+
+    app = create_app(Settings(demo_mode=False))
+    app.state.items = create_autospec(ItemService, instance=True)
+    app.state.processing = None
+    app.dependency_overrides[current_user] = lambda: USER
+    client = TestClient(app)
+    assert client.get("/v1/capabilities").json()["web_search"] is False
+    response = client.post(
+        "/v1/items", json={"sources": [{"url": "https://public.example"}], "web_search": True}
+    )
+    assert response.status_code == 503
+    app.state.items.submit.assert_not_awaited()

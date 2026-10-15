@@ -1,5 +1,6 @@
 """Typed boundaries for progress, exact USD accounting and source-grounded results."""
 
+from contextlib import AbstractContextManager
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Protocol
@@ -24,8 +25,29 @@ class UserSettings(BaseModel):
     valuable_threshold: Decimal = Field(ge=40, le=100, allow_inf_nan=False)
 
 
+class EvidenceSource(BaseModel):
+    id: str
+    url: str
+    text: str
+
+
+class ResearchContext(BaseModel):
+    status: str = "not_requested"
+    sources: list[EvidenceSource] = Field(default_factory=list, max_length=5)
+
+
+class ResearchSourceView(BaseModel):
+    id: str
+    url: str
+
+
+class Telemetry(Protocol):
+    def scope(self, name: str, identifier: str) -> AbstractContextManager[None]: ...
+
+
 class SourceCriterion(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    source_id: str = "primary"
     name: CriterionName
     score: int = Field(ge=1, le=5, strict=True)
     rationale: str = Field(min_length=1, max_length=3000)
@@ -39,12 +61,18 @@ class SourceAssessment(BaseModel):
 
 
 class ModelResult(BaseModel):
+    failure_reason: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
     generation_id: str | None = None
     cost: Decimal | None = Field(default=None, ge=0, allow_inf_nan=False)
     assessment: SourceAssessment | None = None
 
 
 class ProcessingJob(BaseModel):
+    web_search: bool = False
+    search_reservation_id: UUID | None = None
+    search_context: ResearchContext | None = None
     id: UUID
     item_id: UUID
     user_id: UUID
@@ -72,6 +100,7 @@ class PendingReservation(BaseModel):
 
 
 class CitationView(BaseModel):
+    source_id: str = "primary"
     id: UUID
     excerpt: str
     start_position: int
@@ -80,6 +109,8 @@ class CitationView(BaseModel):
 
 
 class AssessmentView(BaseModel):
+    research_status: str = "not_requested"
+    research_sources: list[ResearchSourceView] = Field(default_factory=list)
     note: str
     criteria: list[dict[str, object]]
     score: float
@@ -89,6 +120,9 @@ class AssessmentView(BaseModel):
 
 
 class ProcessingStore(Protocol):
+    async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]: ...
+    async def reserve_search(self, job: ProcessingJob, amount: Decimal) -> Reservation | None: ...
+    async def save_research(self, job: ProcessingJob, context: ResearchContext) -> bool: ...
     async def heartbeat(self, job: ProcessingJob) -> bool: ...
     async def orphaned_reservations(self, user_id: UUID) -> list[PendingReservation]: ...
     async def usage(self, user_id: UUID) -> UsageSummary: ...
@@ -113,5 +147,7 @@ class ProcessingStore(Protocol):
 
 class AssessmentProvider(Protocol):
     def estimate(self, text: str) -> Decimal: ...
-    async def assess(self, text: str) -> ModelResult: ...
+    async def assess(
+        self, text: str, *, sources: list[EvidenceSource] | None = None
+    ) -> ModelResult: ...
     async def reconcile(self, generation_id: str) -> Decimal | None: ...
