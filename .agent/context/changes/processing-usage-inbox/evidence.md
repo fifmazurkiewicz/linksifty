@@ -28,4 +28,46 @@ Generated with Archify lifecycle v2, showcase profile. This is a proposed lifecy
 
 ## Remaining
 
+Owner correction on 2026-10-15: detailed cost records retained for 30 days rather than the proposed 90. Current UTC-month totals and unresolved reservations must not be reduced by history cleanup. Specification, decisions and progress synchronized; documentation-only correction verified with `git diff --check`.
+
 Written-spec owner review, verified provider/hosting contracts, implementation plan and its approval, product implementation and live activation remain. No provider call, deployment or email was performed.
+
+## Implementation checkpoint and explicit pause — 2026-10-15
+
+Code implementation started under the owner's “CODE this” instruction. Later the owner explicitly requested stopping and saving remaining/not-started tasks. No further product-code changes or test runs after that request.
+
+Verified checkpoints, rather than final verification of the current tree:
+- Full backend at an earlier implementation checkpoint: 101 passed.
+- Focused fetch/repository: 42 passed; OpenRouter: 3 passed; runner: 4 passed; API including scoped SSE snapshot: 6 passed.
+- Deliberate regression: removing the exact-excerpt check made `test_invalid_citations_still_account_for_the_paid_call` fail. Original code restored in a `finally` block.
+- Strict mypy passed on the then-current 29 source files.
+- Frontend passed 13 tests, lint and build at a prior checkpoint. Later auth/admin/aria changes and a new session-expiry test have not received the final full check.
+- Latest appended repository test for original-reservation binding and the newly added orphan-reconciliation code have not been run as a full suite.
+- SQL migration/pgTAP not executed: no PostgreSQL, Docker or Supabase CLI available. The pgTAP file contains sequential budget checks, not proof of concurrent correctness.
+- Agent-toolkit and Graft runtimes unavailable. No hosted integration/cost test performed.
+
+UI QA used the real React components with fake account/content/usage and intercepted network calls, not production authentication/data. Keyboard threshold save 75%, administrator cap 0 and queue filters/actions were inspected. Mobile DOM measurement at 390×844 reported pageWidth=390. Opening assessment was observed at its loading state; final rendered detail remains to verify.
+
+Retained QA artifacts: `qa/preview.html`, `qa/queue-desktop.jpg`, `qa/queue-mobile.jpg`. The harness was moved out of frontend so it is not a product entry. Local Vite was stopped. The temporary tab was already unavailable when closing it; no further browser activity was attempted.
+
+Resume source: `progress.md`, `plan.md` and `tasks.md`. No archive, merge, deployment, paid API call, email or push is claimed. Working-tree code is not included in the earlier documentation commit `1ad8fff`.
+
+## Resume — final local verification (2026-10-15)
+
+The owner explicitly resumed saved tasks. This checkpoint supersedes the paused implementation counts above.
+
+- `UV_CACHE_DIR=/private/tmp/linksifty-uv-cache uv run --offline --package linksifty pytest backend/tests`: **124 passed**, one pre-existing FastAPI/Starlette httpx deprecation warning.
+- Same uv prefix, `mypy --strict backend/src`: **PASS, 29 files**.
+- Same uv prefix, `ruff check .`: PASS; `ruff format --check .`: **PASS, 77 files**.
+- In frontend: `npm test -- --run`: **19 passed, 4 files**; `npm run lint`: PASS; `npm run build`: PASS (73 modules, JS 244.78 kB / gzip 75.91 kB).
+- `git diff --check`: PASS.
+- `agent-toolkit check`: **127, command not found**; mandatory gate remains open.
+- Database integration gate: **77, UNAVAILABLE** (psql/runtime absent). Prepared 24 pgTAP assertions plus real overlapping transactions; neither executed. No PostgreSQL, Docker, Supabase CLI or pgTAP runtime found. Owner question about preparing/providing a disposable local runtime remains pending.
+- Behavioral red/green evidence: verified model bound and unknown-model rejection, stale-worker UI, recovery of saved actual cost, unexpected compression/disguised binary rejection, and database runner PG-environment sanitation each failed before the corresponding fix and passed afterward. Full suite above includes fixes.
+- No remote provider calls, paid tests, installations, migrations, deployment, email or push.
+
+Current browser QA was denied by browser URL security policy; no alternate surface/protocol workaround attempted. Current component tests cover eight-criterion detail/citations, paste, explicit resume, settings/admin edits, session expiry and submission preservation. Prior screenshots remain historical fixture evidence only. Vite stopped; temporary frontend harness removed.
+
+Lifecycle updated to the local contract (not deployed runtime evidence). Latest finalize receipts are in `lifecycle.review-2/`, superseding old root receipts. Candidate SHA-256 `4401fdb6b094051bcc9951909183e9f3c277715a8d34a8e11ff511bca0b4c5a2`; HTML SHA-256 `a7d02bd720aadf6f8330030481a827ec0f28ee30a38d694d25b81331d79056b0`. Validate/deliver/strict check PASS; finalize exit 2, browser check skipped (Chrome unavailable). No fresh perceptual validation claimed.
+
+Review outcome is revise until REV-004/005 close; four code findings fixed. Canonical dispositions: `reviews/review-decisions.md`. No archive or production readiness approval.

@@ -1,21 +1,52 @@
-# Progress
+# Progress — processing, USD usage and inbox
 
-Current phase: approved shaping → written specification review.
+**Status: lokalna implementacja ukończona; bramki wydania otwarte (2026-10-15).**
+Właściciel wznowił prace poleceniem „dokończ zadania które zapisaliśmy”.
+Kanoniczny zapis wykonania: ten plik. Zakres: `plan.md`; lista pozostałych prac:
+`tasks.md`; widok pochodny: `plan-kanban.html`.
 
-## Completed
+## Uzgodnienia
 
-- Reviewed applicable instructions, current runtime and existing product contracts.
-- Recorded accepted scope, root causes, dependencies and constraints.
-- Prepared `docs/superpowers/specs/2026-10-15-processing-usage-inbox-design.md` with functional requirements, errors and verifiable acceptance criteria.
-- Self-review clarified threshold range/timing, budget authorization through direct database writes, uncertain paid retries, month rollover, unsupported formats and proposed retention.
-- Created editable target lifecycle JSON and generated HTML; deterministic gates pass, browser-check skipped because Chrome/Chromium is unavailable.
-- Updated canonical roadmap before its derived board. M9 remains Planned, with written-spec review pending.
-- Existing backend tests (94), mypy, Ruff and diff checks pass. Agent-toolkit runtime is unavailable.
+- Zaakceptowany zakres: aktualne USD, prawdziwy postęp, limity admina, Settings i zrozumiała kolejka.
+- Szczegóły kosztów przechowywane 30 dni; bieżące sumy miesiąca UTC oraz nierozliczone rezerwacje przetrwają cleanup.
+- Natywne wykonanie w tej sesji, bez subagentów i nowych zależności.
+- Nie wykonywano płatnych wywołań modelu, wdrożeń, wiadomości ani push.
 
-## Next gate
+## Stan planu
 
-Owner reviews the written specification, including proposed cost retention. After approval, prepare and review a technical implementation plan. Product code is unchanged.
+| ID | Wynik | Stan |
+| --- | --- | --- |
+| T1 | Ustawienia, rejestr USD, transakcje, migracja i testy bazy | Blocked: implementacja i testy napisane; PostgreSQL/pgTAP/RLS/concurrency nieuruchomione. |
+| T2 | Bezpieczne pobieranie i wykonawca OpenRouter | Done lokalnie: pełny bound modelu, recovery, limity, utrata dzierżawy, osierocone rezerwacje; testy green. |
+| T3 | API i postęp SSE | Done lokalnie: scope, reconnect, wygaśnięcie konta, heartbeat i paused UI; hosted cold start pozostaje E1. |
+| T4 | Kolejka, wyniki, Settings, limity admina | Done lokalnie: testy rzeczywistych komponentów, lint/build; nowa inspekcja wizualna niedostępna. |
+| T5 | Kontrole, dokumentacja, review i lokalny commit | Blocked: dostępne kontrole i dokumentacja ukończone; wymagany agent-toolkit niedostępny, review pozostaje revise. |
+| E1 | Aktywacja i odbiór docelowego środowiska | Planned: poza lokalnym wykonaniem, wymaga wskazanego środowiska i zgody na koszty/zmiany zewnętrzne. |
 
-## Evidence
+## Dostarczona implementacja
 
-See `evidence.md` for documentation and diagram validation. No implementation or production acceptance is claimed.
+- Migracja `000005`: ustawienia, budżet admina, atomowe rezerwacje i rozliczenia do pierwotnego miesiąca, właścicielski scope, server-only mutacje, dzierżawy i retencja.
+- Wykonawca: maksymalnie trzech właścicieli równolegle, pięć zadań na przebudzenie; zapis wyniku przed settlement, brak ponownego inference dla niepewnej próby. Znany zapisany koszt ma pierwszeństwo przed lookupem generacji.
+- OpenRouter: strict schema, osiem kryteriów i dokładne fragmenty źródła, Decimal koszt; rezerwacja pełnego zweryfikowanego kontekstu modelu przy wymuszonych cenach. Nieznany model blokowany przed requestem.
+- Fetcher: publiczne DNS/IP dla każdego przekierowania, izolacja cookies/proxy, ograniczony czas i rozmiar, identity encoding, wykrywanie niepełnego/binarniego źródła. Nieudany fetch wymaga wklejenia, bez oceny.
+- Postęp: heartbeat co 15 s, lease 60 s, świeżość 45 s; trwały etap nie udaje aktywnej pracy po zatrzymaniu wykonawcy.
+- API i UI: authenticated SSE, faktyczne/reserved/remaining USD, kolejka z filtrami i bezpiecznym wznowieniem, wklejenie, zapisany wynik z cytatami, zapisywalny próg, limity admina, czyszczenie starej sesji.
+- Dokumentacja konfiguracji, odzyskiwania i retencji; edytowalny diagram, roadmapa, review i dispositions.
+
+## Końcowa weryfikacja bieżącego kodu
+
+- Backend: **124 passed**; strict mypy: **29 plików PASS**.
+- Ruff check PASS; format check PASS (**77 plików**).
+- Frontend: **19 passed**; lint PASS; production build PASS.
+- `git diff --check`: PASS.
+- `agent-toolkit check`: exit 127, brak polecenia — otwarta REV-005.
+- Gate PostgreSQL: exit 77, brak psql/runtime — otwarta REV-004. Testy pgTAP i rzeczywistych równoległych transakcji są przygotowane, niezaliczone.
+- Archify validate/deliver/check PASS; browser-check skipped (Chrome unavailable). Najnowszy receipt: `lifecycle.review-2/`.
+- Próba aktualnego browser QA została odrzucona przez politykę URL narzędzia. Nie obchodzono ograniczenia. Aktualne testy komponentów potwierdzają szczegóły, wklejenie, wznowienie i edycję ustawień; dawne screenshots są historycznym dowodem mockowanego QA.
+
+## Otwarte zależności i przekazanie
+
+Wysłano pytanie o przygotowanie lokalnego PostgreSQL/pgTAP albo wskazanie jednorazowej bazy testowej; brak odpowiedzi nie jest zgodą na instalację. Agent-toolkit i Graft są niedostępne; do orientacji użyto ukierunkowanych odczytów repozytorium.
+Nie zastosowano migracji ani harmonogramu w Supabase i nie aktywowano hostingu. Brak dowodu rzeczywistego kosztu/SSE na hostingu. Nie archiwizować ani nie uznawać za gotowe do wydania przed zamknięciem bramek. Kod przygotowany do lokalnego commita do review; nic nie jest wypychane.
+
+Szczegóły dowodów: `evidence.md`; ustalenia review: `reviews/review-decisions.md`.

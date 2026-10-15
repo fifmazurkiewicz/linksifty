@@ -7,5 +7,16 @@
 - Protect budget from direct owner writes as well as non-admin API calls.
 - Persist 40–100% threshold and snapshot at analysis start; preserve existing assessments.
 - Keep the established English product language; Polish spec labels express behavior.
-- Proposed cost ledger retention: 90 days except unresolved reservations. Owner accepts or changes it at written-spec review.
+- Owner set detailed cost ledger retention to 30 days on 2026-10-15, replacing the proposed 90 days. Current-month aggregate survives until UTC reset; unresolved reservations remain until reconciled so cleanup cannot reopen spent budget.
 - No parallel plan or board exists before technical plan approval. This change refines M3–M5/M9, not a new milestone.
+
+## Execution and pause
+
+- Owner subsequently instructed “CODE this”: native execution began after scope approval and the 30-day correction; do not treat the older written-spec-review gate as still pending.
+- Owner explicitly stopped work on 2026-10-15 and requested remaining/not-started tasks to be saved. Current phase is paused, not complete. Implementation remains uncommitted; `progress.md` is canonical and `tasks.md` is the resume checklist.
+
+## Resumed execution — verified bounds and liveness
+
+Owner resumed work on 2026-10-15. Replace the byte/token heuristic with a full-context upper bound for the verified `openai/gpt-4o-mini` model (128,000 prompt-token ceiling plus 4,096 output tokens, at enforced $1/$5 per-million caps). Reserve $0.14848, then settle the actual cost; an unverified model fails closed. This intentionally reserves more than the typical call and removes tokenizer/framing assumptions without a new dependency.
+
+Add a 15-second worker heartbeat and a 60-second fenced lease. Persist liveness independently of stage; list snapshots expose whether the last heartbeat is fresh (45 seconds). UI must display paused/interrupted work instead of claiming that a stale stage is running. Existing paid-attempt reservations remain authoritative after lease loss.

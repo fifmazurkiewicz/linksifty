@@ -6,22 +6,39 @@ import { useAuth } from './auth/useAuth'
 import { AccountStatusScreen } from './features/accounts/AccountStatusScreen'
 import { AdminPanel } from './features/admin/AdminPanel'
 import { LoginScreen } from './features/auth/LoginScreen'
-import { api, ApiError, type Account } from './lib/api'
+import { Queue } from './features/queue/Queue'
+import { AssessmentDetail } from './features/queue/AssessmentDetail'
+import { SettingsPanel } from './features/settings/SettingsPanel'
+import { UsagePanel } from './features/settings/UsagePanel'
+import { api, ApiError, isUsage, watchActivity, type Account, type Item, type Usage } from './lib/api'
 import './App.css'
 
 type Screen = 'Inbox' | 'Add' | 'Settings' | 'Admin'
-type Item = { id: string; title: string; status: string; score: number | null; verdict: string | null }
+type View = { kind: 'detail' | 'paste'; id: string } | null
 
 function AuthenticatedApp() {
   const { session, loading: authLoading, signOut } = useAuth()
   const [account, setAccount] = useState<Account | null>(null)
   const [items, setItems] = useState<Item[]>([])
+  const [usage, setUsage] = useState<Usage | null>(null)
+  const [usageError, setUsageError] = useState<string | null>(null)
   const [screen, setScreen] = useState<Screen>('Inbox')
+  const [view, setView] = useState<View>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [links, setLinks] = useState('')
+  const [text, setText] = useState('')
+  const [inputMode, setInputMode] = useState<'links' | 'paste'>('links')
+  const [live, setLive] = useState('Connecting to live progress…')
   const urls = links.split('\n').map(value => value.trim()).filter(Boolean)
   const maxLinks = account?.status === 'pending' ? Math.min(5, account.trial_links_remaining) : 5
+  const activeJobs = items.some(item => ['queued', 'processing'].includes(item.status) || item.processing_stage === 'cost_unknown')
+  const validText = text.trim().replace(/\s+/g, ' ').length >= 200 && new TextEncoder().encode(text).length <= 100000
+
+  const report = useCallback((error: unknown) => {
+    return error instanceof Error ? error.message : 'The request could not be completed.'
+  }, [])
 
   const loadItems = useCallback(async () => {
     if (!session) return
@@ -30,11 +47,9 @@ function AuthenticatedApp() {
       setItems(result.items)
       setState('ready')
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) await signOut()
-      setMessage(error instanceof Error ? error.message : 'Could not load your links.')
-      setState('error')
+      setMessage(report(error)); setState('error')
     }
-  }, [session, signOut])
+  }, [session, report])
 
   useEffect(() => {
     if (!session) return
@@ -44,14 +59,51 @@ function AuthenticatedApp() {
       setAccount(value)
       if (value.status !== 'rejected') await loadItems()
       else setState('ready')
-    }).catch(async error => {
+    }).catch(error => {
       if (!active) return
-      if (error instanceof ApiError && error.status === 401) await signOut()
-      setMessage(error instanceof Error ? error.message : 'Could not load your account.')
-      setState('error')
+      setMessage(report(error)); setState('error')
     })
     return () => { active = false }
-  }, [session, loadItems, signOut])
+  }, [session, loadItems, report])
+
+  useEffect(() => {
+    if (!session || !account || account.status === 'rejected') return
+    const controller = new AbortController()
+    void api<Usage>('/v1/usage', session, { signal: controller.signal }).then(value => {
+      if (controller.signal.aborted) return
+      if (!isUsage(value)) throw new Error('Usage is unavailable.')
+      setUsage(value); setUsageError(null)
+    }).catch(error => { if (!controller.signal.aborted) setUsageError(report(error)) })
+    return () => controller.abort()
+  }, [session, account, report])
+
+  useEffect(() => {
+    if (!session || !activeJobs || account?.status === 'rejected') return
+    const controller = new AbortController()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const connect = async () => {
+      try {
+        await watchActivity(session, controller.signal, (snapshot, updatedUsage) => {
+          if (controller.signal.aborted) return
+          setItems(snapshot); setUsage(updatedUsage); setUsageError(null); setState('ready')
+          setLive('Live progress connected')
+        })
+        if (!controller.signal.aborted) {
+          setLive('Reconnecting… Showing the last confirmed progress.')
+          timer = setTimeout(() => void connect(), 1000)
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return
+        if (error instanceof ApiError && [401, 403].includes(error.status)) {
+          setItems([]); setUsage(null); void signOut(); return
+        }
+        setLive('Reconnecting… Showing the last confirmed progress.')
+        timer = setTimeout(() => void connect(), 3000)
+      }
+    }
+    void connect()
+    return () => { controller.abort(); if (timer) clearTimeout(timer) }
+  }, [session, activeJobs, account?.status, signOut])
 
   if (authLoading || (session && !account && state === 'loading')) {
     return <main className="auth-screen"><p role="status">Loading your account…</p></main>
@@ -59,24 +111,38 @@ function AuthenticatedApp() {
   if (!session) return <LoginScreen />
   if (account?.status === 'rejected') return <AccountStatusScreen account={account} />
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const refreshAccount = async () => {
+    try { setAccount(await api<Account>('/v1/me', session)) }
+    catch (error) { setMessage(report(error)) }
+  }
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!session || !urls.length || urls.length > 5) return
-    setState('loading')
-    setMessage(null)
-    void api<{ items: Item[] }>('/v1/items', session, {
-      method: 'POST',
-      body: JSON.stringify({ sources: urls.map(url => ({ url })) }),
-    }).then(result => {
-      setItems(result.items)
-      setLinks('')
-      setScreen('Inbox')
-      setState('ready')
-    }).catch(error => {
-      if (error instanceof ApiError && error.status === 401) void signOut()
-      setMessage(error instanceof Error ? error.message : 'Could not submit these links.')
-      setState('error')
-    })
+    if (busy || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)) return
+    setBusy(true); setMessage(null)
+    try {
+      await api(inputMode === 'links' ? '/v1/items' : '/v1/items/paste', session, {
+        method: 'POST', body: JSON.stringify(inputMode === 'links' ? { sources: urls.map(url => ({ url })) } : { text }),
+      })
+      setLinks(''); setText(''); setScreen('Inbox'); setView(null)
+      await loadItems(); await refreshAccount()
+    } catch (error) { setMessage(report(error)) }
+    finally { setBusy(false) }
+  }
+  const submitContent = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (view?.kind !== 'paste' || !validText || busy) return
+    setBusy(true); setMessage(null)
+    try {
+      await api(`/v1/items/${view.id}/content`, session, { method: 'PUT', body: JSON.stringify({ text }) })
+      setText(''); setView(null); await loadItems()
+    } catch (error) { setMessage(report(error)) }
+    finally { setBusy(false) }
+  }
+  const resume = async (id: string) => {
+    setBusy(true); setMessage(null)
+    try { await api(`/v1/items/${id}/resume`, session, { method: 'POST' }); await loadItems() }
+    catch (error) { setMessage(report(error)) }
+    finally { setBusy(false) }
   }
 
   return <main className="app">
@@ -85,32 +151,52 @@ function AuthenticatedApp() {
       <p className="eyebrow">YOUR READING QUEUE</p>
       <nav aria-label="Main navigation">
         {(['Inbox', 'Add', 'Settings', ...(account?.role === 'admin' ? ['Admin'] : [])] as Screen[]).map(value =>
-          <button className={screen === value ? 'active' : ''} onClick={() => setScreen(value)} key={value}>{value}</button>)}
+          <button className={screen === value ? 'active' : ''} aria-current={screen === value ? 'page' : undefined}
+            onClick={() => { setScreen(value); setView(null); setMessage(null) }} key={value}>{value}</button>)}
       </nav>
+      <UsagePanel usage={usage} error={usageError} />
       <button className="sign-out" onClick={() => void signOut()}>Sign out</button>
     </aside>
     <section>
       {account?.status === 'pending' && <div className="account-notice" role="status">
         Awaiting admin approval · {account.trial_links_remaining} trial links remaining
       </div>}
-      {screen === 'Admin' && account?.role === 'admin' && <AdminPanel session={session} />}
-      {screen === 'Inbox' && <>
-        <header><div><p className="eyebrow">INBOX</p><h1>Make room for what matters.</h1></div><button className="primary" onClick={() => setScreen('Add')}>Add links</button></header>
-        {state === 'loading' && <p role="status">Loading your inbox…</p>}
-        {state === 'error' && <p className="error" role="alert">{message ?? 'Could not load your inbox.'}</p>}
-        {state === 'ready' && items.map(item => <article key={item.id}><div><p className="meta">{item.status.replaceAll('_', ' ')}</p><h2>{item.title}</h2><p>{item.status === 'awaiting_manual_content' ? 'Paste readable content to continue.' : 'Evidence-backed assessment is ready.'}</p></div><div><strong>{item.score === null ? '—' : `${item.score}%`}</strong><br /><small>{item.verdict ?? 'Paste content'}</small></div></article>)}
-        {state === 'ready' && items.length === 0 && <p>Your reading queue is empty.</p>}
-      </>}
-      {screen === 'Add' && <form onSubmit={submit}>
-        <p className="eyebrow">NEW ASSESSMENT</p><h1>{maxLinks > 0 ? `Add up to ${maxLinks} ${maxLinks === 1 ? 'link' : 'links'}.` : 'Your trial links are used.'}</h1>
-        <label htmlFor="links">One public URL per line</label>
-        <textarea id="links" value={links} onChange={event => setLinks(event.target.value)} placeholder="https://example.com/article" />
-        <p className="hint">{urls.length}/{maxLinks} links{account?.status === 'pending' ? ` · ${account.trial_links_remaining} trial links remaining` : ''}</p>
-        {urls.length > maxLinks && <p className="error" role="alert">Submit no more than {maxLinks} links.</p>}
-        {state === 'error' && message && <p className="error" role="alert">{message}</p>}
-        <button className="primary" disabled={state === 'loading' || !urls.length || urls.length > maxLinks}>Submit links</button>
+      {message && <p className="error" role="alert">{message}</p>}
+      {screen === 'Admin' && account?.role === 'admin' && <AdminPanel session={session} onBudgetSaved={(id, updated) => { if (id === account.user_id) setUsage(updated) }} />}
+      {screen === 'Inbox' && view?.kind === 'detail' && <AssessmentDetail key={view.id} id={view.id} session={session} onBack={() => setView(null)} />}
+      {screen === 'Inbox' && view?.kind === 'paste' && <form onSubmit={event => void submitContent(event)}>
+        <button type="button" className="secondary" onClick={() => setView(null)}>Back to queue</button>
+        <h1>Paste the article.</h1><p>We could not read the page completely. Paste its full readable content to continue.</p>
+        <label htmlFor="source-content">Full source text</label><textarea id="source-content" value={text} onChange={event => setText(event.target.value)} required />
+        <p className="hint">At least 200 readable characters, up to 100 KB. Analysis uses your monthly budget.</p>
+        <button className="primary" disabled={!validText || busy}>{busy ? 'Submitting…' : 'Analyze pasted content'}</button>
       </form>}
-      {screen === 'Settings' && <><p className="eyebrow">SETTINGS</p><h1>Your triage rules.</h1><article><div><h2>Valuable threshold</h2><p>Applies only to future assessments.</p></div><strong>60%</strong></article></>}
+      {screen === 'Inbox' && !view && <>
+        <header><div><p className="eyebrow">INBOX</p><h1>Your reading queue.</h1></div><button className="primary" onClick={() => setScreen('Add')}>Add links</button></header>
+        <p className="queue-intro">Add links, follow their analysis, and decide what deserves your time.</p>
+        {activeJobs && <p className="live-status" role="status">{live}</p>}
+        {state === 'loading' && <p role="status">Loading your queue…</p>}
+        {state === 'error' && <button className="secondary" onClick={() => void loadItems()}>Retry loading queue</button>}
+        {state === 'ready' && <Queue items={items} onOpen={id => setView({ kind: 'detail', id })}
+          onPaste={id => { setText(''); setView({ kind: 'paste', id }) }} onResume={id => void resume(id)} busy={busy} />}
+      </>}
+      {screen === 'Add' && <form onSubmit={event => void submit(event)}>
+        <p className="eyebrow">NEW ASSESSMENT</p><h1>{maxLinks > 0 ? `Add up to ${maxLinks} ${maxLinks === 1 ? 'link' : 'links'}.` : 'Your trial links are used.'}</h1>
+        <div className="filters"><button type="button" aria-pressed={inputMode === 'links'} className={inputMode === 'links' ? 'active' : ''} onClick={() => setInputMode('links')}>Public links</button>
+          <button type="button" aria-pressed={inputMode === 'paste'} className={inputMode === 'paste' ? 'active' : ''} onClick={() => setInputMode('paste')}>Paste an article</button></div>
+        {inputMode === 'links' ? <>
+          <label htmlFor="links">One public URL per line</label>
+          <textarea id="links" value={links} onChange={event => setLinks(event.target.value)} placeholder="https://example.com/article" />
+          <p className="hint">{urls.length}/{maxLinks} links{account?.status === 'pending' ? ` · ${account.trial_links_remaining} trial links remaining` : ''}</p>
+          {urls.length > maxLinks && <p className="error" role="alert">Submit no more than {maxLinks} links.</p>}
+        </> : <>
+          <label htmlFor="new-content">Full source text</label><textarea id="new-content" value={text} onChange={event => setText(event.target.value)} />
+          <p className="hint">At least 200 readable characters, up to 100 KB. One article uses one trial link.</p>
+        </>}
+        <p className="hint">Submitting starts analysis and uses your monthly OpenRouter budget.</p>
+        <button className="primary" disabled={busy || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>
+      </form>}
+      {screen === 'Settings' && <><SettingsPanel session={session} /><UsagePanel usage={usage} error={usageError} /></>}
       {screen === 'Admin' && account?.role !== 'admin' && <p className="error" role="alert">Administrator access required.</p>}
     </section>
   </main>

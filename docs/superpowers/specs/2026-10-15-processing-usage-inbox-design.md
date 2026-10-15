@@ -1,6 +1,6 @@
 # Linksifty: przetwarzanie, koszty USD i czytelna kolejka
 
-Data: 2026-10-15. Status: zakres zaakceptowany; dokument do przeglądu właściciela przed planem implementacji.
+Data: 2026-10-15. Status: zakres zaakceptowany i implementacja lokalna wykonana; bramki bazy/środowiska/hostingu pozostają jawne w progress.md.
 
 ## 1. Problem i kontekst
 
@@ -80,7 +80,7 @@ Istniejąca polityka `settings owner` zezwala na zapis całego wiersza z limitem
 
 Zachowane są komponenty, kolory i typografia. UI ma semantyczne przyciski, etykiety, widoczny fokus, obsługę klawiatury, statusy live bez nadmiernych komunikatów i układ mobilny bez poziomego przewijania. Nie wprowadza się niepotrzebnego ruchu. Język produktu pozostaje spójny z istniejącym angielskim UI; polskie etykiety w tym dokumencie opisują znaczenie, nie nową lokalizację.
 
-Treści zachowują obecny termin 30 dni; postęp nie zawiera treści i wygasa razem z linkiem. Proponowany okres przechowywania beztreściowego rejestru kosztów to 90 dni, obejmujący rozliczenie poprzednich miesięcy. Niepewne rezerwacje nie są kasowane przed wyjaśnieniem. Jest to jawna decyzja do zatwierdzenia z tym dokumentem.
+Treści zachowują obecny termin 30 dni; postęp nie zawiera treści i wygasa razem z linkiem. Zgodnie z decyzją właściciela szczegółowy beztreściowy rejestr kosztów jest przechowywany przez 30 dni, bez 90-dniowej historii. Bieżący agregat miesięczny pozostaje do resetu miesiąca UTC, aby usunięcie wpisu po 30 dniach w miesiącu 31-dniowym nie odblokowało wydatków. Niepewne rezerwacje nie są kasowane przed wyjaśnieniem; po rozliczeniu wpis wygasa zgodnie z 30-dniową retencją.
 
 ## 7. Kryteria odbioru
 
@@ -103,7 +103,7 @@ Treści zachowują obecny termin 30 dni; postęp nie zawiera treści i wygasa ra
 | Model i ceny | Wykonawca: model konfigurowany na serwerze, ograniczony output i zweryfikowany maksymalny koszt przed wykonaniem. Brak bezpiecznej granicy kosztowej blokuje płatne wywołanie. |
 | Streaming / Render | Wykonawca: zweryfikować przerwanie strumienia, cold start i wznowienie bez wymagania stale aktywnej karty. |
 | Migracje i RLS | Wykonawca: ochrona ustawień i własności oraz testy rzeczywistego PostgreSQL przed wdrożeniem. |
-| Retencja kosztów | Filip: akceptacja proponowanych 90 dni z wyjątkiem nierozliczonych rezerwacji w ramach przeglądu dokumentu. |
+| Retencja kosztów | Filip ustalił 30 dni; wykonawca zapewnia, że czyszczenie historii nie zmniejsza bieżącego zużycia budżetu ani nie usuwa nierozliczonych rezerwacji. |
 | Aktywacja i koszty zewnętrzne | Filip: migracje i konfiguracja usług po gotowym kodzie; prawdziwe płatne próby wymagają osobnej zgody. |
 
 ## 9. Rozważone podejścia i decyzja
@@ -115,4 +115,4 @@ Sama poprawa UI usunęłaby sprzeczne teksty, ale nie dostarczyłaby kosztów an
 - Zakres zaakceptowany w rozmowie 2026-10-15; akceptacja dotyczyła przygotowania tej specyfikacji.
 - Dowody obecnego działania: `frontend/src/App.tsx`, `frontend/src/features/admin/AdminPanel.tsx`, `backend/src/linksifty/main.py`, `backend/src/linksifty/application/item_service.py`, `backend/src/linksifty/application/assessment_service.py`, `backend/src/linksifty/domain/scoring.py`, `supabase/migrations/20261012_000001_personal_mvp.sql`.
 - [Docelowy cykl życia](../../../.agent/context/changes/processing-usage-inbox/lifecycle.html) i [edytowalny JSON](../../../.agent/context/changes/processing-usage-inbox/lifecycle.json). Diagram opisuje projekt, nie aktualnie wdrożony kod; stałe kontrolki przeglądarki diagramu pozostają po angielsku.
-- Następny etap: przegląd i zatwierdzenie tego dokumentu, następnie techniczny plan implementacji. Nie zmieniono kodu produktu.
+- Właściciel polecił „CODE this”, następnie zatrzymał i wznowił wykonanie. Aktualny kod, dowody i pozostałe bramki są w `.agent/context/changes/processing-usage-inbox/progress.md`; nie jest to deklaracja wdrożenia produkcyjnego.

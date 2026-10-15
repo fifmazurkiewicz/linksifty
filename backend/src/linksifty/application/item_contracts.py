@@ -1,5 +1,6 @@
 """Item DTOs and persistence boundary used by application services."""
 
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -15,6 +16,12 @@ class ItemRecord(BaseModel):
     title: str | None = None
     status: JobStatus
     unread: bool
+    processing_stage: str = "queued"
+    failure_reason: str | None = None
+    updated_at: datetime | None = None
+    score: float | None = None
+    verdict: str | None = None
+    worker_active: bool | None = None
 
 
 class ItemRepository(Protocol):

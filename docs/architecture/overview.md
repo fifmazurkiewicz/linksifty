@@ -1,6 +1,6 @@
 # Linksifty architecture
 
-Updated 2026-10-14. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
+Updated 2026-10-15. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
 
 ## Implemented request path
 
@@ -12,19 +12,71 @@ Updated 2026-10-14. The repository is a monorepo: `backend/` is the uv-managed F
 
 This path is verified using mocked HTTP and frontend tests; no hosted migration or RLS test has run.
 
-## Planned processing path
+## Locally implemented processing path
 
-A bounded runner atomically leases queued or expired work, obtains complete content, reserves model cost, validates structured criteria and citations, computes the pure verdict, and commits the final result under the lease token. A failed/partial acquisition stops at `awaiting_manual_content`. Later authenticated visits resume claimable jobs. This runner is not yet implemented.
+`main.py` composes the owner-scoped `ProcessingRepository`, `OpenRouterClient` and
+`ProcessingService`. Routes in `api/processing.py` translate HTTP; orchestration
+lives in the application service, exact budget/lease concurrency in PostgreSQL,
+and the deterministic score/verdict remains in pure domain code.
 
-C2.1 hardens the generic HTTP adapter: reject malformed/credential URLs, resolve and validate every DNS answer, then connect to a pinned public IP with the original Host and TLS SNI. A fresh client per fetch disables environment proxies and prevents inherited credentials/cookies or cross-host TLS pooling. Only tests inject a transport; the production path uses the standard HTTPX transport. The former borrowed-client signature had no production callers. Redirects remain disabled; safe redirect handling, streaming limits, extraction quality and completeness still need C2.2–C2.5. `AssessmentService` currently converts an injected draft into a scored result; it does not yet enforce completeness, citations or budget. OpenRouter/X/chat adapters remain planned.
+1. Submission persists item/job together and wakes bounded API work (three owners
+   concurrently, up to five jobs per wake). A later authenticated queue visit
+   resumes claimable work. No paid always-on worker or broker is used.
+2. Each redirect is validated and pinned to public DNS answers. Fresh proxy-free
+   clients isolate cookies, Host and TLS SNI. Time/MIME/body limits and content
+   checks reject partial/blocked/unsupported sources into manual paste before any
+   paid call. Text acquisition skips scripts, navigation and other boilerplate.
+3. SQL reserves against current UTC-month actual spend plus all unresolved
+   reservations under an owner settings lock. Only the verified model's context
+   bound is supported: full context + bounded output at enforced provider price
+   ceilings, without a tokenizer-size heuristic. Unknown models fail closed.
+4. The adapter validates structured eight-criterion output and exact excerpts.
+   A response is saved under its lease before settlement; a late response's
+   generation ID remains bound to its original reservation. Actual provider USD
+   is settled idempotently into the reservation's original month. A missing cost
+   remains reserved, never treated as free or automatically sent again.
+5. The pure scorer computes the final result using the threshold captured by the
+   atomic reservation. Fenced SQL commits result/citations/completed state together.
+   A saved result can be recovered after interruption without repeating inference.
+6. Workers heartbeat every 15 seconds, with 60-second fenced leases. Snapshots
+   expose freshness (45 seconds) separately from durable stage. After a crash the
+   UI shows paused work; a later visit claims an expired lease. A reserved attempt
+   resumes reconciliation rather than starting another model call.
+7. Bearer-authenticated SSE publishes owner-only snapshots and usage with bounded
+   50-second connections, account access rechecks and reconnect recovery. Frontend
+   session expiration/sign-out clears private state and aborts the prior stream.
+
+These paths have mocked application/API/adapter tests; PostgreSQL/hosted checks
+are separate gates. The older standalone `AssessmentService` remains a draft-to-
+score utility; it is not the runtime provider orchestration path. Dedicated X,
+chat and additional-source enrichment remain planned.
 
 ## Data and trust
 
-Supabase migrations define items, content, jobs, assessments, citations, chat and settings. RLS policies and expiry fields exist; cross-owner foreign keys, client write privileges, retry/lease safety, cleanup execution and database validation remain C1 work. An expiry timestamp does not perform deletion.
+Migration `20261015_000005_processing_usage.sql` adds exact numeric USD totals and
+reservations, server-controlled monthly caps, stage/result/heartbeat fields and
+owner-scoped processing RPCs. Browser mutation privileges on settings/content/
+usage are revoked; even admins cannot use content APIs for another user. The
+admin endpoints expose account usage/limits only, without source access.
 
-Provider credentials remain on the server. Application orchestration depends on contracts; deterministic scoring has no FastAPI/database/provider imports. All fetched/pasted/provider text is untrusted. Every operation, including future chat/read/delete endpoints, must preserve verified owner scope.
+Cost details expire after 30 days; current-month totals and unresolved
+reservations survive detail cleanup. The API performs owner-scoped cleanup on
+wake/read; `supabase/retention.sql` defines the explicit database schedule required
+for inactive accounts. Expired-source reservations with a generation ID can be
+reconciled without source content. No-ID outcomes require verified operator
+reconciliation before further paid attempts. The cron script is provided, not
+activated by the agent.
+
+Database tests include pgTAP and a local disposable-database concurrent-reservation
+gate. No database validation is inferred from service-role HTTP mocks; cross-owner
+foreign-key hardening and the remaining broader C1/MVP work retain their own gates.
+Provider credentials stay server-only. Source/provider text is untrusted; all
+private reads and writes carry verified owner scope. Existing read/delete
+repository helpers still need product routes outside this change's scope.
 
 ## Diagrams
+
+- [Processing/recovery contract HTML](../../.agent/context/changes/processing-usage-inbox/lifecycle.html) · [editable JSON](../../.agent/context/changes/processing-usage-inbox/lifecycle.json). Includes cost uncertainty and heartbeat/lease behavior; not proof of hosted execution. Automated browser evidence remains separate from deterministic artifact checks.
 
 - [Account access and approval HTML](../../.agent/context/changes/multi-user-access-admin/architecture.html) · [editable JSON](../../.agent/context/changes/multi-user-access-admin/architecture.json) (Stage 1 target and local implementation; hosted activation remains manual)
 

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { api, type AdminAccount } from '../../lib/api'
+import { api, type AdminAccount, type Usage } from '../../lib/api'
+import { AccountBudget } from './AccountBudget'
 
-export function AdminPanel({ session }: { session: Session }) {
+export function AdminPanel({ session, onBudgetSaved }: { session: Session; onBudgetSaved?: (id: string, usage: Usage) => void }) {
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const load = useCallback(async () => {
     try { setAccounts(await api<AdminAccount[]>('/v1/admin/accounts', session)); setError(null) }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not load accounts.') }
@@ -16,7 +18,7 @@ export function AdminPanel({ session }: { session: Session }) {
       if (active) setAccounts(result)
     }).catch(e => {
       if (active) setError(e instanceof Error ? e.message : 'Could not load accounts.')
-    })
+    }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [session])
 
@@ -38,19 +40,21 @@ export function AdminPanel({ session }: { session: Session }) {
   }
 
   return <section className="admin-panel" aria-labelledby="admin-title">
-    <p className="eyebrow">ADMIN</p><h1 id="admin-title">Account approvals</h1>
-    <p>Manage access and approval emails. User links and assessments are not shown here.</p>
+    <p className="eyebrow">ADMIN</p><h1 id="admin-title">Account approvals &amp; budgets</h1>
+    <p>Manage access, monthly USD limits and approval emails.</p>
     {error && <p className="error" role="alert">{error}</p>}
-    {accounts.map(account => <article key={account.user_id}>
+    {loading && <p role="status">Loading accounts…</p>}
+    {accounts.map(account => <article key={account.user_id} className="admin-account">
       <div><h2>{account.email}</h2><p>{account.status} · {account.trial_links_used} trial links used</p>
         {account.approval_email_status && <p>Approval email: {account.approval_email_status}{account.approval_email_failure_code ? ` (${account.approval_email_failure_code})` : ''}</p>}
+        <AccountBudget id={account.user_id} session={session} onSaved={usage => onBudgetSaved?.(account.user_id, usage)} />
       </div>
       <div className="admin-actions">
         {account.status !== 'approved' && <button className="secondary" disabled={busy === account.user_id} onClick={() => void update(account.user_id, 'approved')}>Approve</button>}
-        {account.status !== 'rejected' && <button className="secondary" disabled={busy === account.user_id} onClick={() => void update(account.user_id, 'rejected')}>Reject</button>}
+        {account.status !== 'rejected' && account.user_id !== session.user.id && <button className="secondary" disabled={busy === account.user_id} onClick={() => void update(account.user_id, 'rejected')}>Reject</button>}
         {account.status === 'approved' && account.approval_email_status === 'failed' && <button className="secondary" disabled={busy === account.user_id} onClick={() => void retryEmail(account.user_id)}>Retry email</button>}
       </div>
     </article>)}
-    {accounts.length === 0 && !error && <p>No accounts to review.</p>}
+    {accounts.length === 0 && !error && !loading && <p>No accounts to review.</p>}
   </section>
 }

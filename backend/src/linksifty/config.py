@@ -14,6 +14,7 @@ class Settings:
     supabase_anon_key: str | None = field(default=None, repr=False)
     supabase_service_role_key: str | None = field(default=None, repr=False)
     openrouter_api_key: str | None = field(default=None, repr=False)
+    openrouter_model: str = "openai/gpt-4o-mini"
     resend_api_key: str | None = field(default=None, repr=False)
     resend_from_email: str | None = None
     x_api_bearer_token: str | None = field(default=None, repr=False)
@@ -41,6 +42,7 @@ class Settings:
             supabase_anon_key=os.getenv("SUPABASE_ANON_KEY"),
             supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
+            openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
             resend_api_key=os.getenv("RESEND_API_KEY"),
             resend_from_email=os.getenv("RESEND_FROM_EMAIL"),
             x_api_bearer_token=os.getenv("X_API_BEARER_TOKEN"),

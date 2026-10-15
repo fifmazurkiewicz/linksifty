@@ -10,3 +10,11 @@
 - `docs/architecture/overview.md`, `docs/roadmap.md`, earlier account specification: opportunistic executor intended; stage-two cost controls depend on processing.
 
 Graft is unavailable in this session; focused repository reads used. No official provider pricing/contract verification is claimed at specification stage; it is an implementation-planning prerequisite. No credentials read or external provider calls made.
+
+## Resumed technical verification — 2026-10-15
+
+- Official [OpenRouter GPT-4o-mini model](https://openrouter.ai/openai/gpt-4o-mini) documents 128,000 context tokens and structured outputs. [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection) documents max-price prompt/completion per million tokens and per-request ceiling. Reservation now bounds the full context and explicit output maximum instead of estimating framing/tokenization. Only this verified model ID is allowed; no live inference/pricing request was made.
+- [Usage accounting](https://openrouter.ai/docs/cookbook/administration/usage-accounting) identifies usage.cost as total account charge and generation lookup as reconciliation. Persisted actual cost is sufficient for recovery without another lookup.
+- `command -v` checks found no psql, Docker, Supabase CLI or agent-toolkit. Focused Homebrew binary inventory also found no psql/postgres/initdb/pgTAP runtime. No automatic install attempted; owner was asked about providing/preparing a disposable runtime.
+- Local browser tab acquisition was denied by the browser URL policy. Do not retry through alternate surfaces. Current UI behavior is exercised by jsdom/component tests; prior screenshots remain prior-run evidence only.
+- Archify contract updated for heartbeat/freshness and exact reservation; deterministic validate/deliver/check pass. Automated browser gate skipped because Chrome/Chromium is unavailable; no full-finalize success claim.

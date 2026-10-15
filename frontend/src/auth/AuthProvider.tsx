@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { supabase as configuredClient } from './supabase'
 import { AuthContext } from './context'
 import type { AuthValue } from './context'
+import { AUTH_EXPIRED_EVENT } from '../lib/api'
 
 export function AuthProvider({
   children,
@@ -15,6 +16,7 @@ export function AuthProvider({
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(Boolean(client))
   const [error, setError] = useState<string | null>(null)
+  const signingOut = useRef(false)
 
   const signInWithGoogle = useCallback(async () => {
     if (!client) {
@@ -33,6 +35,9 @@ export function AuthProvider({
   }, [client])
 
   const signOut = useCallback(async () => {
+    if (signingOut.current) return
+    signingOut.current = true
+    setSession(null)
     if (!client) return
     try {
       const { error: authError } = await client.auth.signOut()
@@ -41,6 +46,14 @@ export function AuthProvider({
       setError('Sign out could not be completed. Please try again.')
     }
   }, [client])
+
+  useEffect(() => {
+    const expired = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === session?.user.id) void signOut()
+    }
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, expired)
+  }, [session, signOut])
 
   useEffect(() => {
     if (!client) return
@@ -56,6 +69,7 @@ export function AuthProvider({
       setLoading(false)
     })
     const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
+      if (nextSession) signingOut.current = false
       setSession(nextSession)
       setError(null)
       setLoading(false)

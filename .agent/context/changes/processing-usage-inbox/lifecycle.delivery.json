@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "c52cb971-86ee-4b42-ad46-709048782b7e",
+  "receiptId": "0a73b2fb-1fd8-4b49-acbd-df333d510558",
   "status": "current",
   "command": "deliver",
   "type": "lifecycle",
   "input": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/lifecycle.json",
   "output": "/Users/Filip/dev/linksifty/.agent/context/changes/processing-usage-inbox/lifecycle.html",
   "specification": {
-    "sha256": "b6aaafe9654ecbba3b7af821dc991c8d633f51c0736a8b51021b2778bff72880",
-    "bytes": 4018
+    "sha256": "4401fdb6b094051bcc9951909183e9f3c277715a8d34a8e11ff511bca0b4c5a2",
+    "bytes": 4267
   },
   "artifact": {
-    "sha256": "0571b75f9b5b465dd8be569d850da6d34e14c026dc1a696addbd25714474809b",
-    "bytes": 764986
+    "sha256": "a7d02bd720aadf6f8330030481a827ec0f28ee30a38d694d25b81331d79056b0",
+    "bytes": 765277
   }
 }

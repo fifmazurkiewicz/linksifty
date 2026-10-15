@@ -4,20 +4,25 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from uuid import UUID
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, ValidationError
 
-from linksifty.api import accounts, admin
+from linksifty.api import accounts, admin, processing
 from linksifty.api.auth import CurrentUser
 from linksifty.application.account_contracts import AccountService
 from linksifty.application.item_contracts import ItemRecord
 from linksifty.application.item_service import ItemService
+from linksifty.application.processing_service import ProcessingService
 from linksifty.config import Settings
+from linksifty.infrastructure.http_fetcher import fetch_public_text
+from linksifty.infrastructure.openrouter_client import OpenRouterClient
+from linksifty.infrastructure.processing_repository import ProcessingRepository
 from linksifty.infrastructure.resend_client import ResendApprovalMailer
 from linksifty.infrastructure.supabase_auth import SupabaseAuthenticator
 from linksifty.infrastructure.supabase_repository import (
@@ -41,6 +46,11 @@ class ItemResponse(BaseModel):
     status: str
     score: float | None = None
     verdict: str | None = None
+    processing_stage: str = "queued"
+    failure_reason: str | None = None
+    original_url: str | None = None
+    updated_at: datetime | None = None
+    worker_active: bool | None = None
 
 
 class InboxResponse(BaseModel):
@@ -53,6 +63,13 @@ def _response(item: ItemRecord) -> ItemResponse:
         id=str(item.id),
         title=item.title or item.original_url or "Pasted content",
         status=item.status,
+        score=item.score,
+        verdict=item.verdict,
+        processing_stage=item.processing_stage,
+        failure_reason=item.failure_reason,
+        original_url=item.original_url,
+        updated_at=item.updated_at,
+        worker_active=item.worker_active,
     )
 
 
@@ -102,15 +119,41 @@ def create_app(
                 application.state.accounts = AccountService(
                     repository, configuration.linksifty_admin_email, mailer
                 )
-            yield
+                processing_repository = ProcessingRepository(
+                    configuration.supabase_url, configuration.supabase_service_role_key, client
+                )
+                provider = (
+                    OpenRouterClient(
+                        configuration.openrouter_api_key, configuration.openrouter_model, client
+                    )
+                    if configuration.openrouter_api_key
+                    else None
+                )
+                application.state.processing = ProcessingService(
+                    processing_repository, provider, fetch_public_text
+                )
+            try:
+                yield
+            finally:
+                processor: ProcessingService | None = application.state.processing
+                if processor is not None:
+                    await processor.close()
 
     app = FastAPI(title="Linksifty", lifespan=lifespan)
     app.include_router(accounts.router)
     app.include_router(admin.router)
+    app.include_router(processing.router)
     app.state.settings = configuration
     app.state.authenticator = None
     app.state.items = None
     app.state.accounts = None
+    app.state.processing = None
+
+    @app.exception_handler(ValidationError)
+    async def invalid_persistence(request: Request, error: ValidationError) -> JSONResponse:
+        return JSONResponse(
+            status_code=503, content={"detail": "Persistence temporarily unavailable"}
+        )
 
     @app.exception_handler(RepositoryUnavailable)
     async def persistence_error(request: Request, error: RepositoryUnavailable) -> JSONResponse:
@@ -146,7 +189,9 @@ def create_app(
         service: ItemService | None = app.state.items
         if service is None:
             raise HTTPException(503, "Persistence is not configured")
-        return InboxResponse(items=[_response(item) for item in await service.inbox(user_id)])
+        processor: ProcessingService | None = app.state.processing
+        records = await processor.inbox(user_id) if processor else await service.inbox(user_id)
+        return InboxResponse(items=[_response(item) for item in records])
 
     @app.get("/v1/items/{item_id}", response_model=ItemResponse)
     async def get_item(item_id: str, user_id: CurrentUser) -> ItemResponse:
@@ -178,6 +223,9 @@ def create_app(
             records = await service.submit(
                 user_id, [str(source.url) for source in submission.sources]
             )
+            processor: ProcessingService | None = app.state.processing
+            if processor is not None:
+                processor.wake(user_id)
             return InboxResponse(items=[_response(item) for item in records])
         return InboxResponse(
             demo=True,

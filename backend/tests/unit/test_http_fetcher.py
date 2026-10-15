@@ -174,3 +174,56 @@ def test_public_literal_ip_does_not_use_dns(monkeypatch: pytest.MonkeyPatch) -> 
 
     monkeypatch.setattr(socket, "getaddrinfo", forbidden)
     assert fetch(f"https://{PUBLIC_IP}/a") == FetchResult(text="hello")
+
+
+def test_redirect_to_private_ip_never_connects() -> None:
+    calls = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(302, headers={"location": "http://127.0.0.1/secret"})
+
+    result = fetch("https://example.com", respond)
+    assert result.failure is FetchFailure.UNSAFE_URL
+    assert len(calls) == 1
+
+
+def test_binary_and_partial_responses_never_return_text() -> None:
+    for response in [
+        httpx.Response(206, text="partial article"),
+        httpx.Response(200, headers={"content-type": "application/pdf"}, content=b"%PDF"),
+        httpx.Response(200, text="x" * 600000),
+        httpx.Response(200, text="<html><body>truncated article"),
+    ]:
+        assert fetch("https://example.com", lambda _, response=response: response).text is None
+
+
+def test_script_and_navigation_do_not_become_source_material() -> None:
+    result = fetch(
+        "https://example.com",
+        lambda _: httpx.Response(
+            200,
+            text="<html><head><title>ignore</title></head><body><nav>sign in</nav>"
+            "<script>secret()</script><article>Actual evidence.</article></body></html>",
+        ),
+    )
+    assert result.text == "Actual evidence."
+
+
+def test_ignored_identity_encoding_and_disguised_pdf_require_manual_content() -> None:
+    import gzip
+
+    def encoded(request: httpx.Request) -> httpx.Response:
+        assert request.headers["accept-encoding"] == "identity"
+        return httpx.Response(
+            200,
+            headers={"content-encoding": "gzip"},
+            content=gzip.compress(b"Article source " * 100),
+        )
+
+    assert fetch("https://example.com", encoded).failure is FetchFailure.UNSUPPORTED
+    pdf = fetch(
+        "https://example.com", lambda _: httpx.Response(200, content=b"%PDF-1.7\n" + b"a" * 300)
+    )
+    assert pdf.text is None
+    assert pdf.failure is FetchFailure.UNSUPPORTED

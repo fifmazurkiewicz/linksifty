@@ -58,9 +58,8 @@ jobs:
         run: npm ci
       - name: Frontend lint
         run: npm run lint
-      # C6.1 adds the test script. Once present, a failed test fails this job.
-      - name: Frontend tests (when C6.1 adds the runner)
-        run: npm run test --if-present
+      - name: Frontend behavior tests
+        run: npm test -- --run
       - name: Production build
         run: npm run build
 

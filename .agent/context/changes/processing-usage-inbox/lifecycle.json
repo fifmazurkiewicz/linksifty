@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "lifecycle",
   "meta": {
-    "title": "Linksifty — docelowy cykl analizy (projekt)",
+    "title": "Linksifty — cykl analizy i wznowienie (kontrakt lokalny)",
     "output": ".agent/context/changes/processing-usage-inbox/lifecycle.html",
     "quality_profile": "showcase"
   },
@@ -166,11 +166,11 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "Projekt do wdrożenia",
+      "title": "Kontrakt implementacji",
       "items": [
-        "Diagram jest kontraktem docelowym, nie opisem wdrożonego wykonawcy.",
-        "Postęp pochodzi z trwałego stanu; odbiór wymaga sesji właściciela.",
-        "Zapis obejmuje rozliczenie kosztu i kompletny wynik."
+        "Diagram opisuje kontrakt lokalnego kodu; nie potwierdza aktywacji bazy ani hostingu.",
+        "Strumień SSE wymaga sesji właściciela i odtwarza trwały stan po rozłączeniu.",
+        "Wynik jest zapisany przed rozliczeniem kosztu; końcowy commit wymaga dzierżawy."
       ]
     },
     {
@@ -180,7 +180,9 @@
         "Brak kompletnej treści zatrzymuje analizę przed modelem.",
         "Limit można podnieść; wznowienie jest świadomą akcją użytkownika.",
         "Nieznany koszt blokuje powtórne płatne wywołanie tej próby.",
-        "Przerwane lokalne wykonanie odzyskuje dzierżawę bez dublowania kosztów."
+        "Przerwane lokalne wykonanie odzyskuje dzierżawę bez dublowania kosztów.",
+        "Heartbeat co 15 s, dzierżawa 60 s; brak świeżości 45 s pokazuje przerwę.",
+        "Rezerwacja 0,14848 USD obejmuje pełny zweryfikowany kontekst i limit outputu."
       ]
     }
   ]

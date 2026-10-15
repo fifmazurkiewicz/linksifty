@@ -24,6 +24,14 @@ key in Vercel or any `VITE_` variable.
 
 Keep `LINKSIFTY_DEMO_MODE=false` on Render. Set `FRONTEND_ORIGIN` to the exact Vercel frontend origin. Missing or invalid authentication returns 401; unavailable auth or persistence returns 503.
 
-Local demo mode uses sample records and does not persist submissions. Real submission calls `submit_fetch_items` to create each item and queued job in one transaction. Processing jobs is still being implemented, so currently real submissions remain queued.
+Local demo mode uses sample records and does not persist submissions. Real submission calls `submit_fetch_items` to create each item and queued job in one transaction. The matching API now executes queued jobs opportunistically and exposes owner-scoped progress SSE after migration 000005; hosted activation is not yet verified.
 
 Before release, verify RLS and foreign-key ownership on a real or local PostgreSQL instance with two user identities. HTTP mock tests prove that the API supplies ownership filters, but do not prove database policy enforcement.
+
+
+Processing/usage requires `20261015_000005_processing_usage.sql`. It adds exact USD
+reservations/totals, server-controlled budgets, threshold writes, fenced jobs and
+heartbeats. After validating it in a disposable database, explicitly enable
+`supabase/retention.sql` for cleanup while the app is inactive. Settled cost detail
+expires after 30 days; current-month totals and unresolved reservations remain.
+See setup section 13 for the pgTAP/concurrency gate and unknown-cost reconciliation.

@@ -5,33 +5,32 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import socket
-from dataclasses import dataclass
-from enum import StrEnum
 from html.parser import HTMLParser
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
-
-class FetchFailure(StrEnum):
-    UNSAFE_URL = "unsafe_url"
-    LOGIN_REQUIRED = "login_required"
-    UNAVAILABLE = "unavailable"
-
-
-@dataclass(frozen=True, slots=True)
-class FetchResult:
-    text: str | None = None
-    failure: FetchFailure | None = None
+from linksifty.domain.acquisition import FetchFailure as FetchFailure
+from linksifty.domain.acquisition import FetchResult as FetchResult
 
 
 class _TextParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.parts: list[str] = []
+        self.ignored: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "style", "head", "nav", "footer", "aside", "noscript"}:
+            self.ignored.append(tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self.ignored:
+            self.ignored = self.ignored[: self.ignored.index(tag)]
 
     def handle_data(self, data: str) -> None:
-        self.parts.append(data)
+        if not self.ignored:
+            self.parts.append(data)
 
 
 def _public_address(host: str) -> bool:
@@ -97,35 +96,97 @@ async def fetch_public_text(
     *,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> FetchResult:
-    """Fetch public HTML only; callers map every failure to manual content."""
-    target = _validated_url(url)
-    if target is None:
-        return FetchResult(failure=FetchFailure.UNSAFE_URL)
-    host = target.raw_host.decode("ascii")
+    """Bounded acquisition: validate and pin every redirect; never return partial bytes."""
     try:
-        addresses = await _addresses(host, target.port or (443 if target.scheme == "https" else 80))
-    except (OSError, TimeoutError):
+        async with asyncio.timeout(60):
+            return await _fetch(url, transport)
+    except (httpx.HTTPError, TimeoutError, UnicodeError, ValueError):
         return FetchResult(failure=FetchFailure.UNAVAILABLE)
-    if not addresses or not all(_public_address(address) for address in addresses):
-        return FetchResult(failure=FetchFailure.UNSAFE_URL)
-    try:
-        # A fresh client prevents credential/cookie leakage and cross-host TLS pool reuse.
-        # Pin the socket destination; Host and SNI retain the original virtual host.
+
+
+async def _fetch(url: str, transport: httpx.AsyncBaseTransport | None) -> FetchResult:
+    for hop in range(6):
+        target = _validated_url(url)
+        if target is None:
+            return FetchResult(failure=FetchFailure.UNSAFE_URL)
+        host = target.raw_host.decode("ascii")
+        if host.rstrip(".") in {"x.com", "twitter.com", "www.x.com", "www.twitter.com"}:
+            return FetchResult(failure=FetchFailure.UNSUPPORTED)
+        try:
+            addresses = await _addresses(
+                host, target.port or (443 if target.scheme == "https" else 80)
+            )
+        except (OSError, TimeoutError):
+            return FetchResult(failure=FetchFailure.UNAVAILABLE)
+        if not addresses or not all(_public_address(address) for address in addresses):
+            return FetchResult(failure=FetchFailure.UNSAFE_URL)
+        # Fresh, proxy-free client pins the destination and isolates cookies per hop.
         async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
-            response = await client.get(
+            async with client.stream(
+                "GET",
                 target.copy_with(host=addresses[0]),
-                headers={"Host": target.netloc.decode("ascii")},
+                headers={
+                    "Host": target.netloc.decode("ascii"),
+                    "Accept": "text/html,text/plain",
+                    "Accept-Encoding": "identity",
+                },
                 extensions={"sni_hostname": host},
                 follow_redirects=False,
-                timeout=10.0,
-            )
-    except httpx.HTTPError:
-        return FetchResult(failure=FetchFailure.UNAVAILABLE)
-    if response.status_code >= 400:
-        return FetchResult(failure=FetchFailure.UNAVAILABLE)
-    parser = _TextParser()
-    parser.feed(response.text)
-    text = " ".join(" ".join(parser.parts).split())
-    if "log in" in text.lower() or "sign in" in text.lower():
-        return FetchResult(failure=FetchFailure.LOGIN_REQUIRED)
-    return FetchResult(text=text)
+                timeout=10,
+            ) as response:
+                if response.status_code in {301, 302, 303, 307, 308}:
+                    location = response.headers.get("location")
+                    if not location or hop == 5:
+                        return FetchResult(failure=FetchFailure.UNAVAILABLE)
+                    next_url = urljoin(str(target), location)
+                    if target.scheme == "https" and urlparse(next_url).scheme != "https":
+                        return FetchResult(failure=FetchFailure.UNSAFE_URL)
+                    url = next_url
+                    continue
+                if response.status_code != 200:
+                    return FetchResult(
+                        failure=FetchFailure.PARTIAL
+                        if response.status_code == 206
+                        else FetchFailure.UNAVAILABLE
+                    )
+                mime = response.headers.get("content-type", "").split(";")[0].lower().strip()
+                if mime and mime not in {"text/html", "text/plain", "application/xhtml+xml"}:
+                    return FetchResult(failure=FetchFailure.UNSUPPORTED)
+                # Bound raw response bytes; do not let an ignored identity request
+                # trigger unbounded automatic decompression before our size check.
+                if response.headers.get("content-encoding", "identity").lower() not in {
+                    "identity",
+                    "",
+                }:
+                    return FetchResult(failure=FetchFailure.UNSUPPORTED)
+                length = response.headers.get("content-length")
+                if length and int(length) > 500000:
+                    return FetchResult(failure=FetchFailure.TOO_LARGE)
+                body = bytearray()
+                async for chunk in response.aiter_bytes():
+                    body.extend(chunk)
+                    if len(body) > 500000:
+                        return FetchResult(failure=FetchFailure.TOO_LARGE)
+                if (
+                    length
+                    and "content-encoding" not in response.headers
+                    and len(body) != int(length)
+                ):
+                    return FetchResult(failure=FetchFailure.PARTIAL)
+                if body.startswith((b"%PDF-", b"PK\x03\x04")):
+                    return FetchResult(failure=FetchFailure.UNSUPPORTED)
+                raw = bytes(body).decode(response.encoding or "utf-8", errors="strict")
+                if "\x00" in raw:
+                    return FetchResult(failure=FetchFailure.UNSUPPORTED)
+        if "<html" in raw.lower() and "</html>" not in raw.lower():
+            return FetchResult(failure=FetchFailure.PARTIAL)
+        parser = _TextParser()
+        parser.feed(raw)
+        parser.close()
+        text = " ".join(" ".join(parser.parts).split())
+        if len(text.encode("utf-8")) > 100000:
+            return FetchResult(failure=FetchFailure.TOO_LARGE)
+        if "log in" in text.lower() or "sign in" in text.lower():
+            return FetchResult(failure=FetchFailure.LOGIN_REQUIRED)
+        return FetchResult(text=text)
+    return FetchResult(failure=FetchFailure.UNAVAILABLE)

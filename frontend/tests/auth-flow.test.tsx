@@ -131,3 +131,68 @@ describe('account access', () => {
     ))
   })
 })
+
+it('clears private data when a settings request reports an expired session', async () => {
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({
+      user_id: 'reader', email: 'reader@example.test', status: 'approved', role: 'user', trial_links_used: 0, trial_links_remaining: 3,
+    }))
+    if (url.endsWith('/v1/settings')) return new Response('Expired', { status: 401 })
+    if (url.endsWith('/v1/usage')) return new Response(JSON.stringify({ month: '2026-10-01', spent_usd: '0.01', reserved_usd: '0', limit_usd: '10', remaining_usd: '9.99', resets_at: '2026-11-01T00:00:00Z' }))
+    return new Response(JSON.stringify({ items: [{ id: 'private', title: 'Private reading item', status: 'completed', score: 80, verdict: 'valuable' }] }))
+  })
+  const { signOut } = renderApp(session)
+  expect(await screen.findByText('Private reading item')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+  expect(await screen.findByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+  expect(screen.queryByText('Private reading item')).not.toBeInTheDocument()
+  expect(screen.queryByText('0.01 USD')).not.toBeInTheDocument()
+  expect(signOut).toHaveBeenCalledOnce()
+})
+
+it('keeps earlier links after submission and refreshes the remaining trial allowance', async () => {
+  let accepted = false
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  const old = { id: 'old', title: 'Earlier saved article', status: 'completed', score: 70, verdict: 'valuable' }
+  const added = { id: 'new', title: 'New submitted article', status: 'queued', score: null, verdict: null }
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', email: 'reader@example.test', status: 'pending', role: 'user', trial_links_used: accepted ? 1 : 0, trial_links_remaining: accepted ? 2 : 3 }))
+    if (url.endsWith('/v1/items') && init?.method === 'POST') {
+      accepted = true
+      return new Response(JSON.stringify({ items: [added] }), { status: 202 })
+    }
+    return new Response(JSON.stringify({ items: accepted ? [added, old] : [old] }))
+  })
+  renderApp(session)
+  expect(await screen.findByText('Earlier saved article')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Add links' }))
+  fireEvent.change(screen.getByLabelText('One public URL per line'), { target: { value: 'https://example.test/article' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Submit links' }))
+  expect(await screen.findByText('New submitted article')).toBeInTheDocument()
+  expect(screen.getByText('Earlier saved article')).toBeInTheDocument()
+  expect(await screen.findByText(/awaiting admin approval · 2 trial links remaining/i)).toBeInTheDocument()
+})
+
+it('allows pasted recovery of an accepted trial link even after trial links are used', async () => {
+  let pasted = false
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', email: 'reader@example.test', status: 'pending', role: 'user', trial_links_used: 3, trial_links_remaining: 0 }))
+    if (url.endsWith('/v1/items/manual/content') && init?.method === 'PUT') {
+      pasted = true
+      return new Response(JSON.stringify({ id: 'manual' }), { status: 202 })
+    }
+    return new Response(JSON.stringify({ items: [{ id: 'manual', title: 'Blocked source', status: pasted ? 'queued' : 'awaiting_manual_content', score: null, verdict: null }] }))
+  })
+  renderApp(session)
+  fireEvent.click(await screen.findByRole('button', { name: 'Paste content' }))
+  fireEvent.change(screen.getByLabelText('Full source text'), { target: { value: 'Complete readable source with testable supporting evidence. '.repeat(10) } })
+  fireEvent.click(screen.getByRole('button', { name: 'Analyze pasted content' }))
+  await waitFor(() => expect(pasted).toBe(true))
+  expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/v1/items/manual/content'), expect.objectContaining({ method: 'PUT' }))
+  expect(await screen.findByText(/waiting for processing/i)).toBeInTheDocument()
+})

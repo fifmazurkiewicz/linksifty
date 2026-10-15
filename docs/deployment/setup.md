@@ -7,22 +7,17 @@ settings; do not put them in Git or this document.
 
 ## 1. Decide what you are setting up now
 
-Use a **development/staging environment** while the remaining coding tasks are
-completed. You can prepare accounts and configure hosting now, but the current
-code does not yet provide the complete authenticated browser workflow.
+The processing/usage/inbox slice is implemented locally; database and hosted
+activation remain separate release gates. Keep demo mode off on the real-data
+service. Mock tests and local UI checks do not certify RLS or provider behavior.
 
-| Component | What works now | What still needs implementation |
+| Component | Local implementation | Release gate |
 | --- | --- | --- |
-| Supabase | Server token verification, owner-filtered item API, transactional item/job submission | Ownership constraints, client write restrictions, SQL validation, retention cleanup |
-| Render API | `/health`; authenticated item list/detail/submission | Job runner, provider calls, complete product routes |
-| Vercel frontend | Inbox/Add/Settings preview; configurable API URL | Supabase login/session handling and bearer tokens, detail/chat/recovery/settings |
-| OpenRouter | Environment variable is read | Model configuration, provider adapter, citation validation, atomic cost cap |
-| X | Environment variable is read | Official acquisition adapter and access-error fallback |
-
-With demo mode off, the current Vercel frontend will get **401** when listing
-items because it does not send a user token yet. That is an implementation gap,
-not a missing hosting setting. Real submitted jobs currently stay `queued`.
-Do not enable demo mode on the real-data service to bypass this.
+| Supabase | Owner-scoped records, fenced processing, exact USD reservations, settings/admin budget RPCs | Apply migration 000005, run SQL/RLS/concurrency gate, enable retention schedule |
+| Render API | Authentication, resumable bounded runner, OpenRouter, progress SSE and recovery routes | Hosted restart/streaming and verified provider cost |
+| Vercel frontend | Google session, queue, live progress, detail/citations, paste, settings and admin limits | Rebuild with matching API, hosted two-account check |
+| OpenRouter | Actual-cost adapter and strict source-citation validation | Server key and verified model; explicitly approved paid acceptance |
+| X/chat | Deferred; unsupported X content requests manual paste | Separate roadmap scope |
 
 Setup order: **Supabase → Render → Vercel → final CORS/Auth URLs → optional
 provider credentials → staging checks → release verification after coding**.
@@ -78,6 +73,7 @@ contents of each migration and run them in this order:
 2. [`20261013_000002_submission_rpc.sql`](../../supabase/migrations/20261013_000002_submission_rpc.sql)
 3. [`20261014_000003_account_approval.sql`](../../supabase/migrations/20261014_000003_account_approval.sql)
 4. [`20261014_000004_account_notifications.sql`](../../supabase/migrations/20261014_000004_account_notifications.sql)
+5. [`20261015_000005_processing_usage.sql`](../../supabase/migrations/20261015_000005_processing_usage.sql)
 
 These scripts are not all rerunnable. If a migration has already succeeded,
 do not run it again or delete existing tables to silence an error. Check the
@@ -86,7 +82,7 @@ applied afterward in filename order; never edit an already-applied migration.
 
 Check Table Editor for `settings`, `items`, `source_contents`, `jobs`,
 `assessments`, `citations`, `chat_messages`, `account_profiles`, and
-`account_notifications`. Check Database Functions for `claim_next_job`,
+`account_notifications`, `usage_months`, and `usage_reservations`. Check Database Functions for `claim_next_job`,
 `submit_fetch_items`, and the account profile/status/notification RPCs. The
 migrations enable RLS, but this alone does not prove complete ownership isolation.
 Run the account-approval pgTAP tests and two-user SQL checks before release.
@@ -193,7 +189,8 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `LINKSIFTY_ADMIN_EMAIL` | Verified Google account email for the initial administrator | Yes for owner admin access; private server setting |
 | `RESEND_API_KEY` | Resend API key with permission to send from the verified sender domain | Yes for approval email; server-only |
 | `RESEND_FROM_EMAIL` | Sender identity on a domain verified in Resend, e.g. `Linksifty <noreply@example.com>` | Yes for approval email |
-| `OPENROUTER_API_KEY` | OpenRouter inference key | Optional preparation; no provider calls are wired yet |
+| `OPENROUTER_API_KEY` | Server-only OpenRouter inference key | Required for assessment; missing key yields an explicit not-configured state |
+| `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
 | `X_API_BEARER_TOKEN` | Official X app-only bearer token | Optional preparation; X adapter is unfinished |
 | `PORT` | Supplied by Render | Do not manually set |
 
@@ -324,20 +321,26 @@ A valid CORS response alone does not replace authentication.
    before adding credits; funding is not needed just to prepare this guide/setup.
 4. Put the inference key in Render as `OPENROUTER_API_KEY`.
 5. Never use a management/provisioning key as the application inference key.
-6. For C3.3, choose a model that supports JSON-schema structured output and record
-   its exact model ID and current pricing. This choice can wait until the adapter
-   is implemented; do not assume a particular model from an older guide.
+6. Set `OPENROUTER_MODEL=openai/gpt-4o-mini`. Other model IDs are blocked until their context/cost contract is verified and added to the adapter.
 
 Key credit limits can reject further requests at the limit.
 [OpenRouter authentication and key limits](https://openrouter.ai/docs/api_reference/authentication).
 Schema support depends on the model/provider.
 [Structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs).
 
-There is **no `OPENROUTER_MODEL` env variable read by the code yet**, and no
-implemented application monthly budget enforcement. The `settings` database
-has a default 1000-cent budget field, but a field alone does not reserve/enforce
-spending. Key-level limits are an additional control; C3.4 must implement the
-atomic application cap before provider activation.
+The application enforces a per-user UTC calendar-month budget with exact
+PostgreSQL numerics. Before inference it reserves **0.14848 USD**: the full verified
+128,000-token context at the enforced 1 USD/M input ceiling plus 4,096 output tokens
+at 5 USD/M. This includes framing without estimating token counts from source
+bytes. Actual cost is settled from `usage.cost`; the reservation is not the bill.
+The request disables fallback, plugins/tools and per-request fees (`max_price.request=0`).
+Unknown model bounds fail before payment. A missing/uncertain cost remains reserved;
+no implicit repeat of that paid attempt occurs. Key-level limits are a separate,
+shared-provider-account control, not the app's per-user budget.
+
+Sources checked 2026-10-15: [model context](https://openrouter.ai/openai/gpt-4o-mini),
+[provider price ceilings](https://openrouter.ai/docs/guides/routing/provider-selection),
+[usage cost and generation lookup](https://openrouter.ai/docs/cookbook/administration/usage-accounting).
 
 ## 8. Prepare official X access (optional until C7)
 
@@ -372,6 +375,7 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<sb_publishable-key-or-legacy-anon-JWT>
 SUPABASE_SERVICE_ROLE_KEY=<sb_secret-key-or-legacy-service-role-JWT>
 OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4o-mini
 X_API_BEARER_TOKEN=
 LINKSIFTY_DEMO_MODE=false
 FRONTEND_ORIGIN=http://localhost:5173
@@ -410,7 +414,7 @@ Open the exact origin configured by `FRONTEND_ORIGIN` (normally
 ### Variables you do not need to invent
 
 The current code does not read `DATABASE_URL`, `SUPABASE_JWT_SECRET`,
-`SUPABASE_DB_PASSWORD`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`, `X_API_KEY`,
+`SUPABASE_DB_PASSWORD`, `OPENROUTER_BASE_URL`, `X_API_KEY`,
 or `X_API_SECRET`. The Vite variables above are consumed by the frontend;
 Render's `PORT`, `PYTHON_VERSION` and `UV_VERSION` are hosting settings, not
 fields in `Settings`.
@@ -432,8 +436,7 @@ fields in `Settings`.
 7. In Supabase Table Editor confirm submitted items and jobs have the second
    user's UUID. Run the repository's Supabase SQL tests before release.
 
-The API still does not process queued jobs into completed assessments. A successful
-sign-in and account approval do not prove the unfinished assessment runner.
+The local API now runs queued work after submission or an authenticated visit. Successful sign-in alone does not prove the processing/database/provider gates; use the Stage 2 checks below.
 
 8. Before release, use executable SQL/RLS tests to verify cross-owner reads/writes
    and child ownership. Do not infer RLS safety from a successful service-role API
@@ -452,10 +455,10 @@ sign-in and account approval do not prove the unfinished assessment runner.
 | Vercel preview URL fails but stable URL works | Current backend allows one configured origin; previews need a separate staging arrangement |
 | API 401 | Missing/expired user access token; sign in again and check Supabase Auth settings |
 | API 503 for auth | Supabase URL/key configured; project awake/reachable; token verification available |
-| API 503 for persistence | Correct legacy service-role JWT; both migrations applied; DB/API reachable |
-| Submitted item never leaves queued | Runner C4 is not implemented yet; credentials do not start it |
+| API 503 for persistence | Compatible server key; all five migrations applied; DB/API reachable |
+| Submitted item never leaves queued | Matching backend build and migration 000005; API awake; verify worker heartbeat and error stage |
 | First Render request is slow | Free-service cold start; wait for service health before diagnosing credentials |
-| No OpenRouter/X calls | Adapters are unfinished, even if env variables are present |
+| No OpenRouter/X calls | OpenRouter needs a server key, supported model and available budget; X adapter remains deferred |
 
 ## 12. Release checklist after the remaining coding phases
 
@@ -475,3 +478,66 @@ sign-in and account approval do not prove the unfinished assessment runner.
 
 This document prepares manual E1 setup. It does not mark E1 or C8.3 complete:
 no account, migration, deployment or paid call was executed when writing it.
+
+
+## 13. Processing, usage, retention and recovery
+
+Apply migration **000005 before deploying the matching API/UI**. It revokes client
+mutations on content/settings/usage tables; writes go through owner-scoped API and
+server-only RPCs. Apply only new migrations to an existing project. Do not replay
+old scripts or reset an existing project to resolve a migration error.
+
+The runner is opportunistic in the API: three simultaneous owners, up to five jobs
+per wake. Submitting or visiting the queue wakes work. Closing the browser does not
+cancel accepted work; a sleeping/restarted API requires a later visit to resume.
+Workers heartbeat every 15 seconds; leases last 60 seconds. After 45 seconds
+without a heartbeat the UI labels the durable last stage as paused. SSE connections
+renew after 50 seconds with a bearer header, account rechecks and a new snapshot.
+
+Cost details expire after **30 days**; current UTC-month totals survive detail
+cleanup, and unresolved reservations survive until reconciled. To clean data even
+with no visits, explicitly enable [the retention schedule](../../supabase/retention.sql)
+in the target database after testing it. It deletes expired content and settled
+cost detail and never calls a paid provider. Verify the cron job is active. The
+API also performs scoped cleanup when waking work; that alone does not guarantee
+retention for inactive accounts.
+
+Unknown calls with a saved generation ID are looked up with `GET /generation` and
+settled idempotently in their original month. Calls without an ID remain reserved.
+An operator must first establish the outcome/cost in provider records; never clear
+or rerun an unknown paid attempt by guessing zero. After verification, an authorized
+operator may invoke `settle_analysis(owner_uuid, reservation_uuid, verified_cost)`
+through the server/database maintenance path. Do not grant this RPC to browsers.
+There is no automatic administrative access to the user's source or prompts.
+
+### Database gate on an existing disposable local runtime
+
+Use an already-migrated Supabase-compatible database with pgTAP, on loopback with
+a name ending `_test`. Set `LINKSIFTY_TEST_DATABASE_URL` privately; never commit or
+print it. The gate refuses remote/non-test destinations and installs nothing:
+
+```sh
+uv run --package linksifty python backend/tests/integration/check_processing_database.py
+```
+
+This runs account/processing pgTAP and two overlapping 0.60 USD reservations under
+a 1 USD cap. Only one may be admitted. It cleans up only the random test-owned UUID.
+Exit **77** means unavailable runtime, not a pass. No database gate has passed just
+because the mocked API suite passed.
+
+### Hosted Stage 2 acceptance (explicit paid approval required)
+
+1. Verify each user sees only their own usage, settings, links, events and result.
+2. Set a staging user's cap to 0 USD: inference must not start. Restore its chosen cap.
+3. With approved paid-test scope, submit one ordinary complete article and compare
+   provider actual cost against app spend, reservation and remaining balance.
+4. Observe source acquisition, analysis and saved result with eight criteria/citations.
+5. Use a blocked source: paste is requested without a model call; paste full content.
+6. Close the tab during work, reopen, then restart the API during a staged attempt.
+   Confirm truthful paused/recovery state and no duplicate paid request.
+7. Disconnect/reconnect SSE and expire/reject the account; stale private data clears.
+8. Verify threshold affects new analyses only and admin edits enforce the new budget.
+9. Verify cron execution, 30-day cleanup, UTC reset and prior-month reconciliation in staging fixtures.
+
+Code completion does not itself authorize production migration, deployment or
+unbounded paid tests. Record those acceptance results separately.

@@ -166,6 +166,10 @@ class AccountService:
         if not self.is_admin(identity):
             raise AccountAccessDenied
 
+    async def can_access(self, user_id: UUID) -> bool:
+        profile = await self._repository.get_profile(user_id)
+        return profile is not None and profile.status != "rejected"
+
     async def list_accounts(self, identity: AuthenticatedIdentity) -> list[AdminAccountSummary]:
         self.require_admin(identity)
         return await self._repository.list_admin_profiles()
