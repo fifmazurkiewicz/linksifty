@@ -14,7 +14,7 @@ from linksifty.application.account_contracts import (
     ApprovalNotification,
     EmailDeliveryStatus,
 )
-from linksifty.application.item_contracts import ItemRecord
+from linksifty.application.item_contracts import DuplicateSubmission, ItemRecord
 
 
 class RepositoryUnavailable(Exception):
@@ -100,6 +100,8 @@ class SupabaseRepository:
                         error = None
                     if isinstance(error, dict) and error.get("code") == "P0001":
                         message = error.get("message")
+                        if message == "duplicate_link":
+                            raise DuplicateSubmission()
                         reasons = {
                             "account_trial_limit_exceeded": "trial_limit_exceeded",
                             "account_rejected": "account_rejected",
@@ -184,6 +186,8 @@ class SupabaseRepository:
                         error = None
                     if isinstance(error, dict) and error.get("code") == "P0001":
                         message = error.get("message")
+                        if message == "duplicate_link":
+                            raise DuplicateSubmission()
                         reasons = {
                             "account_trial_limit_exceeded": "trial_limit_exceeded",
                             "account_rejected": "account_rejected",

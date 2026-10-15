@@ -11,6 +11,7 @@ import { AssessmentDetail } from './features/queue/AssessmentDetail'
 import { SettingsPanel } from './features/settings/SettingsPanel'
 import { UsagePanel } from './features/settings/UsagePanel'
 import { api, ApiError, isUsage, watchActivity, type Account, type Item, type Usage } from './lib/api'
+import { analysisUrl } from './lib/urls'
 import './App.css'
 
 type Screen = 'Inbox' | 'Add' | 'Settings' | 'Admin'
@@ -34,6 +35,9 @@ function AuthenticatedApp() {
   const [searchPrice, setSearchPrice] = useState<string | null>(null)
   const [live, setLive] = useState('Connecting to live progress…')
   const urls = links.split('\n').map(value => value.trim()).filter(Boolean)
+  const normalizedUrls = urls.map(analysisUrl)
+  const knownUrls = new Set(items.filter(item => item.original_url).map(item => analysisUrl(item.original_url!)))
+  const duplicateLinks = inputMode === 'links' && (new Set(normalizedUrls).size !== normalizedUrls.length || normalizedUrls.some(url => knownUrls.has(url)))
   const maxLinks = account?.status === 'pending' ? Math.min(5, account.trial_links_remaining) : 5
   const activeJobs = items.some(item => ['queued', 'processing'].includes(item.status) || item.processing_stage === 'cost_unknown')
   const validText = text.trim().replace(/\s+/g, ' ').length >= 200 && new TextEncoder().encode(text).length <= 100000
@@ -128,7 +132,7 @@ function AuthenticatedApp() {
   }
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (busy || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)) return
+    if (busy || duplicateLinks || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)) return
     setBusy(true); setMessage(null)
     try {
       await api(inputMode === 'links' ? '/v1/items' : '/v1/items/paste', session, {
@@ -199,6 +203,7 @@ function AuthenticatedApp() {
           <label htmlFor="links">One public URL per line</label>
           <textarea id="links" value={links} onChange={event => setLinks(event.target.value)} placeholder="https://example.com/article" />
           <p className="hint">{urls.length}/{maxLinks} links{account?.status === 'pending' ? ` · ${account.trial_links_remaining} trial links remaining` : ''}</p>
+          {duplicateLinks && <p className="error" role="alert">A link is already in your queue or repeated in this batch. Open or resume the existing item instead.</p>}
           {urls.length > maxLinks && <p className="error" role="alert">Submit no more than {maxLinks} links.</p>}
         </> : <>
           <label htmlFor="new-content">Full source text</label><textarea id="new-content" value={text} onChange={event => setText(event.target.value)} />
@@ -209,7 +214,7 @@ function AuthenticatedApp() {
           <p className="hint">{searchPrice !== null ? `One search per link (${searchPrice} USD at the configured plan rate), plus AI analysis, uses your monthly budget. A short query from this public article is sent to Brave. Up to five additional pages are checked.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
         </>}
         <p className="hint">Submitting starts analysis and uses your monthly budget.</p>
-        <button className="primary" disabled={busy || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>
+        <button className="primary" disabled={busy || duplicateLinks || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>
       </form>}
       {screen === 'Settings' && <><SettingsPanel session={session} /><UsagePanel usage={usage} error={usageError} /></>}
       {screen === 'Admin' && account?.role !== 'admin' && <p className="error" role="alert">Administrator access required.</p>}

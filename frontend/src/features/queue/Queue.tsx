@@ -17,6 +17,7 @@ const reasons: Record<string, string> = {
   unavailable: 'The page could not be fetched.', blocked: 'The page blocked access.',
 }
 const modelReasons: Record<string, string> = {
+  unknown_citation_source: 'The model cited a source that was not supplied for this analysis.',
   output_truncated: 'The model response reached the output limit.', invalid_schema: 'The response did not match the required assessment format.',
   invalid_criteria: 'The response omitted or repeated a scoring criterion.', invalid_citation: 'A quoted passage did not match its attributed source.',
   invalid_provider_response: 'The provider returned an unreadable response.', provider_rejected: 'The provider rejected the request.',

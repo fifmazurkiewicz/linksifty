@@ -134,6 +134,54 @@ def concurrent_reservations(environment: dict[str, str]) -> None:
         )
 
 
+def concurrent_duplicate_submissions(environment: dict[str, str]) -> None:
+    user = str(uuid4())
+    try:
+        execute(
+            f"""insert into auth.users(id,email) values
+                  ('{user}','duplicate-race@example.test');
+                  select public.get_or_create_account_profile(
+                    '{user}','duplicate-race@example.test',true);""",
+            environment,
+        )
+        barrier = Barrier(2)
+
+        def submit(fragment: int) -> int:
+            barrier.wait(timeout=10)
+            try:
+                output = execute(
+                    f"""begin; select count(*) from public.submit_fetch_items('{user}',
+                     array['https://duplicate-race.example/article#{fragment}']);
+                     select pg_sleep(0.25); commit;""",
+                    environment,
+                )
+                return int(output.strip())
+            except RuntimeError:
+                return 0  # pgTAP separately proves the exact duplicate SQLSTATE/message.
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(submit, [1, 2]))
+        if sorted(results) != [0, 1]:
+            raise AssertionError("Concurrent duplicate submissions did not admit exactly one")
+        count = (
+            execute(
+                f"""select count(*) from public.items where user_id='{user}';
+                   select count(*) from public.jobs where user_id='{user}';""",
+                environment,
+            )
+            .strip()
+            .splitlines()
+        )
+        if count != ["1", "1"]:
+            raise AssertionError("Duplicate race created extra item/job")
+        print("PASS: concurrent fragment-equivalent URLs create exactly one item/job")
+    finally:
+        execute(
+            f"delete from auth.users where id='{user}' and email='duplicate-race@example.test'",
+            environment,
+        )
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -147,12 +195,14 @@ def main() -> int:
         "processing_recovery.test.sql",
         "processing_hash.test.sql",
         "brave_research.test.sql",
+        "duplicate_links.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
             raise AssertionError(f"pgTAP failed: {name}")
         print(f"PASS: {name}")
     concurrent_reservations(environment)
+    concurrent_duplicate_submissions(environment)
     return 0
 
 

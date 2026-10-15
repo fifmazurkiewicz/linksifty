@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field, HttpUrl, ValidationError
 from linksifty.api import accounts, admin, processing
 from linksifty.api.auth import CurrentUser
 from linksifty.application.account_contracts import AccountService
-from linksifty.application.item_contracts import ItemRecord
+from linksifty.application.item_contracts import DuplicateSubmission, ItemRecord
 from linksifty.application.item_service import ItemService
 from linksifty.application.processing_service import ProcessingService
 from linksifty.config import Settings
@@ -193,6 +193,18 @@ def create_app(
     async def persistence_error(request: Request, error: RepositoryUnavailable) -> JSONResponse:
         return JSONResponse(
             status_code=503, content={"detail": "Persistence temporarily unavailable"}
+        )
+
+    @app.exception_handler(DuplicateSubmission)
+    async def duplicate_submission(request: Request, error: DuplicateSubmission) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": (
+                    "One or more links are already in your queue or repeated in this batch. "
+                    "Use the existing item to read or resume analysis."
+                )
+            },
         )
 
     @app.exception_handler(AccountPolicyViolation)

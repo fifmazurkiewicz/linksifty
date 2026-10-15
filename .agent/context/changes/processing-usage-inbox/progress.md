@@ -68,3 +68,9 @@ Brave/Langfuse local implementation finalized: 132 backend tests, 20 frontend te
 Delivery confirmed 2026-10-16: codex/brave-langfuse fast-forwarded into main and pushed to origin/main at e39d5e8. Follow-up record commit documents this completed transport step. Local implementation/docs/diagram delivery is complete; hosted keys/migration 000007, actual provider acceptance, toolkit and diagram browser gate remain open. No archive or production-readiness claim.
 
 English diagram correction (2026-10-16): lifecycle/workflow source and HTML plus active Kanban views translated to English; deterministic diagram gates pass, browser check unavailable. Future-diagram language recorded in AGENTS.md.
+
+## Duplicate/citation maintenance — 2026-10-16
+
+Implemented owner-scoped atomic duplicate submission guard (000008), HTTP 409 and frontend warning/disable. Equivalent URL normalization is conservative; all existing records/costs are retained. Legacy Resume is guarded against another queued/processing/completed equivalent URL. Added whitespace-only quote re-anchoring to stored exact text and separate unknown-source diagnostics. 138 backend / 21 frontend / 89 SQL assertions and both concurrency gates PASS; mypy/Ruff/build PASS. No real provider calls or hosted migration; local commit prepared, not pushed as part of this maintenance checkpoint. Toolkit still unavailable. Hosted invalid-citation root cause remains unknown; no blind paid retry.
+
+Owner additionally reports no Brave dashboard usage. Existing items retain original web_search consent on Resume; enabling keys later does not change it. Screenshot spending is consistent with model-only activity but is not a trace of requests. For a future authorized check, use a new public URL with explicit Brave checkbox; disabled checkbox indicates unavailable backend key/rate capability. No automatic paid verification performed.

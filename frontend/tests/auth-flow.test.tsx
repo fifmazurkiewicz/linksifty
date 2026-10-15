@@ -218,3 +218,20 @@ it('requires explicit consent and shows the Brave plan charge before submitting'
   fireEvent.click(screen.getByRole('button', { name: 'Submit links' }))
   await waitFor(() => expect(submitted?.web_search).toBe(true))
 })
+
+it('blocks an existing URL and fragment variations before another submission', async () => {
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  let submits = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    if (init?.method === 'POST') submits++
+    if (String(input).endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', status: 'approved', role: 'user', trial_links_remaining: 3 }))
+    return new Response(JSON.stringify({ items: [{ id: 'saved', original_url: 'https://example.test/article#old', title: 'Saved article', status: 'failed', processing_stage: 'invalid_model_output' }] }))
+  })
+  renderApp(session)
+  expect(await screen.findByText('Saved article')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Add links' }))
+  fireEvent.change(screen.getByLabelText(/one public url per line/i), { target: { value: 'https://EXAMPLE.test:443/article#new' } })
+  expect(screen.getByRole('button', { name: 'Submit links' })).toBeDisabled()
+  expect(screen.getByText(/already in your queue or repeated in this batch/)).toBeInTheDocument()
+  expect(submits).toBe(0)
+})

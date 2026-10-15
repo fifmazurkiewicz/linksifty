@@ -161,3 +161,21 @@ def test_search_submission_is_not_silently_enabled_without_configuration() -> No
     )
     assert response.status_code == 503
     app.state.items.submit.assert_not_awaited()
+
+
+def test_duplicate_submission_returns_conflict_without_waking_worker() -> None:
+    from linksifty.application.item_contracts import DuplicateSubmission
+    from linksifty.application.item_service import ItemService
+
+    app = create_app(Settings(demo_mode=False))
+    items = create_autospec(ItemService, instance=True)
+    items.submit.side_effect = DuplicateSubmission()
+    worker = create_autospec(ProcessingService, instance=True)
+    app.state.items = items
+    app.state.processing = worker
+    app.dependency_overrides[current_user] = lambda: USER
+    client = TestClient(app)
+    response = client.post("/v1/items", json={"sources": [{"url": "https://example.test/article"}]})
+    assert response.status_code == 409
+    assert "existing item" in response.json()["detail"]
+    worker.wake.assert_not_called()

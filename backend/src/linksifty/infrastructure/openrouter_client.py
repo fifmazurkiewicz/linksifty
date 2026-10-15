@@ -7,6 +7,7 @@ import httpx
 from pydantic import ValidationError
 
 from linksifty.application.processing_contracts import EvidenceSource, ModelResult, SourceAssessment
+from linksifty.domain.excerpts import resolve_excerpt
 from linksifty.domain.models import CriterionName
 from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 
@@ -156,14 +157,18 @@ class OpenRouterClient:
                 result.failure_reason = "invalid_criteria"
                 return result
             source_texts = {"primary": text, **{source.id: source.text for source in sources}}
-            if any(
-                criterion.source_id not in source_texts
-                or criterion.excerpt not in source_texts.get(criterion.source_id, "")
-                or not criterion.rationale.strip()
-                for criterion in assessment.criteria
-            ):
-                result.failure_reason = "invalid_citation"
-                return result
+            for criterion in assessment.criteria:
+                if criterion.source_id not in source_texts:
+                    result.failure_reason = "unknown_citation_source"
+                    return result
+                if not criterion.rationale.strip():
+                    result.failure_reason = "invalid_schema"
+                    return result
+                exact = resolve_excerpt(source_texts[criterion.source_id], criterion.excerpt)
+                if exact is None:
+                    result.failure_reason = "invalid_citation"
+                    return result
+                criterion.excerpt = exact
             if not assessment.note.strip():
                 result.failure_reason = "invalid_schema"
                 return result

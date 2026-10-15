@@ -124,3 +124,15 @@ Git delivery: fetched origin/main (314c600), fast-forward merged codex/brave-lan
 Owner requested English diagrams. Translated both editable lifecycle/workflow JSON files and regenerated HTML without changing graph IDs, relationships, sources or runtime code. Set meta.locale=en. Active change/review/roadmap Kanban text also translated; project AGENTS.md records English for future diagrams.
 
 Workflow: specification fde5123659ec9b8793a8b4f6493381af92a7c8983686fe2ec3e129632affa1d2; artifact 3bab3dfb9c6b611717f9e6448e5afdb6c19db237cbb2df6c822004a476bffbe5. Lifecycle: specification b99aedf890b704f7a62eabe0ce70236af3a3f8f915e364ce1f8ffc1b2fdcca8b; artifact 20bade5a200d4f1269e8f3d98127ac660fdd68a2325ef90cbec534f9e97802f3. Latest receipts: brave-langfuse.english/ and lifecycle.english/. Both validate/deliver/strict artifact checks PASS. Finalize exit 2: browser check skipped (Chrome unavailable), no new perceptual inspection. No update notice required. Prior receipt hashes remain historical. No product changes, migrations or paid calls; code tests were not unnecessarily rerun for translation only.
+
+## Duplicate/citation maintenance verification — 2026-10-16
+
+RED: duplicate_links.test.sql initially failed nine of twelve assertions (duplicates created rows/trials; legacy resume allowed concurrent work). Unit whitespace citation test rejected the valid passage with invalid_citation. GREEN after 000008/pure whitespace re-anchoring. Deliberate regression: remove only duplicate guard from test DB function; real concurrent submits create two items/jobs and fail. Restored original function in finally, full gate PASS. Disable whitespace re-anchoring in pure helper; behavioral tests fail, then restore in finally and full backend green.
+
+- Backend **138 passed** (one existing FastAPI/httpx deprecation warning); strict mypy **33 files PASS**.
+- Ruff check PASS; format **84 files PASS**.
+- Frontend **21 passed**, lint PASS, production build PASS (74 modules; JS 247.76 kB, gzip 76.78 kB).
+- PostgreSQL upgrade migration 000008 PASS; **89 pgTAP assertions PASS** plus real overlapping budget reservations and duplicate URL submissions. Duplicate race admits exactly one item/job, same-owner only. Fixtures test batch atomicity, no trial charge, fragments/host/default port normalization, query distinction, expiry, cross-owner use, legacy resume and client RPC denial.
+- Adapter tests verify duplicate error translation for normal, Brave and resume paths. HTTP returns 409 and does not wake worker. UI blocks known duplicate before submitting and preserves form; server remains authoritative for unloaded items.
+- Exact/whitespace quotations resolve to actual saved bytes; changed words/case and wrong-source attribution still fail. Stored-source SQL fence remains unchanged. No raw provider response or Langfuse trace read; actual production cause remains unconfirmed.
+- Required agent-toolkit attempted: unavailable (127). Local PostgreSQL stopped. No real provider traffic, hosted migration, cleanup/deletion, external billing or push in this maintenance checkpoint.

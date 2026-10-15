@@ -47,3 +47,5 @@ expired pre-inference jobs are recovered automatically. Do not submit duplicates
 or clear unresolved cost reservations. No backend redeploy is needed for this SQL fix.
 
 Brave source checking additionally requires `20261015_000007_brave_research.sql` after 000006: research consent/context, provider-scoped reservations, source identity and table-side citation validation. Apply before enabling the Brave key/rate. It notifies PostgREST to reload schema.
+
+Duplicate-link protection requires `20261016_000008_duplicate_links.sql` after 000007. It preserves legacy rows and serializes owner-scoped submission/resume decisions without a unique-index migration that would fail on existing duplicates.

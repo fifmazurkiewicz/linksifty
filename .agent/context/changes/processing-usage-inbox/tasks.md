@@ -36,3 +36,7 @@ Nie archiwizować ani nie oznaczać wydania jako gotowego przy otwartych bramkac
 - [x] REV-009: safe model rejection reasons and metadata-only Langfuse integration implemented. Actual hosted failure diagnosis/happy-path acceptance remain unproven until operator activation.
 
 - [ ] Operator: apply 000007, configure Brave key + verified plan rate and Langfuse keys/region, enable tracing, then perform authorized hosted acceptance.
+
+- [x] Duplicate guard: atomic owner-scoped submission and legacy resume protection, frontend prevention, HTTP 409, migration 000008 and real concurrency tests.
+- [x] Citation whitespace repair: recover the exact original passage, preserve source attribution and reject changed words; safe unknown-source diagnostics.
+- [ ] Release maintenance commit, apply 000008 and deploy matching code; confirm the actual invalid-citation case from a future authorized trace. Current local tests do not prove the hosted failure cause.

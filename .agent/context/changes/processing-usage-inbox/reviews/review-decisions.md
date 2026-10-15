@@ -111,3 +111,27 @@ No Skip decisions. Every remaining gate stays visible until verified.
 - Evidence: `information-retrieval-audit.md`; screenshot has Ready 0 and spent amount, adapter returns assessment=None for multiple causes.
 
 Brave/Langfuse follow-up evidence: `../brave-langfuse-plan.md`, `../evidence.md`; local verification is not hosted provider acceptance.
+
+## REV-010 — duplicate URL submission
+
+- Finding: `implementation-review.md#duplicatecitation-maintenance-review--2026-10-16`
+- Severity: high
+- Impact: user / spending correctness
+- Decision: Fix now
+- Owner: implementation
+- Rationale: Block duplicate jobs before side effects, including racing requests and legacy resumes.
+- Status: verified
+- Follow-up: release code and apply migration 000008; retain legacy records and paid reservations.
+- Evidence: `../evidence.md` duplicate/citation checkpoint; 12 pgTAP cases and actual concurrent submits with guard-removal regression proof.
+
+## REV-011 — whitespace-only citation mismatch
+
+- Finding: `implementation-review.md#duplicatecitation-maintenance-review--2026-10-16`
+- Severity: medium
+- Impact: correctness / user
+- Decision: Fix now
+- Owner: implementation
+- Rationale: Resolve formatting-only variations to exact stored text without fuzzy or cross-source matching.
+- Status: verified
+- Follow-up: actual hosted cause requires an authorized trace; no claim all invalid quotations are repairable.
+- Evidence: `../evidence.md`; whitespace RED/GREEN, deliberate regression, invalid-word/case and cross-source rejection tests.
