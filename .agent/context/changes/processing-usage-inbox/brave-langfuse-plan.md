@@ -19,7 +19,7 @@ Owner approved both scopes and explicitly requested code, documentation, diagram
 - [x] Implement informed opt-in, cost wording, status and source provenance UI.
 - [x] Test mock providers and real disposable PostgreSQL. Deliberately disable source attribution/SQL fence to demonstrate failures, then restore.
 - [x] Complete final available quality checks and implementation review, synchronize documentation and diagrams.
-- [ ] Commit approved changes, fast-forward main as applicable and push origin/main. Never force-push.
+- [x] Commit approved changes, fast-forward main and push origin/main. Verified push 314c600..e39d5e8; no force-push.
 
 Diagram browser check and agent-toolkit unavailable; neither is claimed passed.
 
