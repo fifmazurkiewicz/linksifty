@@ -611,6 +611,17 @@ Existing duplicate records are not deleted, merged or charged again by migration
 
 Citation matching now re-anchors whitespace-only differences (including line breaks/non-breaking spaces) to the exact original source substring before storing offsets. No fuzzy, case-insensitive, paraphrase or cross-source substitution is accepted. `unknown_citation_source` separately identifies an ID not in the supplied source set. The reported hosted `invalid_citation` cannot be conclusively diagnosed without its actual response; a truly unmatched passage still fails. No paid retry happens automatically.
 
+The later live trace showed an appended `...` on the rejected quote. After deploying
+the trailing-omission repair, a final `...` or `…` may be removed only if the entire
+remaining quote (at least 10 characters) matches the attributed source, allowing
+the existing whitespace re-anchoring. Literal source ellipses are matched first
+and preserved. Internal omissions, changed words/case and wrong-source quotes
+still fail. The prompt now explicitly forbids added omission markers, translations
+and joined passages. `citation.result.trailing_ellipsis_removed` distinguishes
+this repair from whitespace-only re-anchoring. No migration or model switch is
+required. This does not repair stored failed results or trigger paid retries;
+new output must be processed by the updated backend.
+
 ### No Brave dashboard usage after setup
 
 Configuration does not opt old items into search. Resume preserves original consent/context; old model-only items stay model-only. For an authorized live test, submit a new public URL with **Search additional sources with Brave** checked. If disabled, inspect `/v1/capabilities` through the authenticated app and verify the deployed backend has `BRAVE_SEARCH_API_KEY` plus positive `BRAVE_SEARCH_PRICE_PER_REQUEST_USD`. Redeploy/restart after setting variables. Primary content must also pass fetch/completeness guards before search can run. Do not use dashboard absence alone to infer a billing/telemetry failure or automatically retry paid calls.
@@ -622,3 +633,20 @@ Deploy the matching backend; no new environment flag or database migration is re
 For missing Brave usage, inspect `search.skipped` (not requested, not configured, previous uncertain request), `budget.reserved` (admitted or budget exhausted), `search.request`, `brave.http_response`, `search.response` and `source.skipped`. A failure before research appears in source validation/stage events. `stage.persisted` records actual stage-write success, and `assessment.saved` distinguishes saved output from lost ownership. `processing.finished` reports execution return, cancellation, lease loss or interruption; a normal return can still be a business failure, so inspect the final persisted stage and generation failure reason. Orphaned-cost recovery uses a separate `orphan.reconciliation` trace with reservation ID.
 
 Trace storage is best effort, not a durable audit ledger: a crash/network outage may lose buffered observations. Supabase remains authoritative for jobs and charges. Existing traces cannot be backfilled. Article/model content is visible to authorized Langfuse project members; restrict access and configure Langfuse retention separately—Supabase's 30-day cleanup does not remove external traces. No paid hosted request or hosted retention setting was changed during local verification.
+
+### Sessions per analysis job
+
+After deploying session grouping, each processing attempt propagates
+`session_id=linksifty:job:<job_id>` to its root observation, nested spans, events
+and model generation. Executions/resumes of the same job remain separate traces
+but appear together under **Sessions**. Different jobs have different sessions;
+no account identifier or email is used. Standalone orphan reconciliation remains
+separate because it has a reservation ID rather than a job ID. Session context
+is released when the processing scope exits, including failures.
+
+No new environment variable or migration is required. New attempts populate
+sessions; old traces are not backfilled. To reduce the Tracing table to attempts,
+filter **Is Root Observation** to **True** only, then open a processing trace for
+its individual steps. Instrumented processing attempts are exported when tracing
+is enabled; ordinary page loads/API polling are not. Sessions organize telemetry
+and do not add conversation memory to the model. Export remains best effort.

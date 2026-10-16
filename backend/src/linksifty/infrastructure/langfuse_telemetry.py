@@ -3,9 +3,9 @@
 import logging
 import re
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 
-from langfuse import Langfuse, LangfuseGeneration
+from langfuse import Langfuse, LangfuseGeneration, propagate_attributes
 
 from linksifty.application.processing_contracts import ModelResult
 
@@ -76,16 +76,28 @@ class LangfuseTelemetry:
         if self._client is None:
             yield
             return
+        context = ExitStack()
         try:
-            context = self._client.start_as_current_observation(
-                name=name,
-                metadata={
-                    "reservation_id" if name == "orphan.reconciliation" else "job_id": identifier
-                },
+            observation = context.enter_context(
+                self._client.start_as_current_observation(
+                    name=name,
+                    metadata={
+                        "reservation_id"
+                        if name == "orphan.reconciliation"
+                        else "job_id": identifier
+                    },
+                )
             )
-            observation = context.__enter__()
+            if name == "processing":
+                context.enter_context(
+                    propagate_attributes(session_id=f"linksifty:job:{identifier}")
+                )
         except Exception:
             _logger.warning("telemetry_unavailable")
+            try:
+                context.close()
+            except Exception:
+                _logger.warning("telemetry_unavailable")
             yield
             return
         try:
@@ -99,7 +111,7 @@ class LangfuseTelemetry:
         finally:
             try:
                 # Never export exception messages/stack traces containing private payloads.
-                context.__exit__(None, None, None)
+                context.close()
             except Exception:
                 _logger.warning("telemetry_unavailable")
 

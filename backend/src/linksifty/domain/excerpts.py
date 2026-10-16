@@ -1,9 +1,22 @@
-"""Re-anchor whitespace-equivalent quotations without fuzzy or cross-source matching."""
+"""Re-anchor exact quotations with whitespace or trailing omission markers."""
 
 import re
 
 
 def resolve_excerpt(source: str, excerpt: str) -> str | None:
+    exact = _resolve_exact_excerpt(source, excerpt)
+    if exact is not None:
+        return exact
+    trimmed = excerpt.rstrip()
+    for marker in ("...", "…"):
+        if trimmed.endswith(marker):
+            candidate = trimmed.removesuffix(marker).rstrip()
+            if 10 <= len(candidate) <= 2000:
+                return _resolve_exact_excerpt(source, candidate)
+    return None
+
+
+def _resolve_exact_excerpt(source: str, excerpt: str) -> str | None:
     if not excerpt.strip():
         return None
     if excerpt in source:

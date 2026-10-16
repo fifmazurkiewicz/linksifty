@@ -2,7 +2,7 @@ import asyncio
 import json
 from decimal import Decimal
 from typing import cast
-from unittest.mock import AsyncMock, create_autospec
+from unittest.mock import AsyncMock, create_autospec, patch
 from uuid import uuid4
 
 import httpx
@@ -66,6 +66,19 @@ def test_events_are_redacted_and_telemetry_failure_is_isolated() -> None:
     assert "search.result" in exported and "count" in exported
     client.create_event.side_effect = RuntimeError("offline")
     telemetry.event("search.result", {"count": 2})
+
+
+def test_session_setup_failure_does_not_stop_processing_or_leak_context() -> None:
+    client = create_autospec(Langfuse, instance=True)
+    telemetry = LangfuseTelemetry(client)
+    with patch(
+        "linksifty.infrastructure.langfuse_telemetry.propagate_attributes",
+        side_effect=RuntimeError("telemetry offline"),
+    ):
+        with telemetry.scope("processing", "opaque-job"):
+            telemetry.event("processing.finished", {"outcome": "returned"})
+    client.start_as_current_observation.return_value.__exit__.assert_called_once()
+    client.create_event.assert_called_once()
 
 
 def test_processing_trace_explains_skipped_search_recovery_and_failure() -> None:
@@ -145,6 +158,10 @@ def test_real_sdk_exports_article_generation_and_events_in_one_trace() -> None:
             client.flush()
             spans = exporter.get_finished_spans()
             root = next(span for span in spans if span.name == "processing")
+            assert all(
+                (span.attributes or {}).get("session.id") == "linksifty:job:opaque-job"
+                for span in spans
+            )
             assert all(span.context.trace_id == root.context.trace_id for span in spans)
             assert all(
                 span.parent and span.parent.span_id == root.context.span_id
@@ -155,6 +172,31 @@ def test_real_sdk_exports_article_generation_and_events_in_one_trace() -> None:
             assert "Article text" in exported and "invalid_citation" in exported
             assert "opaque-configured-key" not in exported
             assert "17" in exported and "0.001" in exported
+            with telemetry.scope("processing", "opaque-job"):
+                with telemetry.scope("source.fetch", "opaque-job"):
+                    telemetry.event("source.reused", {"text": "Article text"})
+            with telemetry.scope("processing", "other-job"):
+                telemetry.event("processing.finished", {"outcome": "returned"})
+            with telemetry.scope("orphan.reconciliation", "opaque-reservation"):
+                telemetry.event("budget.settled", {"provider": "openrouter"})
+            client.flush()
+            spans = exporter.get_finished_spans()
+            roots = [span for span in spans if span.name == "processing"]
+            assert len(roots) == 3
+            assert len({span.context.trace_id for span in roots}) == 3
+            for index, root in enumerate(roots):
+                expected_session = "linksifty:job:" + ("opaque-job" if index < 2 else "other-job")
+                assert all(
+                    (span.attributes or {}).get("session.id") == expected_session
+                    for span in spans
+                    if span.context.trace_id == root.context.trace_id
+                )
+            orphan = next(span for span in spans if span.name == "orphan.reconciliation")
+            assert all(
+                "session.id" not in (span.attributes or {})
+                for span in spans
+                if span.context.trace_id == orphan.context.trace_id
+            )
         finally:
             telemetry.close()
 
