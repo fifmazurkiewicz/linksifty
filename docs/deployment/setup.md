@@ -603,13 +603,16 @@ When `LANGFUSE_ENABLED=true` and project keys are configured, Langfuse now recor
 
 Test with mocks first. Before an authorized paid hosted test, apply migration, configure keys/rate/region and deploy, then opt one public link into search. Verify stages, source provenance, configured search charge plus actual model cost, redacted article/model trace, invalid-output reason and no duplicate request on recovery. No key values should be pasted into chat. See [official Brave reference](https://api-dashboard.search.brave.com/api-reference/web/search/get) and [Langfuse SDK documentation](https://langfuse.com/docs/observability/sdk/overview).
 
-## Duplicate links and whitespace-only citation repair (000008)
+## Duplicate links and historical citation repair (000008)
+
+Citation formatting repair below is historical; new inference uses
+[passage-ID selection](#citation-passage-selection). Duplicate-link guards still apply.
 
 Apply `supabase/migrations/20261016_000008_duplicate_links.sql` after 000007, then deploy matching code. Both ordinary and Brave submission are guarded in PostgreSQL under the existing owner-profile lock; racing equivalents create one item/job. A duplicate in a batch rejects the entire batch before trial use, jobs or worker wake. API returns 409; frontend also disables known duplicates and preserves input. Matching considers only the owner's unexpired links and ignores fragment, host/scheme case, default port and empty root-path differences. Path case and query semantics stay significant. Other users can independently analyze the same URL. Expired records do not prevent a new submission.
 
 Existing duplicate records are not deleted, merged or charged again by migration. Resume is guarded against another unexpired matching link that is queued, processing or completed. If both legacy items have failed, explicitly resuming one is allowed; trying to resume the other concurrently is blocked. Use an existing item rather than submitting a duplicate. Current in-flight paid attempts are not silently cancelled or reset.
 
-Citation matching now re-anchors whitespace-only differences (including line breaks/non-breaking spaces) to the exact original source substring before storing offsets. No fuzzy, case-insensitive, paraphrase or cross-source substitution is accepted. `unknown_citation_source` separately identifies an ID not in the supplied source set. The reported hosted `invalid_citation` cannot be conclusively diagnosed without its actual response; a truly unmatched passage still fails. No paid retry happens automatically.
+The earlier citation implementation re-anchored whitespace-only differences (including line breaks/non-breaking spaces) to the exact original source substring before storing offsets. No fuzzy, case-insensitive, paraphrase or cross-source substitution is accepted. `unknown_citation_source` separately identifies an ID not in the supplied source set. The reported hosted `invalid_citation` cannot be conclusively diagnosed without its actual response; a truly unmatched passage still fails. No paid retry happens automatically.
 
 The later live trace showed an appended `...` on the rejected quote. After deploying
 the trailing-omission repair, a final `...` or `…` may be removed only if the entire
@@ -689,3 +692,31 @@ model-reservation check. Production acceptance remains manual: verify owner
 isolation, save a changed description/weight, authorize a new analysis if desired,
 and inspect its stored rubric/model input; confirm an earlier assessment retains
 its original score and rules. Never retry an uncertain paid attempt automatically.
+
+
+## Citation passage selection
+
+Deploy the updated backend; no migration, frontend release, environment change or
+model switch is needed. The OpenRouter adapter now supplies contiguous passages
+labelled `primary:1`, `source1:1`, etc. and requests `passage_id` per criterion.
+Each ID is scoped to that request. Code restores the exact original excerpt and
+stored source ID; model-written `excerpt` and `source_id` fields are rejected.
+All text is retained, with roughly 1000-character passages split at spaces/newlines
+where possible. A short final tail joins the preceding passage. Saved citations
+remain within the existing 10–2000-character bounds and retain original characters.
+The frontend can consequently show longer contextual excerpts than before.
+
+Unknown passage IDs fail with `invalid_citation`, with paid-call cost preserved.
+There is no automatic repair call or retry. Existing persisted results and recovery
+use the unchanged SourceAssessment format. Existing failed attempts do not become
+successful merely on deployment: the owner must explicitly resume analysis, with
+its disclosed model cost. Stored additional-source research is reused as before.
+
+Langfuse `model.response` contains the raw selected IDs. `citation.check` and
+`citation.result` contain `passage_id`, the resolved source and match outcome;
+`citation.check` also contains the original excerpt. Historical whitespace and
+ellipsis-repair flags are no longer emitted. Passage selection guarantees exact
+provenance, not that the selected passage semantically supports the rationale or
+that publishers are independent. No paid live-provider verification was performed.
+
+Local evidence and scope: [citation selection progress](../../.agent/context/changes/citation-passage-selection/progress.md).

@@ -18,7 +18,7 @@ def draft() -> dict[str, object]:
                 "name": name.value,
                 "score": 3,
                 "rationale": "Supported by the passage.",
-                "excerpt": "Complete source evidence",
+                "passage_id": "primary:1",
             }
             for name in CriterionName
         ],
@@ -53,7 +53,7 @@ def test_provider_enforces_price_ceiling_and_keeps_actual_subcent_cost() -> None
 
 def test_invalid_citations_still_account_for_the_paid_call() -> None:
     bad = draft()
-    bad["criteria"][0]["excerpt"] = "invented evidence not in source"
+    bad["criteria"][0]["passage_id"] = "invented:99"
 
     async def run() -> None:
         transport = httpx.MockTransport(
@@ -137,7 +137,7 @@ def test_custom_rubric_is_input_data_and_cannot_bypass_citation_checks() -> None
     rules["criteria"][0]["weight"] = 10
     rubric = RubricConfig.model_validate(rules)
     bad = draft()
-    bad["criteria"][0]["excerpt"] = "invented unsupported passage"
+    bad["criteria"][0]["passage_id"] = "invented:99"
     calls = 0
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -148,7 +148,7 @@ def test_custom_rubric_is_input_data_and_cannot_bypass_citation_checks() -> None
         assert "verbatim" in messages[0]["content"]
         assert messages[1]["role"] == "user"
         assert json.loads(messages[1]["content"].split("\n", 1)[1]) == rules
-        assert json.loads(messages[-1]["content"]) == [{"id": "primary", "text": TEXT}]
+        assert json.loads(messages[-1]["content"]) == [{"passage_id": "primary:1", "text": TEXT}]
         return httpx.Response(
             200,
             json={

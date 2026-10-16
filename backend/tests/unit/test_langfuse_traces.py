@@ -252,8 +252,7 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
                     "name": name.value,
                     "score": 3,
                     "rationale": "Supported by independent passage",
-                    "source_id": sources[1]["id"],
-                    "excerpt": "Independent external evidence",
+                    "passage_id": sources[1]["passage_id"],
                 }
                 for name in CriterionName
             ],
@@ -299,6 +298,13 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
             )
             await service._execute(job)
         store.complete.assert_awaited_once()
+        saved = store.complete.call_args.args[1]
+        assert all(c.source_url == "https://secondary.example/article" for c in saved.citations)
+        assert all(c.source_id == job.search_context.sources[0].id for c in saved.citations)
+        assert all(
+            secondary[c.start_position : c.end_position] == c.excerpt for c in saved.citations
+        )
+        assert all(c.excerpt == secondary for c in saved.citations)
         assert store.settle.await_count == 2
         exported = str(client.mock_calls)
         for expected in (

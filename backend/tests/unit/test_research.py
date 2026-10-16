@@ -58,6 +58,7 @@ def test_external_excerpt_cannot_be_attributed_to_primary_source() -> None:
                 "name": n.value,
                 "score": 3,
                 "rationale": "Supported",
+                "passage_id": "source1:1",
                 "excerpt": "external evidence passage",
                 "source_id": "primary",
             }
@@ -88,7 +89,7 @@ def test_external_excerpt_cannot_be_attributed_to_primary_source() -> None:
                 ],
             )
             assert result.assessment is None
-            assert result.failure_reason == "invalid_citation"
+            assert result.failure_reason == "invalid_schema"
 
     asyncio.run(run())
 
@@ -238,8 +239,7 @@ def test_valid_external_passage_is_accepted_with_its_own_source_id() -> None:
                 "name": name.value,
                 "score": 3,
                 "rationale": "External passage",
-                "excerpt": "exact external evidence",
-                "source_id": "external-1",
+                "passage_id": "source1:1",
             }
             for name in CriterionName
         ],
