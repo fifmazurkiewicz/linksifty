@@ -1,46 +1,30 @@
 {
   "schemaVersion": 1,
-  "ok": false,
+  "ok": true,
   "command": "finalize",
-  "status": "skipped",
+  "status": "pass",
   "type": "architecture",
   "quality": "showcase",
   "specification": {
     "path": "/Users/Filip/dev/linksifty/docs/architecture/current.architecture.json",
-    "sha256": "79137afea645d6bcfb0895079aff23f9728592ea35f9ea06343f607c95579c1b",
-    "bytes": 1506
+    "sha256": "19a5cb144ae4d8168e786351385fc7df5805ebeccd4e9b7718e243ec1043f6cc",
+    "bytes": 6402
   },
   "artifact": {
     "path": "/Users/Filip/dev/linksifty/docs/architecture/current.architecture.html",
-    "sha256": "40c7d8664ff02c82d2686f74c3902d95bea149f885b84dd478b9c46e31831117",
-    "bytes": 752864
+    "sha256": "00b0ddc63c12c1bc455674d0c4c8307453f38bb5d23e9d18a8797c4307730b6f",
+    "bytes": 760140
   },
   "gates": {
     "validate": "pass",
     "deliver": "pass",
     "check": "pass",
-    "browser-check": "skipped"
+    "browser-check": "pass"
   },
-  "failedStage": "browser-check",
-  "diagnostics": [
-    {
-      "code": "viewer/chrome-unavailable",
-      "severity": "warning",
-      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
-      "subject": {
-        "artifact": "/Users/Filip/dev/linksifty/docs/architecture/current.architecture.html"
-      },
-      "evidence": {
-        "executable": null
-      },
-      "supportedFixes": [
-        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
-      ]
-    }
-  ],
+  "diagnostics": [],
   "diagnosticSummary": {
-    "total": 1,
-    "shown": 1,
+    "total": 0,
+    "shown": 0,
     "truncated": false
   },
   "evidence": {
@@ -49,15 +33,17 @@
     "browserCheckReceipt": "/Users/Filip/dev/linksifty/docs/architecture/current.architecture.browser-check.json"
   },
   "update": {
-    "status": "current",
+    "status": "update_available",
     "installedVersion": "3.0.1",
-    "availableVersion": "3.0.1",
-    "releaseNotes": null,
-    "checkedAt": "2026-10-10T20:19:28.790Z",
+    "availableVersion": "3.1.0",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.1.0",
+    "severity": "normal",
+    "checkedAt": "2026-10-16T01:07:40.498Z",
     "source": "cache",
-    "noticeRequired": false,
-    "noticeText": null
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.0.1 → 3.1.0. A previous check at 2026-10-16T01:07:40.498Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.1.0. The installed Skill has not changed; ask to snooze or ignore this reminder.",
+    "eventKey": "archify@sha256:ffedc53390c9da6e859f41e432c5d2d0615a23cf00a503181f07efbba88a7ce8"
   },
   "visualReview": "not-requested",
-  "durationMs": 410
+  "durationMs": 2020
 }

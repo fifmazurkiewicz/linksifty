@@ -1,16 +1,282 @@
 {
   "schema_version": 1,
   "diagram_type": "architecture",
-  "meta": {"title": "Linksifty — Current MVP Architecture", "output": "docs/architecture/current.architecture.html", "quality_profile": "showcase"},
+  "meta": {
+    "title": "Linksifty \u2014 Account Rubric and Analysis",
+    "output": "docs/architecture/current.architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "053f110ffee2041d880391816f064219e0b3d716",
+      "link_mode": "local-only"
+    }
+  },
   "components": [
-    {"id": "user", "type": "external", "label": "Authenticated User", "sublabel": "future web client", "pos": [40, 300], "size": [160, 60]},
-    {"id": "web", "type": "cloud", "label": "Web Client", "sublabel": "Vite and React — planned", "pos": [260, 300], "size": [170, 60]},
-    {"id": "api", "type": "backend", "label": "FastAPI Application", "sublabel": "src/linksifty — planned", "pos": [580, 300], "size": [175, 60]},
-    {"id": "supabase", "type": "database", "label": "Supabase", "sublabel": "Auth and Postgres", "pos": [905, 300], "size": [150, 60]},
-    {"id": "worker", "type": "messagebus", "label": "Processing Worker", "sublabel": "future async lifecycle", "pos": [580, 130], "size": [180, 60]},
-    {"id": "sources", "type": "cloud", "label": "Source and AI Adapters", "sublabel": "article, X, OpenRouter", "pos": [905, 130], "size": [180, 60]}
+    {
+      "id": "settings-ui",
+      "type": "frontend",
+      "label": "Settings and History",
+      "sublabel": "React: eight editable rules",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/features/settings/SettingsPanel.tsx",
+          "line": 8,
+          "end_line": 83
+        },
+        {
+          "path": "frontend/src/features/queue/AssessmentDetail.tsx",
+          "line": 20,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "owner-api",
+      "type": "backend",
+      "label": "Authenticated API",
+      "sublabel": "Per-account settings and detail",
+      "pos": [
+        430,
+        40
+      ],
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/api/processing.py",
+          "line": 69,
+          "end_line": 83
+        },
+        {
+          "path": "backend/src/linksifty/infrastructure/processing_repository.py",
+          "line": 76,
+          "end_line": 98
+        }
+      ]
+    },
+    {
+      "id": "owner-settings",
+      "type": "database",
+      "label": "Owner Settings",
+      "sublabel": "Threshold, descriptions, weights",
+      "pos": [
+        860,
+        40
+      ],
+      "size": [
+        230,
+        64
+      ],
+      "sources": [
+        {
+          "path": "supabase/migrations/20261016_000009_assessment_rubric.sql",
+          "line": 34,
+          "end_line": 49
+        }
+      ]
+    },
+    {
+      "id": "analysis-worker",
+      "type": "backend",
+      "label": "Analysis Worker",
+      "sublabel": "Leases, source guards, recovery",
+      "pos": [
+        430,
+        310
+      ],
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 315,
+          "end_line": 367
+        },
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 370,
+          "end_line": 436
+        },
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 476,
+          "end_line": 502
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "Rubric + supplied source text",
+      "pos": [
+        40,
+        310
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/openrouter_client.py",
+          "line": 73,
+          "end_line": 143
+        }
+      ]
+    },
+    {
+      "id": "saved-state",
+      "type": "database",
+      "label": "Jobs and Assessments",
+      "sublabel": "Reserved rules and saved history",
+      "pos": [
+        860,
+        310
+      ],
+      "size": [
+        230,
+        64
+      ],
+      "sources": [
+        {
+          "path": "supabase/migrations/20261016_000009_assessment_rubric.sql",
+          "line": 52,
+          "end_line": 82
+        },
+        {
+          "path": "supabase/migrations/20261016_000009_assessment_rubric.sql",
+          "line": 109,
+          "end_line": 137
+        },
+        {
+          "path": "supabase/migrations/20261016_000009_assessment_rubric.sql",
+          "line": 139,
+          "end_line": 162
+        }
+      ]
+    },
+    {
+      "id": "pure-score",
+      "type": "backend",
+      "label": "Deterministic Score",
+      "sublabel": "Points \u00d7 reserved weights",
+      "pos": [
+        430,
+        550
+      ],
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/domain/scoring.py",
+          "line": 11,
+          "end_line": 43
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Render API process",
+      "wraps": [
+        "owner-api",
+        "analysis-worker",
+        "pure-score"
+      ],
+      "pad": 26
+    },
+    {
+      "kind": "region",
+      "label": "Supabase PostgreSQL",
+      "wraps": [
+        "owner-settings",
+        "saved-state"
+      ],
+      "pad": 26
+    }
   ],
   "connections": [
-    {"from": "user", "to": "web", "label": "HTTPS", "variant": "emphasis"}, {"from": "web", "to": "api", "label": "authenticated API"}, {"from": "api", "to": "supabase", "label": "user-scoped data"}, {"from": "api", "to": "worker", "label": "submit links", "variant": "dashed", "fromSide": "top", "toSide": "bottom"}, {"from": "worker", "to": "sources", "label": "fetch and assess"}
+    {
+      "id": "settings-save",
+      "from": "settings-ui",
+      "to": "owner-api",
+      "label": "Bearer + JSON"
+    },
+    {
+      "id": "owner-update",
+      "from": "owner-api",
+      "to": "owner-settings",
+      "label": "atomic owner RPC"
+    },
+    {
+      "id": "run-worker",
+      "from": "owner-api",
+      "to": "analysis-worker",
+      "label": "leased work"
+    },
+    {
+      "id": "reserve-rules",
+      "from": "owner-settings",
+      "to": "saved-state",
+      "label": "SQL snapshots rules"
+    },
+    {
+      "id": "call-model",
+      "from": "analysis-worker",
+      "to": "model",
+      "label": "reserved rubric"
+    },
+    {
+      "id": "save-result",
+      "from": "analysis-worker",
+      "to": "saved-state",
+      "label": "reserve / save"
+    },
+    {
+      "id": "compute-score",
+      "from": "analysis-worker",
+      "to": "pure-score",
+      "label": "validated evidence"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Editable account rules",
+      "items": [
+        "Eight fixed criterion IDs; descriptions up to 1000 characters; integer weights 1\u201310. One explicit settings save."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "One analysis snapshot",
+      "items": [
+        "First model reservation locks settings and snapshots rubric with threshold. Model guidance and deterministic scoring use that same version. Recovery reuses it; detail displays it."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Grounding and billing",
+      "items": [
+        "Complete source content is required before inference. Existing citation, corroboration and budget guards remain mandatory. No automatic paid retry. Legacy history retains default rules."
+      ]
+    }
   ]
 }

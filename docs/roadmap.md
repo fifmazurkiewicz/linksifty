@@ -31,3 +31,14 @@ Owner resumed the processing/usage/inbox change on 2026-10-15. Its [specificatio
 Epiki C1–C8 mają 40 podzadań wykonawczych C1.1–C8.5 z opisami, testami i zależnościami w completion plan. [Kanban szczegółowy](../.agent/context/changes/linksifty-personal-mvp/plan-kanban.html) pokazuje następne kroki i rozwijaną pełną listę. Roadmapa pozostaje widokiem milestone'ów.
 
 C1 and independent C2/C3 tests → C4 → C5 → C6/C7 → C8. M8 can proceed alongside the remaining MVP coding; M9 depends on the source-safe assessment pipeline in C2–C4 and then its usage accounting. E1: Supabase/X/OpenRouter credentials, real database checks and hosted evaluation. C8.1 is Done for current local CI scope. The local SQL gate for the current C1 processing/usage scope now passes; C2.1 URL/DNS safety is Done (local mocked evidence); Safe acquisition, bounded processing, paste/detail/settings and per-user USD are now implemented locally in the current change; execute their remaining hosted gates before marking the broader milestones Done. Missing credentials do not block coding. Missing agent-toolkit runtime blocks that particular quality check until restored.
+
+
+## Editable assessment rubric — local delivery
+
+The user approved editing descriptions and weights for the existing eight
+criteria and native execution on 2026-10-16. This extends M4/M5/M9 with atomic
+per-account settings and durable model/scoring snapshots. Local implementation
+and verification are complete: 163 backend tests, 32 frontend tests, 120 SQL
+assertions and three concurrency checks. Migration 000009 and coordinated hosted
+rollout remain separate. [Plan](../.agent/context/changes/editable-assessment-rubric/plan.md)
+· [Canonical progress](../.agent/context/changes/editable-assessment-rubric/progress.md).
