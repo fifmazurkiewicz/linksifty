@@ -12,6 +12,7 @@ from linksifty.application.processing_contracts import (
     ProcessingJob,
     ResearchContext,
     Reservation,
+    RubricConfig,
     UsageSummary,
     UserSettings,
 )
@@ -77,10 +78,17 @@ class ProcessingRepository(SupabaseRepository):
             self._first(await self._rpc("get_user_settings", user_id))
         )
 
-    async def update_threshold(self, user_id: UUID, threshold: Decimal) -> UserSettings:
+    async def update_settings(
+        self, user_id: UUID, threshold: Decimal, rubric: RubricConfig | None
+    ) -> UserSettings:
         return UserSettings.model_validate(
             self._first(
-                await self._rpc("update_user_threshold", user_id, p_threshold=str(threshold))
+                await self._rpc(
+                    "update_user_assessment_settings",
+                    user_id,
+                    p_threshold=str(threshold),
+                    p_rubric=rubric.model_dump(mode="json") if rubric is not None else None,
+                )
             )
         )
 

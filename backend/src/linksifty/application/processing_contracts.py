@@ -6,10 +6,11 @@ from decimal import Decimal
 from typing import Literal, Protocol
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from linksifty.application.item_contracts import ItemRecord
 from linksifty.domain.models import CriterionName
+from linksifty.domain.rubric import AssessmentRubric, RubricCriterion, default_rubric
 
 
 class UsageSummary(BaseModel):
@@ -21,7 +22,48 @@ class UsageSummary(BaseModel):
     resets_at: datetime
 
 
+class RubricEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    name: CriterionName
+    description: str = Field(min_length=1, max_length=1000)
+    weight: int = Field(ge=1, le=10, strict=True)
+
+    @field_validator("description")
+    @classmethod
+    def readable_description(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("Description must contain readable text without NUL")
+        return value.strip()
+
+
+class RubricConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    criteria: tuple[RubricEntry, ...] = Field(min_length=8, max_length=8)
+
+    @model_validator(mode="after")
+    def complete_rubric(self) -> "RubricConfig":
+        self.to_domain()
+        by_name = {entry.name: entry for entry in self.criteria}
+        object.__setattr__(self, "criteria", tuple(by_name[name] for name in CriterionName))
+        return self
+
+    def to_domain(self) -> AssessmentRubric:
+        return AssessmentRubric(
+            tuple(RubricCriterion(c.name, c.description, c.weight) for c in self.criteria)
+        )
+
+    @classmethod
+    def default(cls) -> "RubricConfig":
+        return cls(
+            criteria=tuple(
+                RubricEntry(name=c.name, description=c.description, weight=c.weight)
+                for c in default_rubric().criteria
+            )
+        )
+
+
 class UserSettings(BaseModel):
+    rubric: RubricConfig = Field(default_factory=RubricConfig.default)
     valuable_threshold: Decimal = Field(ge=40, le=100, allow_inf_nan=False)
 
 
@@ -71,6 +113,7 @@ class ModelResult(BaseModel):
 
 
 class ProcessingJob(BaseModel):
+    rubric_snapshot: RubricConfig | None = None
     web_search: bool = False
     search_reservation_id: UUID | None = None
     search_context: ResearchContext | None = None
@@ -89,6 +132,7 @@ class ProcessingJob(BaseModel):
 
 
 class Reservation(BaseModel):
+    rubric_snapshot: RubricConfig = Field(default_factory=RubricConfig.default)
     id: UUID
     state: Literal["reserved", "settled"]
     actual_usd: Decimal | None = None
@@ -110,6 +154,7 @@ class CitationView(BaseModel):
 
 
 class AssessmentView(BaseModel):
+    rubric_snapshot: RubricConfig = Field(default_factory=RubricConfig.default)
     research_status: str = "not_requested"
     research_sources: list[ResearchSourceView] = Field(default_factory=list)
     note: str
@@ -127,7 +172,9 @@ class ProcessingStore(Protocol):
     async def heartbeat(self, job: ProcessingJob) -> bool: ...
     async def orphaned_reservations(self, user_id: UUID) -> list[PendingReservation]: ...
     async def usage(self, user_id: UUID) -> UsageSummary: ...
-    async def update_threshold(self, user_id: UUID, threshold: Decimal) -> UserSettings: ...
+    async def update_settings(
+        self, user_id: UUID, threshold: Decimal, rubric: RubricConfig | None
+    ) -> UserSettings: ...
     async def update_budget(self, user_id: UUID, limit: Decimal) -> UsageSummary: ...
     async def inbox(self, user_id: UUID) -> list[ItemRecord]: ...
     async def paste(
@@ -149,6 +196,10 @@ class ProcessingStore(Protocol):
 class AssessmentProvider(Protocol):
     def estimate(self, text: str) -> Decimal: ...
     async def assess(
-        self, text: str, *, sources: list[EvidenceSource] | None = None
+        self,
+        text: str,
+        *,
+        sources: list[EvidenceSource] | None = None,
+        rubric: RubricConfig | None = None,
     ) -> ModelResult: ...
     async def reconcile(self, generation_id: str) -> Decimal | None: ...

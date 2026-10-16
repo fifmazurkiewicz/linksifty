@@ -18,6 +18,7 @@ from linksifty.application.processing_contracts import (
     ProcessingJob,
     ProcessingStore,
     ResearchContext,
+    RubricConfig,
     Telemetry,
     UsageSummary,
     UserSettings,
@@ -73,8 +74,10 @@ class ProcessingService:
     async def settings(self, user_id: UUID) -> UserSettings:
         return await self._store.settings(user_id)
 
-    async def update_threshold(self, user_id: UUID, threshold: Decimal) -> UserSettings:
-        return await self._store.update_threshold(user_id, threshold)
+    async def update_settings(
+        self, user_id: UUID, threshold: Decimal, rubric: RubricConfig | None
+    ) -> UserSettings:
+        return await self._store.update_settings(user_id, threshold, rubric)
 
     async def update_budget(self, user_id: UUID, limit: Decimal) -> UsageSummary:
         return await self._store.update_budget(user_id, limit)
@@ -406,12 +409,13 @@ class ProcessingService:
                 return
             job.reservation_id = reservation.id
             job.threshold_snapshot = reservation.threshold_snapshot
+            job.rubric_snapshot = reservation.rubric_snapshot
             if not await self._stage(job, "analyzing"):
                 return
             result = (
-                await provider.assess(text, sources=research.sources)
+                await provider.assess(text, sources=research.sources, rubric=job.rubric_snapshot)
                 if research.sources
-                else await provider.assess(text)
+                else await provider.assess(text, rubric=job.rubric_snapshot)
             )
             self._event("model.result", result=result.model_dump(mode="json"))
             recorded = await self._store.record_result(job, result)
@@ -472,9 +476,12 @@ class ProcessingService:
                 Criterion(criterion.name, criterion.score, criterion.rationale, (str(identifier),))
             )
         assessment = complete_assessment(
-            AssessmentDraft(result.assessment.note, tuple(criteria)), float(job.threshold_snapshot)
+            AssessmentDraft(result.assessment.note, tuple(criteria)),
+            float(job.threshold_snapshot),
+            rubric=(job.rubric_snapshot or RubricConfig.default()).to_domain(),
         )
         view = AssessmentView(
+            rubric_snapshot=job.rubric_snapshot or RubricConfig.default(),
             note=assessment.note,
             criteria=[
                 {

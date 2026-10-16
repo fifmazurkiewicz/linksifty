@@ -80,6 +80,8 @@ MVP limitations. The frontend remains a separate Vercel build.
 The queue now shows persisted live stages, source-backed results, manual-content
 recovery and actual OpenRouter USD spend/reservations. Settings saves the future
 valuable threshold; administrators can edit per-user monthly caps, including zero.
+Settings also shows the eight assessment criteria. Each account can edit descriptions and integer weights (1–10), saved together with its valuable threshold. New model analyses capture those rules; completed and interrupted analyses keep their original rubric, visible in detail. Requires migration `20261016_000009_assessment_rubric.sql` and matching backend/frontend.
+
 Use server-only `OPENROUTER_API_KEY` and `OPENROUTER_MODEL=openai/gpt-4o-mini`.
 Other model IDs fail closed until their cost bounds are verified. Default monthly
 budget is 10 USD per user; inference first reserves a conservative maximum and

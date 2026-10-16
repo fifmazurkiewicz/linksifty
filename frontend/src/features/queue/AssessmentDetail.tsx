@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { api, type Assessment } from '../../lib/api'
+import { isRubric } from '../../lib/rubric'
 
 export function AssessmentDetail({ id, session, onBack }: { id: string; session: Session; onBack: () => void }) {
   const [value, setValue] = useState<Assessment | null>(null)
@@ -26,7 +27,9 @@ export function AssessmentDetail({ id, session, onBack }: { id: string; session:
       {value.research_sources?.map(source => /^https?:\/\//.test(source.url) && <p key={source.id}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.url}</a></p>)}
       <h2>Why this verdict</h2>
       {value.criteria.map(criterion => <article key={criterion.name}><div>
-        <h3>{criterion.name.replaceAll('_', ' ')} · {criterion.score}/5</h3><p>{criterion.rationale}</p>
+        <h3>{criterion.name.replaceAll('_', ' ')} · {criterion.score}/5</h3>
+        {isRubric(value.rubric_snapshot) && value.rubric_snapshot.criteria.filter(rule => rule.name === criterion.name).map(rule => <div className="historical-rule" key={rule.name}><p>{rule.description}</p><p>Weight at analysis: ×{rule.weight}</p></div>)}
+        <p>{criterion.rationale}</p>
         {criterion.citation_ids.map((citation, index) => <a key={citation} href={`#citation-${citation}`}>Source passage {index + 1}</a>)}
       </div></article>)}
       <h2>Source passages</h2>

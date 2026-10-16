@@ -18,16 +18,22 @@ OTHER = UUID("22222222-2222-4222-8222-222222222222")
 
 def test_settings_validate_and_scope_to_verified_user() -> None:
     service = create_autospec(ProcessingService, instance=True)
-    service.update_threshold.return_value = UserSettings(valuable_threshold=Decimal(75))
+    service.update_settings.return_value = UserSettings(valuable_threshold=Decimal(75))
     app = create_app(Settings(demo_mode=True))
     app.state.processing = cast(ProcessingService, service)
     app.dependency_overrides[current_user] = lambda: USER
     client = TestClient(app)
     assert client.put("/v1/settings", json={"valuable_threshold": 39}).status_code == 422
     assert client.put("/v1/settings", json={"valuable_threshold": "NaN"}).status_code == 422
-    response = client.put("/v1/settings", json={"valuable_threshold": 75, "user_id": str(OTHER)})
+    assert (
+        client.put(
+            "/v1/settings", json={"valuable_threshold": 75, "user_id": str(OTHER)}
+        ).status_code
+        == 422
+    )
+    response = client.put("/v1/settings", json={"valuable_threshold": 75})
     assert response.status_code == 200
-    service.update_threshold.assert_awaited_once_with(USER, Decimal(75))
+    service.update_settings.assert_awaited_once_with(USER, Decimal(75), None)
 
 
 def test_non_admin_cannot_change_another_accounts_budget() -> None:
@@ -179,3 +185,32 @@ def test_duplicate_submission_returns_conflict_without_waking_worker() -> None:
     assert response.status_code == 409
     assert "existing item" in response.json()["detail"]
     worker.wake.assert_not_called()
+
+
+def test_settings_save_the_entire_validated_owner_rubric() -> None:
+    from linksifty.application.processing_contracts import RubricConfig
+
+    service = create_autospec(ProcessingService, instance=True)
+    rules = RubricConfig.default().model_dump(mode="json")
+    rules["criteria"][0]["weight"] = 10
+    rules["criteria"][0]["description"] = "Nowa perspektywa"
+    rubric = RubricConfig.model_validate(rules)
+    service.update_settings.return_value = UserSettings(
+        valuable_threshold=Decimal(75), rubric=rubric
+    )
+    app = create_app(Settings(demo_mode=True))
+    app.state.processing = service
+    app.dependency_overrides[current_user] = lambda: USER
+    client = TestClient(app)
+    response = client.put("/v1/settings", json={"valuable_threshold": 75, "rubric": rules})
+    assert response.status_code == 200
+    assert response.json()["rubric"] == rules
+    service.update_settings.assert_awaited_once_with(USER, Decimal(75), rubric)
+    service.wake.assert_not_called()
+    for weight in (0, 11, True, 1.5):
+        rules["criteria"][0]["weight"] = weight
+        assert (
+            client.put("/v1/settings", json={"valuable_threshold": 75, "rubric": rules}).status_code
+            == 422
+        )
+    service.update_settings.assert_awaited_once()

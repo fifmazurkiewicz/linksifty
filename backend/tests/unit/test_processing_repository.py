@@ -68,3 +68,32 @@ def test_late_result_is_bound_to_its_original_reservation() -> None:
             )
 
     asyncio.run(run())
+
+
+def test_settings_write_is_one_owner_scoped_rpc_with_complete_rubric() -> None:
+    import json
+
+    from linksifty.application.processing_contracts import RubricConfig
+
+    rubric = RubricConfig.default()
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/rpc/update_user_assessment_settings")
+        payload = json.loads(request.content)
+        assert payload == {
+            "p_user_id": str(USER),
+            "p_threshold": "75",
+            "p_rubric": rubric.model_dump(mode="json"),
+        }
+        return httpx.Response(
+            200, json=[{"valuable_threshold": "75", "rubric": rubric.model_dump(mode="json")}]
+        )
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            repo = ProcessingRepository("https://supabase.example", "sb_secret_test", client)
+            result = await repo.update_settings(USER, Decimal(75), rubric)
+            assert result.rubric == rubric
+            assert result.valuable_threshold == 75
+
+    asyncio.run(run())

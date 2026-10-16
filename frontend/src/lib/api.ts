@@ -71,6 +71,7 @@ export type Usage = {
 }
 
 export type Assessment = {
+  rubric_snapshot?: import('./rubric').RubricConfig
   research_status?: string
   research_sources?: { id: string; url: string }[]
   note: string

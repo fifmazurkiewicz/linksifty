@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from pathlib import Path
 from threading import Barrier
 from urllib.parse import unquote, urlparse
@@ -182,6 +183,74 @@ def concurrent_duplicate_submissions(environment: dict[str, str]) -> None:
         )
 
 
+def concurrent_rubric_snapshot(environment: dict[str, str]) -> None:
+    """A settings update cannot split the threshold/rubric reservation snapshot."""
+    from linksifty.application.processing_contracts import RubricConfig
+
+    user = str(uuid4())
+    rules = RubricConfig.default().model_dump(mode="json")
+    rules["criteria"][0]["weight"] = 10
+    literal = json.dumps(rules).replace("'", "''")
+    try:
+        execute(
+            f"""insert into auth.users(id,email) values ('{user}','rubric-race@example.test');
+            select public.get_or_create_account_profile('{user}','rubric-race@example.test',true);
+            select public.get_user_settings('{user}');
+            select public.submit_fetch_items('{user}',array['https://rubric-race.example']);""",
+            environment,
+        )
+        job = json.loads(
+            execute(
+                f"select row_to_json(j) from public.claim_processing_job('{user}') j;", environment
+            )
+        )
+        barrier = Barrier(2)
+
+        def update() -> None:
+            barrier.wait(timeout=10)
+            execute(
+                f"select public.update_user_assessment_settings('{user}',75,'{literal}'::jsonb);",
+                environment,
+            )
+
+        def reserve() -> dict[str, object]:
+            barrier.wait(timeout=10)
+            return dict(
+                json.loads(
+                    execute(
+                        f"select row_to_json(r) from public.reserve_analysis('{user}',"
+                        f"'{job['id']}','{job['lease_token']}',0.01) r;",
+                        environment,
+                    )
+                )
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            updating = pool.submit(update)
+            reserving = pool.submit(reserve)
+            updating.result()
+            reservation = reserving.result()
+        snapshot = reservation["rubric_snapshot"]
+        assert isinstance(snapshot, dict)
+        pair = (
+            int(Decimal(str(reservation["threshold_snapshot"]))),
+            snapshot["criteria"][0]["weight"],
+        )
+        if pair not in {(60, 1), (75, 10)}:
+            raise AssertionError(
+                "Reservation mixed threshold/rubric from different settings versions"
+            )
+        print(
+            "PASS: concurrent settings update/model reservation "
+            "captures one consistent rubric/threshold"
+        )
+    finally:
+        execute(
+            f"delete from auth.users where id='{user}' and email='rubric-race@example.test';",
+            environment,
+        )
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -196,6 +265,7 @@ def main() -> int:
         "processing_hash.test.sql",
         "brave_research.test.sql",
         "duplicate_links.test.sql",
+        "assessment_rubric.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -203,6 +273,7 @@ def main() -> int:
         print(f"PASS: {name}")
     concurrent_reservations(environment)
     concurrent_duplicate_submissions(environment)
+    concurrent_rubric_snapshot(environment)
     return 0
 
 

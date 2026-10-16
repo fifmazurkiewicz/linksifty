@@ -243,7 +243,7 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
                 },
             )
         messages = json.loads(request.content)["messages"]
-        sources = json.loads(messages[1]["content"])
+        sources = json.loads(messages[-1]["content"])
         assert primary == sources[0]["text"] and secondary == sources[1]["text"]
         payload = {
             "note": "Verified note",

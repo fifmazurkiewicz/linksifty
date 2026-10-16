@@ -9,18 +9,25 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from linksifty.api.auth import CurrentIdentity, CurrentUser
 from linksifty.application.account_contracts import AccountService
 from linksifty.application.item_contracts import ItemRecord
-from linksifty.application.processing_contracts import AssessmentView, UsageSummary, UserSettings
+from linksifty.application.processing_contracts import (
+    AssessmentView,
+    RubricConfig,
+    UsageSummary,
+    UserSettings,
+)
 from linksifty.application.processing_service import ProcessingService
 
 router = APIRouter()
 
 
-class ThresholdUpdate(BaseModel):
+class SettingsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rubric: RubricConfig | None = None
     valuable_threshold: Decimal = Field(
         ge=40, le=100, max_digits=5, decimal_places=2, allow_inf_nan=False
     )
@@ -67,9 +74,11 @@ async def get_settings(request: Request, user_id: CurrentUser) -> UserSettings:
 
 @router.put("/v1/settings")
 async def update_settings(
-    update: ThresholdUpdate, request: Request, user_id: CurrentUser
+    update: SettingsUpdate, request: Request, user_id: CurrentUser
 ) -> UserSettings:
-    return await _service(request).update_threshold(user_id, update.valuable_threshold)
+    return await _service(request).update_settings(
+        user_id, update.valuable_threshold, update.rubric
+    )
 
 
 @router.get("/v1/usage")

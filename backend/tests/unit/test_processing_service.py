@@ -10,6 +10,7 @@ from linksifty.application.processing_contracts import (
     ProcessingJob,
     ProcessingStore,
     Reservation,
+    RubricConfig,
     SourceAssessment,
     SourceCriterion,
 )
@@ -26,7 +27,20 @@ def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
         store.stage.return_value = True
         store.record_result.return_value = True
         store.reserve.return_value = Reservation(
-            id=uuid4(), state="reserved", threshold_snapshot=Decimal(75)
+            id=uuid4(),
+            state="reserved",
+            threshold_snapshot=Decimal(75),
+            rubric_snapshot=RubricConfig.model_validate(
+                {
+                    "criteria": [
+                        {
+                            **c.model_dump(),
+                            "weight": 10 if c.name is CriterionName.NOVELTY else c.weight,
+                        }
+                        for c in RubricConfig.default().criteria
+                    ]
+                }
+            ),
         )
         provider = create_autospec(AssessmentProvider, instance=True)
         provider.estimate.return_value = Decimal("0.02")
@@ -56,6 +70,10 @@ def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
         store.settle.assert_awaited_once_with(job.user_id, job.reservation_id, Decimal("0.00012"))
         result = store.complete.call_args.args[1]
         assert result.threshold_snapshot == 75
+        assert result.rubric_snapshot == store.reserve.return_value.rubric_snapshot
+        assert result.score == 58.10
+        provider.assess.assert_awaited_once_with(TEXT, rubric=result.rubric_snapshot)
+        store.settings.assert_not_awaited()
         assert result.verdict == "to_review"
         assert len(result.citations) == 8
         corroboration = next(c for c in result.criteria if c["name"] == "independent_corroboration")
@@ -173,6 +191,17 @@ def test_crash_after_saved_result_settles_then_publishes_without_repeating_infer
             generation_id="gen-recovered",
             threshold_snapshot=Decimal(75),
             model_result=result,
+            rubric_snapshot=RubricConfig.model_validate(
+                {
+                    "criteria": [
+                        {
+                            **c.model_dump(),
+                            "weight": 10 if c.name is CriterionName.NOVELTY else c.weight,
+                        }
+                        for c in RubricConfig.default().criteria
+                    ]
+                }
+            ),
         )
         await ProcessingService(
             cast(ProcessingStore, store), cast(AssessmentProvider, provider), AsyncMock()
@@ -182,6 +211,9 @@ def test_crash_after_saved_result_settles_then_publishes_without_repeating_infer
         store.settle.assert_awaited_once_with(job.user_id, job.reservation_id, Decimal("0.00012"))
         store.complete.assert_awaited_once()
         assert store.complete.call_args.args[1].threshold_snapshot == 75
+        assert store.complete.call_args.args[1].score == 58.10
+        assert store.complete.call_args.args[1].rubric_snapshot == job.rubric_snapshot
+        store.settings.assert_not_awaited()
 
     asyncio.run(run())
 

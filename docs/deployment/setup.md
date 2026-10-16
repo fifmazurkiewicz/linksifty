@@ -650,3 +650,42 @@ filter **Is Root Observation** to **True** only, then open a processing trace fo
 its individual steps. Instrumented processing attempts are exported when tracing
 is enabled; ordinary page loads/API polling are not. Sessions organize telemetry
 and do not add conversation memory to the model. Export remains best effort.
+
+
+## Editable assessment rubric (000009)
+
+Apply `supabase/migrations/20261016_000009_assessment_rubric.sql` after 000008.
+Coordinate the migration, backend and frontend deployment: pause new processing
+and let active old workers finish before enabling edited rubrics, apply the
+migration, deploy the matching backend, then the frontend. Do not run mixed old
+and new workers with custom rules enabled: an old worker does not consume rubric
+snapshots. No environment variable or model change is required. No hosted
+migration or deployment was performed by this local implementation.
+
+GET `/v1/settings` returns `valuable_threshold` and `rubric.criteria`, each entry
+containing the fixed `name`, editable `description` and integer `weight`.
+PUT saves threshold and rubric atomically for the authenticated account. A
+threshold-only PUT preserves its existing rubric. Unknown fields, incomplete or
+duplicate criterion IDs, blank/NUL/over-1000-character descriptions and noninteger
+or out-of-range weights are rejected. The new frontend requires all eight rules
+from GET; an older/malformed response disables saving instead of using guessed
+values. The editor explains point scale and relative weights, with the formula
+in **How scoring works**. A save does not start an analysis or a paid request.
+
+The first model reservation snapshots rubric and threshold in one transaction;
+that snapshot supplies both the model descriptions and deterministic scorer.
+Cached output and lease recovery retain it, even after account settings change.
+An explicit fresh-analysis reset clears both snapshots only under existing
+settlement and duplicate-link guards. Assessments store their original rubric;
+detail displays those descriptions/weights without recomputing history. Legacy
+completed/reserved records are backfilled with the original default rules. User
+descriptions are rubric data, subordinate to fixed grounding/schema constraints;
+all citations and independent corroboration checks remain enforced. Descriptions
+are included in model input and existing redacted Langfuse tracing when enabled.
+
+Local verification uses synthetic accounts and mocked providers. The disposable
+SQL gate now includes `assessment_rubric.test.sql` and a concurrent settings-save/
+model-reservation check. Production acceptance remains manual: verify owner
+isolation, save a changed description/weight, authorize a new analysis if desired,
+and inspect its stored rubric/model input; confirm an earlier assessment retains
+its original score and rules. Never retry an uncertain paid attempt automatically.

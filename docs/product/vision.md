@@ -27,13 +27,13 @@ Filip saves more links than he can read. Valuable material becomes mixed with pr
 
 The eight criteria are novelty, evidence, practicality, source credibility, replicability, independent corroboration, absence of conflict of interest, and concreteness versus superlatives.
 
-Evidence, replicability, source credibility, and absence of conflict of interest have weight `×2`. Novelty, practicality, independent corroboration, and concreteness have weight `×1`. The pure scoring rule converts the weighted total to a percentage:
+By default, evidence, replicability, source credibility, and absence of conflict of interest have weight `×2`; the other four criteria have weight `×1`. Settings shows all eight fixed criteria and lets each account edit descriptions (1–1000 nonblank characters) and integer weights (1–10). All criteria and source citations remain required. The model receives the saved descriptions; pure scoring uses the same reserved weights. The percentage is `sum(points × weight) / (5 × sum(weights)) × 100`, with points from 1–5:
 
 - `≥ 60%`: valuable
 - `40–59%`: to review
 - `< 40%`: hype
 
-The default valuable threshold is 60%. When Filip changes the threshold, the change applies only to links assessed afterwards. Existing stored scores and verdicts stay unchanged.
+The default valuable threshold is 60%. When Filip changes the threshold, the change applies only to links assessed afterwards. Existing stored scores and verdicts stay unchanged. Threshold, descriptions and weights are captured together at the first model reservation. Interrupted attempts reuse those rules; an explicitly requested fresh analysis takes current settings. The detail view displays the original descriptions and weights. Legacy results retain the original default rubric.
 
 ## Success measures
 
