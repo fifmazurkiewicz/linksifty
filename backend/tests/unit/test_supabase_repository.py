@@ -235,9 +235,15 @@ def test_notification_claim_and_delivery_update_use_private_rpcs() -> None:
 
 def test_delete_always_filters_owner_and_item() -> None:
     def respond(request: httpx.Request) -> httpx.Response:
-        assert request.method == "DELETE"
-        assert request.url.params["user_id"] == f"eq.{USER}"
-        assert request.url.params["id"] == f"eq.{ITEM}"
+        import json
+
+        assert request.method == "POST"
+        assert request.url.path.endswith("/rpc/delete_items")
+        assert json.loads(request.content) == {
+            "p_user_id": str(USER),
+            "p_item_ids": [str(ITEM)],
+            "p_confirmed": True,
+        }
         return httpx.Response(200, json=[])
 
     async def run() -> None:

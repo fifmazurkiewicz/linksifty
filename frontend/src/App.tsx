@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { AuthProvider } from './auth/AuthProvider'
@@ -22,6 +22,7 @@ function AuthenticatedApp() {
   const { session, loading: authLoading, signOut } = useAuth()
   const [account, setAccount] = useState<Account | null>(null)
   const [items, setItems] = useState<Item[]>([])
+  const deletedIds = useRef(new Set<string>())
   const [usage, setUsage] = useState<Usage | null>(null)
   const [usageError, setUsageError] = useState<string | null>(null)
   const [screen, setScreen] = useState<Screen>('Inbox')
@@ -51,7 +52,7 @@ function AuthenticatedApp() {
     if (!session) return
     try {
       const result = await api<{ items: Item[] }>('/v1/items', session)
-      setItems(result.items)
+      setItems(result.items.filter(item => !deletedIds.current.has(item.id)))
       setState('ready')
     } catch (error) {
       setMessage(report(error)); setState('error')
@@ -92,7 +93,7 @@ function AuthenticatedApp() {
       try {
         await watchActivity(session, controller.signal, (snapshot, updatedUsage) => {
           if (controller.signal.aborted) return
-          setItems(snapshot); setUsage(updatedUsage); setUsageError(null); setState('ready')
+          setItems(snapshot.filter(item => !deletedIds.current.has(item.id))); setUsage(updatedUsage); setUsageError(null); setState('ready')
           setLive('Live progress connected')
         })
         if (!controller.signal.aborted) {
@@ -160,6 +161,23 @@ function AuthenticatedApp() {
     catch (error) { setMessage(report(error)) }
     finally { setBusy(false) }
   }
+  const deleteItems = async (ids: string[]): Promise<boolean> => {
+    if (busy) return false
+    setBusy(true); setMessage(null)
+    try {
+      const result = await api<{ deleted_ids: string[] }>('/v1/items/delete', session, {
+        method: 'POST', body: JSON.stringify({ item_ids: ids, confirmed: true }),
+      })
+      if (!Array.isArray(result.deleted_ids) || result.deleted_ids.length !== ids.length
+        || new Set(result.deleted_ids).size !== ids.length || result.deleted_ids.some(id => !ids.includes(id))) {
+        throw new Error('Deletion could not be confirmed. Refresh your queue before trying again.')
+      }
+      result.deleted_ids.forEach(id => deletedIds.current.add(id))
+      setItems(current => current.filter(item => !deletedIds.current.has(item.id)))
+      return true
+    } catch (error) { setMessage(report(error)); return false }
+    finally { setBusy(false) }
+  }
 
   return <main className="app">
     <aside>
@@ -194,7 +212,7 @@ function AuthenticatedApp() {
         {state === 'loading' && <p role="status">Loading your queue…</p>}
         {state === 'error' && <button className="secondary" onClick={() => void loadItems()}>Retry loading queue</button>}
         {state === 'ready' && <Queue items={items} onOpen={id => setView({ kind: 'detail', id })}
-          onPaste={id => { setText(''); setView({ kind: 'paste', id }) }} onResume={id => void resume(id)} busy={busy} />}
+          onPaste={id => { setText(''); setView({ kind: 'paste', id }) }} onResume={id => void resume(id)} onDelete={deleteItems} busy={busy} />}
       </>}
       {screen === 'Add' && <form onSubmit={event => void submit(event)}>
         <p className="eyebrow">NEW ASSESSMENT</p><h1>{maxLinks > 0 ? `Add up to ${maxLinks} ${maxLinks === 1 ? 'link' : 'links'}.` : 'Your trial links are used.'}</h1>

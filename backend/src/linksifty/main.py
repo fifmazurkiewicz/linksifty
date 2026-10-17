@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from langfuse import Langfuse
 from pydantic import BaseModel, Field, HttpUrl, ValidationError
 
-from linksifty.api import accounts, admin, processing
+from linksifty.api import accounts, admin, items, processing
 from linksifty.api.auth import CurrentUser
 from linksifty.application.account_contracts import AccountService
 from linksifty.application.item_contracts import DuplicateSubmission, ItemRecord
@@ -193,6 +193,7 @@ def create_app(
     app.include_router(accounts.router)
     app.include_router(admin.router)
     app.include_router(processing.router)
+    app.include_router(items.router)
     app.state.settings = configuration
     app.state.authenticator = None
     app.state.items = None

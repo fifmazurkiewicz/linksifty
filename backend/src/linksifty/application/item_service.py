@@ -19,3 +19,6 @@ class ItemService:
 
     async def submit(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
         return await self._repository.create_items(user_id, urls)
+
+    async def delete(self, user_id: UUID, item_ids: list[UUID]) -> list[UUID]:
+        return await self._repository.delete_items(user_id, item_ids)

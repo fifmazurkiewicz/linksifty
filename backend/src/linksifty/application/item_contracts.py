@@ -31,6 +31,8 @@ class ItemRepository(Protocol):
 
     async def create_items(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]: ...
 
+    async def delete_items(self, user_id: UUID, item_ids: list[UUID]) -> list[UUID]: ...
+
 
 class DuplicateSubmission(Exception):
     """A submission would repeat an existing owner-scoped URL."""

@@ -26,6 +26,40 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+it('deletes confirmed links through the API and ignores stale progress snapshots', async () => {
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  const items = [
+    { id: 'delete-me', title: 'Delete this article', status: 'processing', score: null, verdict: null },
+    { id: 'keep-me', title: 'Keep this article', status: 'processing', score: null, verdict: null },
+  ]
+  const usage = { spent_usd: '0.01', reserved_usd: '0.1', limit_usd: '10', remaining_usd: '9.89', resets_at: '2026-11-01T00:00:00Z' }
+  let stream: ReadableStreamDefaultController<Uint8Array> | undefined
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', status: 'approved', role: 'user', trial_links_remaining: 3 }))
+    if (url.endsWith('/v1/items/delete')) {
+      expect(init?.method).toBe('POST')
+      expect(JSON.parse(String(init?.body))).toEqual({ item_ids: ['delete-me'], confirmed: true })
+      return new Response(JSON.stringify({ deleted_ids: ['delete-me'] }))
+    }
+    if (url.endsWith('/v1/activity')) return new Response(new ReadableStream({ start(controller) { stream = controller } }), { headers: { 'Content-Type': 'text/event-stream' } })
+    if (url.endsWith('/v1/usage')) return new Response(JSON.stringify(usage))
+    if (url.endsWith('/v1/capabilities')) return new Response(JSON.stringify({ web_search: false }))
+    return new Response(JSON.stringify({ items }))
+  })
+  renderApp(session)
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete Delete this article' }))
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Delete this article' })).not.toBeInTheDocument())
+  expect(screen.getByRole('heading', { name: 'Keep this article' })).toBeInTheDocument()
+  expect(await screen.findByText('Deleted 1 link.')).toBeInTheDocument()
+  expect(stream).toBeDefined()
+  stream!.enqueue(new TextEncoder().encode(`event: snapshot\ndata: ${JSON.stringify({ items, usage })}\n\n`))
+  await screen.findByText('Live progress connected')
+  expect(screen.queryByRole('heading', { name: 'Delete this article' })).not.toBeInTheDocument()
+  expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/v1/items/delete'), expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer test-token' }) }))
+})
+
 describe('account access', () => {
   it('shows Google sign in and requests identity scopes', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')

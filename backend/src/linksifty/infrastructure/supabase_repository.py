@@ -345,10 +345,22 @@ class SupabaseRepository:
         )
 
     async def delete_item(self, user_id: UUID, item_id: UUID) -> bool:
-        records = await self._request(
-            "DELETE", "items", params={"user_id": f"eq.{user_id}", "id": f"eq.{item_id}"}
+        return bool(await self.delete_items(user_id, [item_id]))
+
+    async def delete_items(self, user_id: UUID, item_ids: list[UUID]) -> list[UUID]:
+        rows = await self._profile_request(
+            "POST",
+            "rpc/delete_items",
+            payload={
+                "p_user_id": str(user_id),
+                "p_item_ids": [str(identifier) for identifier in item_ids],
+                "p_confirmed": True,
+            },
         )
-        return bool(records)
+        try:
+            return [UUID(str(row["id"])) for row in rows]
+        except (KeyError, ValueError) as error:
+            raise RepositoryUnavailable("Persistence temporarily unavailable") from error
 
     async def mark_read(self, user_id: UUID, item_id: UUID, *, unread: bool) -> ItemRecord | None:
         records = await self._request(

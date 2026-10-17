@@ -251,6 +251,78 @@ def concurrent_rubric_snapshot(environment: dict[str, str]) -> None:
         )
 
 
+def concurrent_deletion(environment: dict[str, str]) -> None:
+    """Race deletion against admission and a late result on separate connections."""
+    for operation in ("reserve", "result"):
+        user = str(uuid4())
+        try:
+            execute(
+                f"""
+                insert into auth.users(id,email) values ('{user}','deletion-race@example.test');
+                select public.get_or_create_account_profile(
+                  '{user}','deletion-race@example.test',true);
+                select public.submit_fetch_items('{user}',array['https://deletion-race.example']);
+                """,
+                environment,
+            )
+            job = json.loads(
+                execute(
+                    f"select row_to_json(j) from public.claim_processing_job('{user}') j;",
+                    environment,
+                ).strip()
+            )
+            if operation == "result":
+                reservation = execute(
+                    f"select id from public.reserve_analysis('{user}',"
+                    f"'{job['id']}','{job['lease_token']}',0.20);",
+                    environment,
+                ).strip()
+                writer_sql = (
+                    f"select count(*) from public.record_model_result('{user}',"
+                    f"'{job['id']}','{job['lease_token']}','{reservation}',"
+                    "'{\"note\":\"Private late output\"}', 'deletion-race');"
+                )
+            else:
+                writer_sql = (
+                    f"select count(*) from public.reserve_analysis('{user}',"
+                    f"'{job['id']}','{job['lease_token']}',0.20);"
+                )
+            barrier = Barrier(2)
+
+            def run(sql: str, start: Barrier = barrier) -> str:
+                start.wait(timeout=10)
+                return execute(f"begin; {sql} select pg_sleep(0.05); commit;", environment)
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                deletion = pool.submit(
+                    run,
+                    f"select count(*) from public.delete_items('{user}',"
+                    f"array['{job['item_id']}']::uuid[],true);",
+                )
+                writer = pool.submit(run, writer_sql)
+                assert deletion.result().strip() == "1"
+                assert writer.result().strip() in {"0", "1"}
+            state = json.loads(
+                execute(
+                    f"""select json_build_object(
+                    'items',(select count(*) from public.items where user_id='{user}'),
+                    'jobs',(select count(*) from public.jobs where user_id='{user}'),
+                    'attached',(select count(*) from public.usage_reservations
+                      where user_id='{user}' and job_id is not null),
+                    'generations',(select count(*) from public.usage_reservations
+                      where user_id='{user}' and generation_id='deletion-race'));
+                    """,
+                    environment,
+                ).strip()
+            )
+            assert state["items"] == state["jobs"] == state["attached"] == 0
+            if operation == "result":
+                assert state["generations"] == 1
+            print(f"PASS: concurrent deletion/{operation}")
+        finally:
+            execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -267,6 +339,7 @@ def main() -> int:
         "duplicate_links.test.sql",
         "assessment_rubric.test.sql",
         "assessment_calibration.test.sql",
+        "delete_items.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -275,6 +348,7 @@ def main() -> int:
     concurrent_reservations(environment)
     concurrent_duplicate_submissions(environment)
     concurrent_rubric_snapshot(environment)
+    concurrent_deletion(environment)
     return 0
 
 

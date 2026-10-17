@@ -26,27 +26,48 @@ const modelReasons: Record<string, string> = {
 }
 const retryable = new Set(['budget_exhausted', 'not_configured', 'invalid_model_output', 'provider_rejected'])
 
-export function Queue({ items, onOpen, onPaste, onResume, busy }: {
+export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
   items: Item[]; onOpen: (id: string) => void; onPaste: (id: string) => void;
-  onResume: (id: string) => void; busy: boolean;
+  onResume: (id: string) => void; onDelete: (ids: string[]) => Promise<boolean>; busy: boolean;
 }) {
   const [filter, setFilter] = useState('All')
   const [verdict, setVerdict] = useState('all')
+  const [selected, setSelected] = useState<string[]>([])
+  const [deletedCount, setDeletedCount] = useState(0)
   const group = (item: Item) => item.status === 'completed' ? 'Ready' : ['queued', 'processing'].includes(item.status) ? 'In progress' : 'Needs action'
   const visible = items.filter(item => (filter === 'All' || group(item) === filter)
     && (verdict === 'all' || item.verdict === verdict))
+  const selectedIds = visible.filter(item => selected.includes(item.id)).map(item => item.id)
+  const remove = async (ids: string[]) => {
+    if (busy || ids.length === 0) return
+    const titles = visible.filter(item => ids.includes(item.id)).map(item => item.title)
+    if (!window.confirm(`Permanently delete ${ids.length} ${ids.length === 1 ? 'link' : 'links'} and all related analyses, source text, citations and chats?\n\n${titles.slice(0, 3).join('\n')}${titles.length > 3 ? `\n…and ${titles.length - 3} more` : ''}\n\nThis cannot be undone. Existing charges and unresolved billing records remain.`)) return
+    setDeletedCount(0)
+    if (await onDelete(ids)) {
+      setSelected(current => current.filter(id => !ids.includes(id)))
+      setDeletedCount(ids.length)
+    }
+  }
   return <>
     <div className="filters" aria-label="Queue filters">
       {['All', 'In progress', 'Needs action', 'Ready'].map(value => <button key={value}
-        className={filter === value ? 'active' : ''} aria-pressed={filter === value} onClick={() => setFilter(value)}>
+        className={filter === value ? 'active' : ''} aria-pressed={filter === value} onClick={() => { setFilter(value); setSelected([]) }}>
         {value} <small>({items.filter(item => value === 'All' || group(item) === value).length})</small>
       </button>)}
     </div>
     <label className="compact-label" htmlFor="verdict-filter">Verdict</label>
-    <select id="verdict-filter" value={verdict} onChange={event => setVerdict(event.target.value)}>
+    <select id="verdict-filter" value={verdict} onChange={event => { setVerdict(event.target.value); setSelected([]) }}>
       <option value="all">All verdicts</option><option value="valuable">Valuable</option>
       <option value="to_review">To review</option><option value="hype">Hype</option>
     </select>
+    {visible.length > 0 && <div className="queue-selection">
+      <label><input type="checkbox" checked={selectedIds.length === visible.length} disabled={busy}
+        onChange={event => setSelected(event.target.checked ? visible.map(item => item.id) : [])} /> Select all visible links</label>
+      <button className="secondary delete-button" disabled={busy || selectedIds.length === 0}
+        onClick={() => void remove(selectedIds)}>Delete selected ({selectedIds.length})</button>
+    </div>}
+    {deletedCount > 0 && <p role="status">Deleted {deletedCount} {deletedCount === 1 ? 'link' : 'links'}.</p>}
+    {busy && <p role="status">Updating your queue…</p>}
     {visible.map(item => {
       const stage = item.processing_stage === 'queued' && item.status !== 'queued' ? item.status : item.processing_stage || item.status
       const stageLabel = stages[stage] || (item.status === 'awaiting_manual_content' ? 'Paste readable content to continue' : stage.replaceAll('_', ' '))
@@ -55,6 +76,9 @@ export function Queue({ items, onOpen, onPaste, onResume, busy }: {
       try { host = new URL(item.original_url || item.title).hostname } catch { /* Pasted content has no URL. */ }
       return <article key={item.id} className="queue-item">
         <div>
+          <label className="item-selection"><input type="checkbox" aria-label={`Select ${item.title}`}
+            checked={selectedIds.includes(item.id)} disabled={busy}
+            onChange={event => setSelected(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))} /> Select</label>
           <p className="meta">{group(item)}</p><h2>{item.title}</h2>
           <p role={item.status === 'processing' ? 'status' : item.status === 'failed' ? 'alert' : undefined} aria-atomic="true">{paused ? 'Processing paused; waiting to resume' : stageLabel}{!paused && stage === 'fetching' && host ? ` from ${host}` : ''}.</p>
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
@@ -69,6 +93,8 @@ export function Queue({ items, onOpen, onPaste, onResume, busy }: {
           {item.status === 'awaiting_manual_content' && <button className="secondary" disabled={busy} onClick={() => onPaste(item.id)}>Paste content</button>}
           {item.status === 'failed' && retryable.has(stage) && <button className="secondary" disabled={busy} onClick={() => onResume(item.id)}>Resume analysis</button>}
           {item.status === 'failed' && retryable.has(stage) && <small>Uses your monthly budget.</small>}
+          <button className="secondary delete-button" aria-label={`Delete ${item.title}`} disabled={busy}
+            onClick={() => void remove([item.id])}>Delete</button>
         </div>
       </article>
     })}
