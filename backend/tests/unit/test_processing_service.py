@@ -23,6 +23,10 @@ TEXT = "Complete source evidence with a practical reproducible example. " * 10
 
 def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
     async def run() -> None:
+        summary = (
+            "The source describes a practical reproducible example supported by evidence.\n\n"
+            "Its explanation connects the evidence with a process the reader can follow."
+        )
         store = create_autospec(ProcessingStore, instance=True)
         store.stage.return_value = True
         store.record_result.return_value = True
@@ -48,7 +52,7 @@ def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
             cost=Decimal("0.00012"),
             generation_id="gen-test",
             assessment=SourceAssessment(
-                note="Source note.",
+                note=summary,
                 criteria=[
                     SourceCriterion(
                         name=name,
@@ -69,6 +73,7 @@ def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
         ).process(job)
         store.settle.assert_awaited_once_with(job.user_id, job.reservation_id, Decimal("0.00012"))
         result = store.complete.call_args.args[1]
+        assert result.note == summary
         assert result.threshold_snapshot == 75
         assert result.rubric_snapshot == store.reserve.return_value.rubric_snapshot
         assert result.score == 58.10

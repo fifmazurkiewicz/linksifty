@@ -36,6 +36,17 @@ Sidebar budget details are expandable, with available funds and reservations
 visible in the collapsed summary. This presentation does not regenerate notes
 or recalculate saved assessments.
 
+For new model calls, the summary teaches the topic basics, concrete facts or
+arguments and why they matter. It explains unfamiliar terms when supported by
+the supplied primary source, preserves meaningful conditions/dates and attributes
+opinions or forecasts. Its length and structure follow the article: fluent
+paragraphs, optional short sections or bullets, with no mandatory template.
+Substantive articles generally merit about 150–250 words; thin material must not
+be padded with invented background. Rubric judgments belong in the criterion
+explanations. The same bounded model call produces the summary and assessment;
+the existing `note` field and 6000-character ceiling are retained. Saved/cached
+notes remain historical until an explicitly authorized fresh analysis.
+
 The eight stable criterion IDs now represent learning value, support for claims,
 usefulness, topic-specific credibility, replicability, cross-source confirmation,
 fair presentation and interests, and specificity/completeness for the material's
