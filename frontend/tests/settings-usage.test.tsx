@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { Session } from '@supabase/supabase-js'
 import { SettingsPanel } from '../src/features/settings/SettingsPanel'
 import { AccountBudget } from '../src/features/admin/AccountBudget'
+import { UsagePanel } from '../src/features/settings/UsagePanel'
 import { money, watchActivity } from '../src/lib/api'
 import { rubric } from './rubric-fixture'
 
@@ -10,6 +11,17 @@ const session = { access_token: 'test-token', user: { id: 'reader' } } as Sessio
 const usage = { month: '2026-10-01', spent_usd: '0.00001234', reserved_usd: '0.2', limit_usd: '10', remaining_usd: '9.79998766', resets_at: '2026-11-01T00:00:00Z' }
 
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
+
+it('keeps the sidebar budget compact with available funds and expandable cost details', () => {
+  render(<UsagePanel usage={usage} collapsible />)
+  const summary = screen.getByText('Monthly budget').closest('summary')!
+  expect(summary).toHaveTextContent(`${money(usage.remaining_usd)} available`)
+  expect(summary).toHaveTextContent('Funds reserved')
+  expect(screen.getByText('Spent')).not.toBeVisible()
+  fireEvent.click(summary)
+  expect(screen.getByText('Spent')).toBeVisible()
+  expect(screen.getByText(/Reservations include pending/)).toBeVisible()
+})
 
 it('saves an edited threshold using the authenticated API', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ valuable_threshold: '60', rubric })))

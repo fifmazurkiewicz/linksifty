@@ -25,6 +25,17 @@ Filip saves more links than he can read. Valuable material becomes mixed with pr
 
 ## Assessment and verdict
 
+The reading view leads with the saved article title and source, a compact verdict
+and score, and a prominent Summary containing the saved assessment note. Analysis
+and Source checking are independently expandable and initially closed. Their
+headers retain criterion coverage and research status; fetched pages alone never
+mean verified claims. Criterion explanations precede expandable exact quotations
+and saved scoring rules. Hype warnings remain visible above the disclosures.
+The layout uses the existing light/dark palette and native keyboard controls.
+Sidebar budget details are expandable, with available funds and reservations
+visible in the collapsed summary. This presentation does not regenerate notes
+or recalculate saved assessments.
+
 The eight stable criterion IDs now represent learning value, support for claims,
 usefulness, topic-specific credibility, replicability, cross-source confirmation,
 fair presentation and interests, and specificity/completeness for the material's

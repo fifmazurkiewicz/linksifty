@@ -188,7 +188,7 @@ function AuthenticatedApp() {
           <button className={screen === value ? 'active' : ''} aria-current={screen === value ? 'page' : undefined}
             onClick={() => { setScreen(value); setView(null); setMessage(null) }} key={value}>{value}</button>)}
       </nav>
-      <UsagePanel usage={usage} error={usageError} />
+      <UsagePanel usage={usage} error={usageError} collapsible />
       <button className="sign-out" onClick={() => void signOut()}>Sign out</button>
     </aside>
     <section>
@@ -197,7 +197,7 @@ function AuthenticatedApp() {
       </div>}
       {message && <p className="error" role="alert">{message}</p>}
       {screen === 'Admin' && account?.role === 'admin' && <AdminPanel session={session} onBudgetSaved={(id, updated) => { if (id === account.user_id) setUsage(updated) }} />}
-      {screen === 'Inbox' && view?.kind === 'detail' && <AssessmentDetail key={view.id} id={view.id} session={session} onBack={() => setView(null)} />}
+      {screen === 'Inbox' && view?.kind === 'detail' && <AssessmentDetail key={view.id} id={view.id} item={items.find(item => item.id === view.id)} session={session} onBack={() => setView(null)} />}
       {screen === 'Inbox' && view?.kind === 'paste' && <form onSubmit={event => void submitContent(event)}>
         <button type="button" className="secondary" onClick={() => setView(null)}>Back to queue</button>
         <h1>Paste the article.</h1><p>We could not read the page completely. Paste its full readable content to continue.</p>

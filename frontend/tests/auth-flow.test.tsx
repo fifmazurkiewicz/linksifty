@@ -26,6 +26,20 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+it('opens an assessment using its saved article title and source from the queue', async () => {
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', status: 'approved', role: 'user' }))
+    if (url.endsWith('/assessment')) return new Response(JSON.stringify({ note: 'Article summary.', score: 62, verdict: 'valuable', threshold_snapshot: 60, criteria: [], citations: [] }))
+    return new Response(JSON.stringify({ items: [{ id: 'ike', title: 'Understanding IKE', original_url: 'https://example.test/ike', status: 'completed', score: 62, verdict: 'valuable' }] }))
+  })
+  renderApp(session)
+  fireEvent.click(await screen.findByRole('button', { name: 'Read assessment' }))
+  expect(await screen.findByRole('heading', { level: 1, name: 'Understanding IKE' })).toBeVisible()
+  expect(screen.getByRole('link', { name: /Open article/ })).toHaveAttribute('href', 'https://example.test/ike')
+})
+
 it('deletes confirmed links through the API and ignores stale progress snapshots', async () => {
   const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
   const items = [
