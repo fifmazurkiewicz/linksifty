@@ -1,6 +1,6 @@
 # Linksifty product roadmap
 
-Canonical product roadmap · updated 2026-10-16. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
+Canonical product roadmap · updated 2026-10-17. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
 
 | Milestone | Status | Current evidence | Remaining deliverable | Completion cards |
 | --- | --- | --- | --- | --- |
@@ -9,7 +9,7 @@ Canonical product roadmap · updated 2026-10-16. [Derived Kanban](roadmap-kanban
 | M3 Submission and durable processing | In progress | URL/paste submission, fenced bounded execution, heartbeat and recovery implemented locally with mocked tests | Hosted restart validation (duplicate blocking implemented locally) | C1, C4, C5 |
 | M4 Source-grounded verdict | In progress | Safe redirects/body controls, completeness guard, OpenRouter schema/excerpts, pure scorer and USD reservation code locally verified | Hosted source/provider acceptance (local SQL budget/RLS gate passed) | C2, C3, C4 |
 | M5 Inbox and detail | In progress | Authenticated queue/groups/verdict filter, live stages, detail/citations, paste recovery and persisted threshold implemented locally | Hosted acceptance and browser QA; read/delete product routes remain broader MVP work | C5, C6 |
-| M6 Chat and source enrichment | In progress (local source checking) | Opt-in Brave max-five source checks/provenance and content-inclusive, redacted Langfuse implemented; local mock/SQL tests | Hosted search acceptance, grounded chat and official X adapter | C7 |
+| M6 Chat and source enrichment | In progress (local source checking) | Opt-in Brave up-to-20 source checks/provenance and content-inclusive, redacted Langfuse implemented; local mock/SQL tests | Hosted search acceptance, grounded chat and official X adapter | C7 |
 | M7 Validation and release | In progress | C8.1 GitHub CI and Docker build/smoke verified; 138 backend tests, 89 local pgTAP assertions, mypy/Ruff and 21 frontend tests/lint/build | Log redaction, deployment artifacts, hosted RLS/auth and 20-link evaluation | C8, E1 |
 | M8 Google access and account approval | In progress | Backend access rules, admin API, Resend flow and authenticated frontend implemented locally; mock suites pass | Apply and validate database migrations, configure hosted Google OAuth/Resend, run hosted account-flow check | [Implementation plan](superpowers/plans/2026-10-14-multi-user-access-admin.md) |
 | M9 Per-user model spend | In progress (local implementation) | Exact USD ledger/reservations, supported-model bound, admin caps and scoped user/admin views implemented with mocked tests | Retention schedule and hosted provider/cost acceptance (local PostgreSQL/RLS/concurrency passed) | [Current plan](../.agent/context/changes/processing-usage-inbox/plan.md) |
@@ -42,3 +42,13 @@ and verification are complete: 163 backend tests, 32 frontend tests, 120 SQL
 assertions and three concurrency checks. Migration 000009 and coordinated hosted
 rollout remain separate. [Plan](../.agent/context/changes/editable-assessment-rubric/plan.md)
 · [Canonical progress](../.agent/context/changes/editable-assessment-rubric/progress.md).
+
+## Assessment calibration — local delivery
+
+On 2026-10-17 the owner approved revised eight metrics, unscored N/A and
+unverified states, grounded hype signals and up to 20 additional source fetches.
+This extends M4/M5/M6 without changing historical results. Local test evidence
+and deployment boundaries are tracked in the [canonical progress](../.agent/context/changes/assessment-calibration/progress.md)
+and [verification evidence](../.agent/context/changes/assessment-calibration/evidence.md).
+Migration 000010, coordinated rollout and paid/live article calibration remain
+external acceptance work; no hosted readiness is inferred.

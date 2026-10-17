@@ -72,7 +72,9 @@ def test_completed_result_uses_reserved_threshold_and_real_citations() -> None:
         assert result.threshold_snapshot == 75
         assert result.rubric_snapshot == store.reserve.return_value.rubric_snapshot
         assert result.score == 58.10
-        provider.assess.assert_awaited_once_with(TEXT, rubric=result.rubric_snapshot)
+        provider.assess.assert_awaited_once_with(
+            TEXT, rubric=result.rubric_snapshot, sources=None, primary_url=None
+        )
         store.settings.assert_not_awaited()
         assert result.verdict == "to_review"
         assert len(result.citations) == 8

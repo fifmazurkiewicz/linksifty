@@ -1,0 +1,4 @@
+# Research
+Graft unavailable; inspected scoring.py, rubric.py, models.py, processing_contracts.py, processing_service.py, openrouter_client.py, brave_client.py, processing_repository.py, frontend assessment/settings/queue and migrations 000007/000009.
+Current points 1–5 mandatory; eight fixed keys; low score below 40 means hype; corroboration forced to 1 without external citation. Prompts lack score anchors and source URL metadata. Rubric snapshots persisted at reservation; preserve these and historical scores. SQL requires nonnull total score and limits research to five sources. Runtime is FastAPI/Pydantic v2, pure domain, React/TS, Supabase RPCs, server-only Brave/OpenRouter; owner scope mandatory.
+Brave official reference https://api-dashboard.search.brave.com/api-reference/web/search/get confirms count max 20. No new paid calls or credentials needed for local tests.

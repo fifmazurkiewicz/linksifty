@@ -593,7 +593,7 @@ Configure these **server-only Render** variables (never VITE variables):
 | `LANGFUSE_BASE_URL` | Project region URL; EU default `https://cloud.langfuse.com` |
 | `LANGFUSE_TRACING_ENVIRONMENT` | e.g. `production` |
 
-Brave uses one Web Search API query per opted-in public link, at most ten transient URL candidates and at most five extra page fetch attempts. The unchecked Add checkbox discloses query transfer and plan charge. Pasted text is not sent to Brave. Missing key/rate disables this capability; ordinary single-source analysis remains available. We do not infer a free tier or inspect your account/subscription. Search queries are short terms from a public article URL (fallback: initial source words); they are sent only to Brave. Search response snippets/payloads are not persisted or used as proof. Retain plan rights appropriate for your use; article passages are fetched separately with existing source guards.
+Brave uses one Web Search API query per opted-in public link, at most 20 transient URL candidates and at most 20 extra page fetch attempts (migration 000010 with matching backend). The unchecked Add checkbox discloses query transfer and plan charge. Pasted text is not sent to Brave. Missing key/rate disables this capability; ordinary single-source analysis remains available. We do not infer a free tier or inspect your account/subscription. Search queries are short terms from a public article URL (fallback: initial source words); they are sent only to Brave. Search response snippets/payloads are not persisted or used as proof. Retain plan rights appropriate for your use; article passages are fetched separately with existing source guards.
 
 One host per candidate and identical normalized-content hashes reduce duplicates; this does not establish publisher independence. Only successfully fetched readable content enters comparison, bounded to 12K characters per source. Detail shows which pages were supplied and warns when extra sources were unavailable/unverified. Corroboration cannot receive a high score from primary-only evidence. URL/ID/excerpt offsets are validated against stored text; no search snippet alone counts as confirmation. Official X API and grounded chat remain separate work.
 
@@ -720,3 +720,56 @@ provenance, not that the selected passage semantically supports the rationale or
 that publishers are independent. No paid live-provider verification was performed.
 
 Local evidence and scope: [citation selection progress](../../.agent/context/changes/citation-passage-selection/progress.md).
+
+## Calibrated assessment and 20-source checking (migration 000010)
+
+Apply `supabase/migrations/20261017_000010_assessment_calibration.sql` after
+000009, then deploy the matching backend and frontend together. Pause new
+submissions during coordinated rollout: a pre-000010 worker does not understand
+v2 statuses; an old frontend does not display unscored criteria. Allow in-flight
+old calls to finish or retain their reservations for normal version-1 recovery.
+Do not clear uncertain charges or trigger automatic reassessment.
+
+The migration upgrades future per-owner settings to v2. Only descriptions that
+still match the old defaults are replaced; custom descriptions, weights and
+thresholds remain. Existing job, reservation and assessment snapshots are kept;
+unversioned snapshots mean v1. Completed scores/verdicts are not recalculated.
+Version 2 supports null criterion/total scores and adds `hype_signals` and
+`verdict_reason` to assessment storage. Keep the nullable schema if rolling
+application code back; an old frontend must not render v2 rows.
+
+Source checking remains one explicitly opted-in Brave request per public link,
+now requesting 20 results and attempting up to 20 additional page fetches.
+Failed/duplicate pages can reduce the usable count. There is no dedicated
+Reddit or X research; the current fetcher still rejects X/Twitter. Comparison
+sources are bounded excerpts; the model input budget may shorten them further.
+Paid-call reservations, source safety, owner isolation and no-implicit-retry
+rules remain required.
+
+Local gate: `uv run --package linksifty python backend/tests/integration/check_processing_database.py`
+with the documented explicit loopback disposable test URL. It includes
+`supabase/tests/assessment_calibration.test.sql` for status/null/hype/source-limit
+and ownership checks. Run the full backend and frontend checks before rollout.
+After activation, explicitly request a fresh analysis of the IKE example and a
+mixed sample of explainers, tutorials, unsupported claims and promotional hype.
+Compare decisions with the owner's labels; mocked calibration is not evidence
+of live model quality or fact verification. These paid/live steps require the
+normal explicit operator authorization.
+
+### Repeated pauses at the budget check
+
+Verify the active Render commit, not just whether a redeploy succeeded. Commit
+`2bb056c` predates calibration support and rejects the `version` field added to
+rubrics by migration 000010. Deploying that commit again does not include local
+uncommitted changes. Release the matching calibration backend and frontend.
+An incompatible worker can save a reservation and then fail to parse its
+response; subsequent recovery claims can fail on the same rubric. Preserve
+the reservation and use the verified reconciliation procedure above before
+explicitly retrying a paid analysis.
+
+New `processing_interrupted` logs include `operation`, `error_type` and
+`cause_type`, without private payloads. A `ValidationError` during `claim` or
+`process` warrants checking schema/application compatibility. A Supabase
+timeout during live snapshots now closes the stream for normal client
+reconnection instead of attempting an HTTP error after headers were sent.
+Successful `/health` responses alone do not establish worker or database health.

@@ -266,6 +266,7 @@ def main() -> int:
         "brave_research.test.sql",
         "duplicate_links.test.sql",
         "assessment_rubric.test.sql",
+        "assessment_calibration.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:

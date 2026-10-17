@@ -1,0 +1,301 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Linksifty Calibrated Assessment",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/assessment-calibration/assessment-workflow.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "26b86bc06e9d1d537ac499e3bccf578963466fd9",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "analysis",
+      "label": "Source and model analysis"
+    },
+    {
+      "id": "blocked",
+      "label": "Explicit stop",
+      "variant": "exception"
+    },
+    {
+      "id": "result",
+      "label": "Deterministic result and owner storage"
+    }
+  ],
+  "mainPath": [
+    "input",
+    "acquire",
+    "research",
+    "model",
+    "grounding",
+    "score"
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "lane": "analysis",
+      "col": 0,
+      "type": "frontend",
+      "label": "Submit source",
+      "sublabel": "Owner and search consent",
+      "width": 152,
+      "sources": [
+        {
+          "path": "frontend/src/App.tsx",
+          "line": 130,
+          "end_line": 146
+        }
+      ]
+    },
+    {
+      "id": "acquire",
+      "lane": "analysis",
+      "col": 1,
+      "type": "backend",
+      "label": "Acquire primary",
+      "sublabel": "Complete readable text",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 315,
+          "end_line": 359
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "lane": "analysis",
+      "col": 2,
+      "type": "cloud",
+      "label": "Optional research",
+      "sublabel": "One query; up to 20 pages",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 197,
+          "end_line": 313
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "lane": "analysis",
+      "col": 3,
+      "type": "backend",
+      "label": "Model assessment",
+      "sublabel": "Reserved v1 or v2 rubric",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 390,
+          "end_line": 425
+        }
+      ]
+    },
+    {
+      "id": "grounding",
+      "lane": "analysis",
+      "col": 4,
+      "type": "security",
+      "label": "Check passages",
+      "sublabel": "Exact text and source",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 438,
+          "end_line": 510
+        }
+      ]
+    },
+    {
+      "id": "score",
+      "lane": "analysis",
+      "col": 5,
+      "type": "backend",
+      "label": "Weighted score",
+      "sublabel": "Exclude unscored entries",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/domain/scoring.py",
+          "line": 16,
+          "end_line": 29
+        }
+      ]
+    },
+    {
+      "id": "manual",
+      "lane": "blocked",
+      "col": 1,
+      "type": "security",
+      "label": "Paste required",
+      "sublabel": "Failed or partial primary",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 330,
+          "end_line": 350
+        }
+      ]
+    },
+    {
+      "id": "invalid",
+      "lane": "blocked",
+      "col": 4,
+      "type": "security",
+      "label": "Invalid output",
+      "sublabel": "No assessment saved",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 435,
+          "end_line": 454
+        }
+      ]
+    },
+    {
+      "id": "verdict",
+      "lane": "result",
+      "col": 5,
+      "type": "backend",
+      "label": "Derive verdict",
+      "sublabel": "Hype needs primary proof",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/domain/scoring.py",
+          "line": 31,
+          "end_line": 98
+        }
+      ]
+    },
+    {
+      "id": "persist",
+      "lane": "result",
+      "col": 4,
+      "type": "database",
+      "label": "Save result",
+      "sublabel": "Owner and lease checks",
+      "width": 152,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/processing_repository.py",
+          "line": 157,
+          "end_line": 170
+        }
+      ]
+    },
+    {
+      "id": "detail",
+      "lane": "result",
+      "col": 3,
+      "type": "frontend",
+      "label": "Explain result",
+      "sublabel": "Coverage and citations",
+      "width": 152,
+      "sources": [
+        {
+          "path": "frontend/src/features/queue/AssessmentDetail.tsx",
+          "line": 20,
+          "end_line": 53
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "submit",
+      "from": "input",
+      "to": "acquire"
+    },
+    {
+      "id": "usable",
+      "from": "acquire",
+      "to": "research",
+      "label": "readable"
+    },
+    {
+      "id": "manual-input",
+      "from": "acquire",
+      "to": "manual",
+      "label": "incomplete",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "reserved",
+      "from": "research",
+      "to": "model",
+      "label": "budget"
+    },
+    {
+      "id": "selected",
+      "from": "model",
+      "to": "grounding"
+    },
+    {
+      "id": "verified",
+      "from": "grounding",
+      "to": "score",
+      "label": "valid"
+    },
+    {
+      "id": "invalid-output",
+      "from": "grounding",
+      "to": "invalid",
+      "label": "invalid",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "decide",
+      "from": "score",
+      "to": "verdict"
+    },
+    {
+      "id": "save",
+      "from": "verdict",
+      "to": "persist",
+      "role": "return"
+    },
+    {
+      "id": "read",
+      "from": "persist",
+      "to": "detail",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Calibrated version 2",
+      "items": [
+        "1: specific weakness; 3: partial fulfilment; 5: strong fulfilment for purpose.",
+        "Not verified is uncertainty; Not applicable is restricted to replicability.",
+        "Valuable needs the threshold and four key criteria each scored at least 3.",
+        "Only cited primary-source overclaims justify hype; low totals go to review."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Boundaries and compatibility",
+      "items": [
+        "Snapshot: local working tree; hosted rollout and live calibration remain pending.",
+        "Stored v1 snapshots retain their original scores and verdict rules.",
+        "Failed fetches reduce the 20-page maximum; comparison uses bounded excerpts.",
+        "Server-only budget reservations and exact citation offsets remain enforced."
+      ]
+    }
+  ]
+}

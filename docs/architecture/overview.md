@@ -110,12 +110,49 @@ skipped because Chrome/Chromium is unavailable; no visual QA is claimed.
 
 An explicit unchecked Add checkbox discloses a short public-article query and the configured request charge. `/v1/capabilities` enables it only with a server key and positive verified plan rate. `/v1/items` carries `web_search`; a server-only transaction persists consent with the original item/job trial accounting. Pasted content remains outside search. Migration 000007 is required before activation.
 
-The job first validates/acquires the primary source. Research reserves a separate provider-tagged amount under the same owner budget lock, sends one query, then checks at most five additional pages through the safe fetcher. Transient search responses/snippets are not evidence or stored. Normalized content hashes and host checks reduce duplicates; these heuristics do not prove independence. Bounded fetched passages and source identities are owner-scoped in job search_context and expire with the item. A confirmed search response settles at operator-configured plan price; uncertain outcomes remain reserved and are never automatically resent. Model retries reuse persisted research. Usage labels disclose actual OpenRouter cost versus plan-derived Brave charge.
+The job first validates/acquires the primary source. Research reserves a separate provider-tagged amount under the same owner budget lock, sends one query, then checks at most 20 additional pages through the safe fetcher. Transient search responses/snippets are not evidence or stored. Normalized content hashes and host checks reduce duplicates; these heuristics do not prove independence. Bounded fetched passages and source identities are owner-scoped in job search_context and expire with the item. A confirmed search response settles at operator-configured plan price; uncertain outcomes remain reserved and are never automatically resent. Model retries reuse persisted research. Usage labels disclose actual OpenRouter cost versus plan-derived Brave charge.
 
-The model receives primary/additional source texts, not a browsing tool. The model selects a supplied passage ID per criterion. The adapter derives the original source and exact text; application and SQL validate offsets against stored material. Independent corroboration is scored minimally without an external supporting citation. Detail exposes checked-source URLs and unavailable/uncertain status. No claim of complete factual verification, official X integration or grounded chat.
+The model receives primary/additional source texts, not a browsing tool. The model selects a supplied passage ID per criterion. The adapter derives the original source and exact text; application and SQL validate offsets against stored material. For v2, cross-source confirmation is not_verified without an external supporting citation; legacy v1 retains its minimum-score guard. Detail exposes checked-source URLs and unavailable/uncertain status. No claim of complete factual verification, official X integration or grounded chat.
 
 Langfuse root/fetch/research/generation observations and discrete events capture the complete relevant analysis flow: stages, search/skip/fetch decisions, source passages, model messages and completion, citation validation, budget changes, persistence, heartbeat and recovery. Article/model content is included by default when existing LANGFUSE_ENABLED is enabled, per the owner’s revised decision. Trace fields are bounded and redacted; configured secrets, account identity, lease tokens and authentication headers are excluded. Exceptions are reduced to class names; telemetry errors neither repeat nor stop business work. This is best-effort observability, not a durable charge ledger. SDK shutdown is flushed outside the event loop. Langfuse defaults off; its access and retention are operator-managed independently of Supabase cleanup.
 
 - [Brave/Langfuse workflow HTML](../../.agent/context/changes/processing-usage-inbox/brave-langfuse.html) · [editable JSON](../../.agent/context/changes/processing-usage-inbox/brave-langfuse.json). Repository-backed at local code commit c844819. Validate/deliver/strict artifact checks pass; automated browser check skipped because Chrome unavailable; no fresh perceptual inspection claimed. All diagram labels, explanations and viewer controls are in English. Latest workflow receipts are under brave-langfuse.content-tracing/; lifecycle English receipts remain under lifecycle.english/. Prior receipts are historical.
 
 Submission/resume maintenance (000008): owner-profile lock serializes duplicate URL decisions before creating new items/jobs/trial usage; existing rows remain. UI preflight is advisory, server guard authoritative. The original citation-format repair has been superseded by passage-ID selection within the OpenRouter adapter; existing exact source/offset fences remain. These are guards within existing steps, with unchanged topology and no new external calls.
+
+## Assessment calibration — local change, 2026-10-17
+
+Migration 000010 adds rubric version compatibility, unscored criteria, nullable
+aggregate scores and separately cited hype signals. Existing owner/lease/budget
+RPC fences remain in place. New settings use the revised eight descriptions;
+reserved jobs and saved results retain their snapshots. Default descriptions
+upgrade by criterion ID while custom wording and all weights survive.
+
+The provider receives source URL identities and the UTC analysis date as
+untrusted metadata. It selects exact supplied passages for each explanation and
+for up to three primary-source hype signals. Both application and SQL retain
+exact source-offset checks. Pure scoring excludes unscored criteria and gates
+valuable on four key criteria; hype depends on grounded signals, not a low sum.
+The detail view presents statuses, coverage, verdict reasons and hype citations.
+
+One opted-in Brave request asks for 20 candidates; research attempts at most 20
+additional pages, with existing host/content deduplication and no implicit paid
+retry. Stored comparison material is bounded to 12,000 characters per source
+and 1.2 MB per research context. Provider input further apportions a conservative
+UTF-8 budget across additional excerpts, preserving the entire primary text.
+Oversized inputs fail before a paid model HTTP request with zero model cost;
+no full-page or comprehensive verification is claimed.
+
+- [Calibrated assessment workflow](../../.agent/context/changes/assessment-calibration/assessment-workflow.html)
+  · [Editable diagram source](../../.agent/context/changes/assessment-calibration/assessment-workflow.json)
+The diagram's validation, delivery and strict artifact checks pass; browser
+inspection is skipped because Chrome/Chromium is unavailable. The editable
+source pins an isolated working-tree evidence snapshot preserved in
+`diagram-source.bundle`; it does not claim an uncommitted change exists at the
+main repository's HEAD.
+
+- [Canonical progress](../../.agent/context/changes/assessment-calibration/progress.md)
+
+Coordinated database/backend/frontend rollout and live model calibration remain
+external activation steps; local mocked tests cannot establish model agreement
+on live articles.

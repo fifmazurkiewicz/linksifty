@@ -26,8 +26,8 @@ def test_threshold_snapshot_is_used_for_historic_verdict() -> None:
     assert assessment.threshold_snapshot == 60
 
 
-def test_low_score_is_hype() -> None:
-    assert derive_verdict(score=39.99, threshold=60) is Verdict.HYPE
+def test_legacy_low_score_is_hype() -> None:
+    assert derive_verdict(score=39.99, threshold=60, version=1) is Verdict.HYPE
 
 
 def test_score_between_hype_and_valuable_threshold_is_to_review() -> None:

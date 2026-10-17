@@ -75,10 +75,12 @@ export type Assessment = {
   research_status?: string
   research_sources?: { id: string; url: string }[]
   note: string
-  score: number
+  score: number | null
   verdict: string
   threshold_snapshot: number
-  criteria: { name: string; score: number; rationale: string; citation_ids: string[] }[]
+  verdict_reason?: string
+  hype_signals?: { rationale: string; citation_ids: string[] }[]
+  criteria: { name: string; score: number | null; status?: 'assessed' | 'not_applicable' | 'not_verified'; rationale: string; citation_ids: string[] }[]
   citations: { id: string; excerpt: string; source_url: string | null }[]
 }
 

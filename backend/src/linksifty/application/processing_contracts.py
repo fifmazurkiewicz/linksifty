@@ -9,7 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from linksifty.application.item_contracts import ItemRecord
-from linksifty.domain.models import CriterionName
+from linksifty.domain.models import Criterion, CriterionName
 from linksifty.domain.rubric import AssessmentRubric, RubricCriterion, default_rubric
 
 
@@ -38,6 +38,7 @@ class RubricEntry(BaseModel):
 
 class RubricConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+    version: Literal[1, 2] = 1
     criteria: tuple[RubricEntry, ...] = Field(min_length=8, max_length=8)
 
     @model_validator(mode="after")
@@ -49,16 +50,18 @@ class RubricConfig(BaseModel):
 
     def to_domain(self) -> AssessmentRubric:
         return AssessmentRubric(
-            tuple(RubricCriterion(c.name, c.description, c.weight) for c in self.criteria)
+            tuple(RubricCriterion(c.name, c.description, c.weight) for c in self.criteria),
+            version=self.version,
         )
 
     @classmethod
-    def default(cls) -> "RubricConfig":
+    def default(cls, *, version: Literal[1, 2] = 2) -> "RubricConfig":
         return cls(
+            version=version,
             criteria=tuple(
                 RubricEntry(name=c.name, description=c.description, weight=c.weight)
-                for c in default_rubric().criteria
-            )
+                for c in default_rubric(version=version).criteria
+            ),
         )
 
 
@@ -75,7 +78,7 @@ class EvidenceSource(BaseModel):
 
 class ResearchContext(BaseModel):
     status: str = "not_requested"
-    sources: list[EvidenceSource] = Field(default_factory=list, max_length=5)
+    sources: list[EvidenceSource] = Field(default_factory=list, max_length=20)
 
 
 class ResearchSourceView(BaseModel):
@@ -92,8 +95,21 @@ class SourceCriterion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source_id: str = "primary"
     name: CriterionName
-    score: int = Field(ge=1, le=5, strict=True)
+    score: int | None = Field(ge=1, le=5, strict=True)
+    status: Literal["assessed", "not_applicable", "not_verified"] = "assessed"
     rationale: str = Field(min_length=1, max_length=3000)
+    excerpt: str = Field(min_length=10, max_length=2000)
+
+    @model_validator(mode="after")
+    def valid_points(self) -> "SourceCriterion":
+        Criterion(self.name, self.score, self.rationale, ("source",), self.status)
+        return self
+
+
+class SourceHypeSignal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rationale: str = Field(min_length=1, max_length=1000)
+    source_id: Literal["primary"] = "primary"
     excerpt: str = Field(min_length=10, max_length=2000)
 
 
@@ -101,6 +117,7 @@ class SourceAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid")
     note: str = Field(min_length=1, max_length=6000)
     criteria: list[SourceCriterion] = Field(min_length=8, max_length=8)
+    hype_signals: list[SourceHypeSignal] = Field(default_factory=list, max_length=3)
 
 
 class ModelResult(BaseModel):
@@ -154,14 +171,16 @@ class CitationView(BaseModel):
 
 
 class AssessmentView(BaseModel):
-    rubric_snapshot: RubricConfig = Field(default_factory=RubricConfig.default)
+    rubric_snapshot: RubricConfig = Field(default_factory=lambda: RubricConfig.default(version=1))
     research_status: str = "not_requested"
     research_sources: list[ResearchSourceView] = Field(default_factory=list)
     note: str
     criteria: list[dict[str, object]]
-    score: float
+    score: float | None
     verdict: str
     threshold_snapshot: float
+    hype_signals: list[dict[str, object]] = Field(default_factory=list)
+    verdict_reason: str = ""
     citations: list[CitationView] = Field(default_factory=list)
 
 
@@ -201,5 +220,6 @@ class AssessmentProvider(Protocol):
         *,
         sources: list[EvidenceSource] | None = None,
         rubric: RubricConfig | None = None,
+        primary_url: str | None = None,
     ) -> ModelResult: ...
     async def reconcile(self, generation_id: str) -> Decimal | None: ...

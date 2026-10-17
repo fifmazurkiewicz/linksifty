@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { api } from '../../lib/api'
-import { criterionLabels, parseSettings, type AssessmentSettings, type RubricEntry } from '../../lib/rubric'
+import { criterionLabel, parseSettings, type AssessmentSettings, type RubricEntry } from '../../lib/rubric'
 
 type DraftEntry = Omit<RubricEntry, 'weight'> & { weight: string }
 
@@ -11,6 +11,7 @@ export function SettingsPanel({ session }: { session: Session }) {
 
 function SettingsEditor({ session }: { session: Session }) {
   const [threshold, setThreshold] = useState('')
+  const [version, setVersion] = useState<1 | 2>(1)
   const [rules, setRules] = useState<DraftEntry[]>([])
   const [saved, setSaved] = useState('')
   const [busy, setBusy] = useState(false)
@@ -19,6 +20,7 @@ function SettingsEditor({ session }: { session: Session }) {
   const controller = useRef<AbortController | null>(null)
   function load(value: AssessmentSettings) {
     const nextRules = value.rubric.criteria.map(c => ({ ...c, weight: String(c.weight) }))
+    setVersion(value.rubric.version ?? 1)
     setThreshold(String(value.valuable_threshold)); setRules(nextRules)
     setSaved(JSON.stringify([String(value.valuable_threshold), nextRules]))
   }
@@ -44,7 +46,7 @@ function SettingsEditor({ session }: { session: Session }) {
     setBusy(true); setError(null); setMessage(null)
     void api<unknown>('/v1/settings', session, {
       method: 'PUT', signal: current.signal, body: JSON.stringify({ valuable_threshold: threshold,
-        rubric: { criteria: rules.map(c => ({ ...c, weight: Number(c.weight) })) },
+        rubric: { version, criteria: rules.map(c => ({ ...c, weight: Number(c.weight) })) },
       }),
     }).then(value => {
       if (current.signal.aborted) return
@@ -58,20 +60,20 @@ function SettingsEditor({ session }: { session: Session }) {
       disabled={!saved || busy} onChange={event => { setThreshold(event.target.value); setMessage(null) }} />
     <p className="hint">40–100%. Saved rules apply to new analyses. Existing and interrupted analyses keep their original rules.</p>
     <h2>Assessment criteria</h2>
-    <p className="hint">Each criterion receives 1–5 points backed by a source passage. Edit its description and weight (1–10); all eight remain required.</p>
+    <p className="hint">All eight criteria are explained. Assessed criteria receive 1–5 points; unavailable verification is marked Not verified, and unrelated replicability is Not applicable. Edit descriptions and weights (1–10).</p>
     <details className="rubric-help"><summary>How scoring works</summary>
-    <p className="hint">Higher weights contribute more to the result. Result = sum(points × weight) ÷ (5 × sum(weights)) × 100%. Below 40%: hype. From 40% to your valuable threshold: to review. At or above your threshold: valuable.</p>
-    <p className="hint">Descriptions guide the assessment. Source evidence is always required; independent corroboration needs another supplied source.</p></details>
+    <p className="hint">{version === 2 ? 'Result = sum(points × weight) ÷ (5 × sum(weights of scored criteria)) × 100%. Unscored criteria are excluded; no scored criteria means no percentage. Valuable requires meeting the threshold and scores of at least 3 for support, credibility, usefulness and completeness. Other results need review. Hype requires specific cited evidence of exaggeration, regardless of the total score.' : 'Historical rules: all criteria receive 1–5 points. Below 40%: hype; below the valuable threshold: to review; at or above it: valuable.'}</p>
+    <p className="hint">1 means a named substantive weakness; 3 means partial fulfilment with specific gaps; 5 means strong fulfilment for the material’s purpose. 2 and 4 are intermediate. Not verified is uncertainty, not a low score. Cross-source confirmation requires a specific comparison with another supplied source.</p></details>
     {!saved && !error && <p role="status">Loading your rules…</p>}
     {rules.map((rule, index) => <fieldset className="criterion-editor" key={rule.name} disabled={busy}>
-      <legend>{criterionLabels[rule.name]}</legend>
+      <legend>{criterionLabel(rule.name, version)}</legend>
       <div className="criterion-fields"><div>
         <label htmlFor={`description-${rule.name}`}>Description</label>
-        <textarea id={`description-${rule.name}`} aria-label={`${criterionLabels[rule.name]} description`} required maxLength={1000} value={rule.description}
+        <textarea id={`description-${rule.name}`} aria-label={`${criterionLabel(rule.name, version)} description`} required maxLength={1000} value={rule.description}
           onChange={event => edit(index, { description: event.target.value })} />
       </div><div>
         <label htmlFor={`weight-${rule.name}`}>Weight</label>
-        <input id={`weight-${rule.name}`} aria-label={`${criterionLabels[rule.name]} weight`} type="number" required min="1" max="10" step="1" value={rule.weight}
+        <input id={`weight-${rule.name}`} aria-label={`${criterionLabel(rule.name, version)} weight`} type="number" required min="1" max="10" step="1" value={rule.weight}
           onChange={event => edit(index, { weight: event.target.value })} />
         <p className="hint">Integer, 1–10</p>
       </div></div>

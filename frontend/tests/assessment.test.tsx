@@ -23,3 +23,31 @@ it('opens the saved note, eight criteria and exact supporting passages', async (
   expect(screen.getByText('Supporting source passage 7')).toBeInTheDocument()
   expect(screen.getAllByRole('link', { name: 'Open original source' })[0]).toHaveAttribute('rel', 'noopener noreferrer')
 })
+
+it('shows unscored criteria and coverage without fake zero scores', async () => {
+  const value = { rubric_snapshot: { ...rubric, version: 2 }, note: 'Calibrated result', score: null, verdict: 'to_review', threshold_snapshot: 60,
+    verdict_reason: 'Key evidence is unverified.', hype_signals: [],
+    criteria: names.map(name => ({ name, score: null, status: name === 'replicability' ? 'not_applicable' : 'not_verified', rationale: 'Not established', citation_ids: ['c1'] })),
+    citations: [{ id: 'c1', excerpt: 'The material inspected.', source_url: null }],
+  }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(value)))
+  render(<AssessmentDetail id="new" session={{ access_token: 'test', user: { id: 'reader' } } as Session} onBack={vi.fn()} />)
+  expect(await screen.findByText('Calibrated result')).toBeInTheDocument()
+  expect(screen.getByText('to review · Not scored')).toBeInTheDocument()
+  expect(screen.getByText('Replicability · Not applicable')).toBeInTheDocument()
+  expect(screen.getByText('Learning value · Not verified')).toBeInTheDocument()
+  expect(screen.getByText(/0 of 8 criteria scored/)).toBeInTheDocument()
+  expect(screen.getByText('Key evidence is unverified.')).toBeInTheDocument()
+  expect(screen.queryByText(/null%/)).not.toBeInTheDocument()
+})
+
+it('shows source evidence behind a hype verdict', async () => {
+  const value = { rubric_snapshot: { ...rubric, version: 2 }, note: 'Hype result', score: 30, verdict: 'hype', threshold_snapshot: 60,
+    hype_signals: [{ rationale: 'Promises guaranteed results without support.', citation_ids: ['h1'] }],
+    criteria: [], citations: [{ id: 'h1', excerpt: 'Guaranteed success!', source_url: 'https://example.test' }],
+  }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(value)))
+  render(<AssessmentDetail id="hype" session={{ access_token: 'test', user: { id: 'reader' } } as Session} onBack={vi.fn()} />)
+  expect(await screen.findByText('Promises guaranteed results without support.')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Hype evidence 1' })).toHaveAttribute('href', '#citation-h1')
+})

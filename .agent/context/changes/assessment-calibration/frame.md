@@ -1,0 +1,2 @@
+# Assessment calibration
+User approved revised eight metrics after a government IKE explainer scored 31.67% / hype despite positive rationales. Success: informative explainers can be valuable, N/A is not weakness, missing verification is explicit, hype needs specific source evidence. User also requests 20 searches; interpreted as one Brave request with 20 results / up to 20 additional fetch attempts (clarification offered).

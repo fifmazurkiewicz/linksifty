@@ -20,7 +20,7 @@ select ok(not public.valid_assessment_rubric(jsonb_set(public.default_assessment
 select ok(not public.valid_assessment_rubric(jsonb_set(public.default_assessment_rubric(),'{criteria,0,name}','"evidence"')),'duplicate ID invalid');
 select throws_ok($$select public.update_user_assessment_settings('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',75,'{}')$$,'P0001','invalid_rubric','invalid rubric aborts entire save');
 select is((select valuable_threshold from public.settings where user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),60::numeric,'failed save preserves threshold');
-select public.update_user_assessment_settings('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',75,jsonb_set(public.default_assessment_rubric(),'{criteria,0,weight}','10'));
+select public.update_user_assessment_settings('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',75,jsonb_set(public.legacy_assessment_rubric(),'{criteria,0,weight}','10'));
 select is((select rubric#>>'{criteria,0,weight}' from public.settings where user_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),'1','other owner unchanged');
 select public.submit_fetch_items('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',array['https://rubric.example/one']);
 create temporary table rubric_job as select * from public.claim_processing_job('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');

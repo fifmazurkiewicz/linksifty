@@ -2,6 +2,7 @@ begin;
 select plan(14);
 insert into auth.users(id,email) values ('66666666-6666-4666-8666-666666666666','search@example.test');
 select public.get_or_create_account_profile('66666666-6666-4666-8666-666666666666','search@example.test',true);
+select public.update_user_assessment_settings('66666666-6666-4666-8666-666666666666',60,public.legacy_assessment_rubric());
 set local role service_role;
 select public.submit_search_items('66666666-6666-4666-8666-666666666666',array['https://primary.example/article']);
 create temporary table search_job as select * from public.claim_processing_job('66666666-6666-4666-8666-666666666666');

@@ -21,7 +21,7 @@ class BraveSearch:
                 "GET",
                 "https://api.search.brave.com/res/v1/web/search",
                 headers={"X-Subscription-Token": self._key, "Accept": "application/json"},
-                params={"q": query[:300], "count": "10", "safesearch": "strict"},
+                params={"q": query[:300], "count": "20", "safesearch": "strict"},
                 timeout=15,
                 follow_redirects=False,
             ) as response:
@@ -44,7 +44,7 @@ class BraveSearch:
                 return SearchResponse(confirmed=True)
             urls = tuple(
                 row["url"]
-                for row in results[:10]
+                for row in results[:20]
                 if isinstance(row, dict) and isinstance(row.get("url"), str)
             )
             return SearchResponse(confirmed=True, urls=urls)

@@ -21,7 +21,7 @@ it('saves an edited threshold using the authenticated API', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Save settings' }))
   expect(await screen.findByText(/settings saved/i)).toBeInTheDocument()
   expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining('/v1/settings'), expect.objectContaining({
-    method: 'PUT', body: JSON.stringify({ valuable_threshold: '75', rubric }),
+    method: 'PUT', body: JSON.stringify({ valuable_threshold: '75', rubric: { version: 1, ...rubric } }),
     headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
   }))
 })
@@ -72,7 +72,7 @@ it('edits all eight criterion descriptions and weights in one save', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Save settings' }))
   expect(await screen.findByRole('status')).toHaveTextContent(/settings saved/i)
   const body = JSON.parse(fetchMock.mock.calls.at(-1)![1]!.body as string)
-  expect(body.rubric).toEqual(changed)
+  expect(body.rubric).toEqual({ version: 1, ...changed })
 })
 
 it('keeps edits after a failed save and disables saving when rules did not load', async () => {
@@ -102,4 +102,19 @@ it.each(['missing', 'duplicate', 'fractional', 'blank', 'overweight'])('rejects 
   render(<SettingsPanel session={session} />)
   expect(await screen.findByRole('alert')).toHaveTextContent(/settings are unavailable/i)
   expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+})
+
+it('preserves version 2 when saving calibrated learning-value settings', async () => {
+  const calibrated = { version: 2, ...rubric }
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ valuable_threshold: '60', rubric: calibrated })))
+  render(<SettingsPanel session={session} />)
+  const description = await screen.findByLabelText('Learning value description')
+  fireEvent.change(description, { target: { value: 'Useful learning about established facts' } })
+  const changed = { ...calibrated, criteria: calibrated.criteria.map(c => c.name === 'novelty' ? { ...c, description: 'Useful learning about established facts' } : c) }
+  fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ valuable_threshold: '60', rubric: changed })))
+  fireEvent.click(screen.getByRole('button', { name: 'Save settings' }))
+  expect(await screen.findByText(/settings saved/i)).toBeInTheDocument()
+  const body = JSON.parse(fetchMock.mock.calls.at(-1)![1]!.body as string)
+  expect(body.rubric).toEqual(changed)
+  expect(body.rubric.version).toBe(2)
 })

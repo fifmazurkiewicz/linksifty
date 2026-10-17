@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import time
 from collections.abc import AsyncIterator
 from decimal import Decimal
@@ -21,8 +22,10 @@ from linksifty.application.processing_contracts import (
     UserSettings,
 )
 from linksifty.application.processing_service import ProcessingService
+from linksifty.infrastructure.supabase_repository import RepositoryUnavailable
 
 router = APIRouter()
+_logger = logging.getLogger(__name__)
 
 
 class SettingsUpdate(BaseModel):
@@ -148,13 +151,19 @@ async def activity(request: Request, user_id: CurrentUser) -> StreamingResponse:
         previous = ""
         while time.monotonic() < deadline and not await request.is_disconnected():
             # Recheck account rejection during the stream, not just at connection time.
-            accounts: AccountService | None = request.app.state.accounts
-            if accounts is not None:
-                if not await accounts.can_access(user_id):
-                    yield "event: denied\ndata: {}\n\n"
-                    return
-            items = await service.inbox(user_id)
-            usage = await service.usage(user_id)
+            try:
+                accounts: AccountService | None = request.app.state.accounts
+                if accounts is not None:
+                    if not await accounts.can_access(user_id):
+                        yield "event: denied\ndata: {}\n\n"
+                        return
+                items = await service.inbox(user_id)
+                usage = await service.usage(user_id)
+            except RepositoryUnavailable:
+                # Headers are already sent; end the stream so the client reconnects.
+                _logger.warning("activity_interrupted; persistence temporarily unavailable")
+                yield ": temporarily unavailable\n\n"
+                return
             snapshot = json.dumps(
                 {
                     "items": [item.model_dump(mode="json") for item in items],

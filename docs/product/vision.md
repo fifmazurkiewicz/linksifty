@@ -16,8 +16,8 @@ Filip saves more links than he can read. Valuable material becomes mixed with pr
 - The default input is any ordinary web URL. X is a dedicated source adapter using the official X API; all other standard web pages use the generic web fetcher.
 - A submission accepts up to five links. Filip can instead choose to paste content immediately.
 - Paywalls, login walls, JavaScript-only pages, PDFs, videos, newsletters, partial retrieval, and unsupported pages never produce an assessment. They explain the problem and offer pasted content.
-- A completed item has a concise note, eight criterion scores from 1–5 with rationales, supporting source excerpts, a deterministic weighted score, and one verdict: `valuable`, `to_review`, or `hype`.
-- The assessment can inspect up to five cited sources. It does not claim research beyond the provided source material and those cited links.
+- A completed item has a concise note, eight explained criteria, scored 1–5 where verifiable, with explicit unscored states, supporting source excerpts, a deterministic weighted score, and one verdict: `valuable`, `to_review`, or `hype`.
+- With opt-in source checking, the assessment can inspect the submitted source and bounded excerpts from up to 20 additional pages. It does not claim research beyond the provided source material and those cited links.
 - The inbox opens first. It orders unread items before read items, then by score, and filters by verdict. Each item shows a truthful processing status.
 - The item detail includes the note, criteria, source excerpts, and a chat limited to that item's saved source material.
 - A user can permanently delete an item. All item content, assessments, citations, and chat history are automatically deleted after 30 days.
@@ -25,15 +25,51 @@ Filip saves more links than he can read. Valuable material becomes mixed with pr
 
 ## Assessment and verdict
 
-The eight criteria are novelty, evidence, practicality, source credibility, replicability, independent corroboration, absence of conflict of interest, and concreteness versus superlatives.
+The eight stable criterion IDs now represent learning value, support for claims,
+usefulness, topic-specific credibility, replicability, cross-source confirmation,
+fair presentation and interests, and specificity/completeness for the material's
+purpose. Established information can teach the reader; an official explainer is
+not expected to supply an investment strategy. Source authority is topic-specific,
+not an automatic perfect score. Evidence and completeness include currency where
+it matters. No personal knowledge profile is inferred.
 
-By default, evidence, replicability, source credibility, and absence of conflict of interest have weight `×2`; the other four criteria have weight `×1`. Settings shows all eight fixed criteria and lets each account edit descriptions (1–1000 nonblank characters) and integer weights (1–10). All criteria and source citations remain required. The model receives the saved descriptions; pure scoring uses the same reserved weights. The percentage is `sum(points × weight) / (5 × sum(weights)) × 100`, with points from 1–5:
+Version 2 descriptions define anchors: 1 identifies a substantive weakness,
+3 means partial fulfilment with named gaps, and 5 means strong fulfilment for
+the purpose. Scores 2 and 4 are intermediate. Positive reasoning must explain
+any low score. All eight criteria receive an explanation and an inspected source
+passage. `assessed` requires integer points 1–5. `not_verified` has null points
+and means missing verification, not a negative judgment. `not_applicable` also
+has null points and is allowed only for replicability when the material claims
+no reproducible method or result. Missing disclosure alone does not prove a
+conflict. Cross-source confirmation compares specific claims; additional URLs
+alone and differences in detail do not establish corroboration or contradiction.
 
-- `≥ 60%`: valuable
-- `40–59%`: to review
-- `< 40%`: hype
+Default weights stay 2 for support, credibility, replicability and interests,
+and 1 for the other four. Settings permits descriptions of 1–1000 nonblank
+characters and integer weights 1–10. The percentage is
+`sum(points × weight) / (5 × sum(weights of scored criteria)) × 100`.
+Unscored criteria are excluded; no scored criteria means a null percentage.
+Detail displays coverage and explains that the percentage is not a probability
+of truth.
 
-The default valuable threshold is 60%. When Filip changes the threshold, the change applies only to links assessed afterwards. Existing stored scores and verdicts stay unchanged. Threshold, descriptions and weights are captured together at the first model reservation. Interrupted attempts reuse those rules; an explicitly requested fresh analysis takes current settings. The detail view displays the original descriptions and weights. Legacy results retain the original default rubric.
+Version 2 verdicts are deterministic:
+
+- `hype`: at least one explicit, explained primary-source passage demonstrating
+  an exaggerated promise, sensational claim or conclusion beyond the evidence.
+  Low score, lack of novelty or missing verification alone never imply hype.
+- `valuable`: no hype signals, percentage at or above the saved threshold (60%
+  by default), and support, credibility, usefulness and completeness each scored
+  at least 3. Unknown or weak key criteria require review even with a high total.
+- `to_review`: every other case. Missing corroboration alone does not disqualify
+  otherwise sufficiently supported useful material.
+
+Threshold, descriptions, weights and rubric version are captured together at
+model reservation. Missing version means historical version 1, with the original
+all-scored formula and below-40% hype rule. Completed and reserved analyses are
+not rewritten or recalculated by migration 000010. Future settings move to v2;
+only default descriptions are replaced, preserving custom descriptions and all
+weights. Explicit fresh analysis uses current settings and existing paid-call
+approval/budget semantics.
 
 ## Success measures
 

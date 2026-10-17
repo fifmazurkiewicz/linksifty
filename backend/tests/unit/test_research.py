@@ -13,17 +13,17 @@ def test_brave_uses_header_auth_and_bounds_candidates() -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         assert request.headers["X-Subscription-Token"] == "test-key"
         assert "test-key" not in str(request.url)
-        assert request.url.params["count"] == "10"
+        assert request.url.params["count"] == "20"
         return httpx.Response(
             200,
-            json={"web": {"results": [{"url": f"https://source{i}.example"} for i in range(20)]}},
+            json={"web": {"results": [{"url": f"https://source{i}.example"} for i in range(25)]}},
         )
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
             result = await BraveSearch("test-key", client).search("public claim")
             assert result.confirmed
-            assert len(result.urls) == 10
+            assert len(result.urls) == 20
 
     asyncio.run(run())
 
@@ -94,7 +94,7 @@ def test_external_excerpt_cannot_be_attributed_to_primary_source() -> None:
     asyncio.run(run())
 
 
-def test_research_checks_at_most_five_pages_and_never_repeats_uncertain_search() -> None:
+def test_research_checks_at_most_twenty_pages_and_never_repeats_uncertain_search() -> None:
     from unittest.mock import AsyncMock, create_autospec
     from uuid import uuid4
 
@@ -116,10 +116,10 @@ def test_research_checks_at_most_five_pages_and_never_repeats_uncertain_search()
         )
         search = create_autospec(SearchProvider, instance=True)
         search.search.return_value = SearchResponse(
-            confirmed=True, urls=tuple(f"https://source{i}.example" for i in range(10))
+            confirmed=True, urls=tuple(f"https://source{i}.example" for i in range(25))
         )
         fetch = AsyncMock(
-            side_effect=[FetchResult(text=(f"evidence {i} " * 100)) for i in range(5)]
+            side_effect=[FetchResult(text=(f"evidence {i} " * 100)) for i in range(20)]
         )
         service = ProcessingService(
             store, None, fetch, search=search, search_price=Decimal("0.005")
@@ -134,8 +134,8 @@ def test_research_checks_at_most_five_pages_and_never_repeats_uncertain_search()
         )
         result = await service.research(job, "original primary " * 100)
         assert result.status == "ready"
-        assert len(result.sources) == 5
-        assert fetch.await_count == 5
+        assert len(result.sources) == 20
+        assert fetch.await_count == 20
         search.search.assert_awaited_once()
         store.settle.assert_awaited_once_with(
             job.user_id, job.search_reservation_id, Decimal("0.005")

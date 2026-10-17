@@ -55,4 +55,20 @@ def test_migration_defaults_match_the_domain_catalog() -> None:
 
     migration = Path("supabase/migrations/20261016_000009_assessment_rubric.sql").read_text()
     literal = migration.split("select '", 1)[1].split("'::jsonb;", 1)[0].replace("''", "'")
+    assert json.loads(literal) == RubricConfig.default(version=1).model_dump(
+        mode="json", exclude={"version"}
+    )
+
+
+def test_calibrated_migration_defaults_match_domain() -> None:
+    import json
+    from pathlib import Path
+
+    from linksifty.application.processing_contracts import RubricConfig
+
+    migration = Path("supabase/migrations/20261017_000010_assessment_calibration.sql").read_text()
+    new_function = migration.split(
+        "create or replace function public.default_assessment_rubric()", 1
+    )[1]
+    literal = new_function.split("select '", 1)[1].split("'::jsonb;", 1)[0].replace("''", "'")
     assert json.loads(literal) == RubricConfig.default().model_dump(mode="json")

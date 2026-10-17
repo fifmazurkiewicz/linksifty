@@ -100,4 +100,14 @@ for database gates, activation and recovery. No hosted readiness is implied.
 
 ### Optional Brave + Langfuse
 
-The Add screen supports explicit Brave source checking for public links (one search, up to five fetched pages), after migration `000007` and server-only key/verified plan-rate configuration. Search charges share the USD cap with actual OpenRouter costs. Metadata-only Langfuse diagnostics are opt-in and cannot block processing. No secret goes into the frontend. See [setup](docs/deployment/setup.md#brave-source-discovery-and-langfuse-tracing-migration-000007). Real provider activation remains an operator step; source deduplication is heuristic, not proof of independent fact verification.
+The Add screen supports explicit Brave source checking for public links (one search, up to 20 additional page fetch attempts (migration 000010)), after migration `000007` and server-only key/verified plan-rate configuration. Search charges share the USD cap with actual OpenRouter costs. Metadata-only Langfuse diagnostics are opt-in and cannot block processing. No secret goes into the frontend. See [setup](docs/deployment/setup.md#brave-source-discovery-and-langfuse-tracing-migration-000007). Real provider activation remains an operator step; source deduplication is heuristic, not proof of independent fact verification.
+
+### Calibrated assessment rules
+
+Migration `20261017_000010_assessment_calibration.sql` introduces purpose-aware
+learning value, explicit Not applicable / Not verified states, and hype judgments
+requiring cited primary-source evidence. New results show scored-criterion
+coverage and explain the verdict; historical results keep their original rules.
+Future settings upgrade default descriptions while preserving custom wording and
+weights. Deploy database, backend and frontend together; see the
+[rollout instructions](docs/deployment/setup.md#calibrated-assessment-and-20-source-checking-migration-000010).

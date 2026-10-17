@@ -26,7 +26,7 @@ from linksifty.application.processing_contracts import (
 from linksifty.application.research_contracts import SearchProvider
 from linksifty.domain.acquisition import FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
-from linksifty.domain.models import AssessmentDraft, Criterion, CriterionName
+from linksifty.domain.models import AssessmentDraft, Criterion, CriterionName, HypeSignal
 from linksifty.domain.scoring import complete_assessment
 
 _logger = logging.getLogger(__name__)
@@ -117,10 +117,12 @@ class ProcessingService:
         self._tasks.clear()
 
     async def _run(self, user_id: UUID) -> None:
+        operation = "cleanup"
         try:
             async with self._slots:
                 await self._store.cleanup(user_id)
                 if self._provider is not None:
+                    operation = "orphan_reconciliation"
                     for reservation in await self._store.orphaned_reservations(user_id):
                         with (
                             self._telemetry.scope("orphan.reconciliation", str(reservation.id))
@@ -138,15 +140,23 @@ class ProcessingService:
                                     "budget.settled", provider="openrouter", amount_usd=str(cost)
                                 )
                 for _ in range(5):
+                    operation = "claim"
                     job = await self._store.claim(user_id)
                     if job is None:
                         break
+                    operation = "process"
                     await self._execute(job)
         except asyncio.CancelledError:
             raise
-        except Exception:
+        except Exception as error:
             # Do not log provider payloads, source content or tokens.
-            _logger.warning("processing_interrupted; persisted lease/reservation retained")
+            _logger.warning(
+                "processing_interrupted operation=%s error_type=%s cause_type=%s; "
+                "persisted lease/reservation retained",
+                operation,
+                type(error).__name__,
+                type(error.__cause__).__name__ if error.__cause__ is not None else "none",
+            )
         finally:
             self._tasks.pop(user_id, None)
 
@@ -259,7 +269,7 @@ class ProcessingService:
                             )
                             continue
                         domains.add(host)
-                        if attempts == 5:
+                        if attempts == 20:
                             self._event("source.skipped", reason="fetch_limit_reached")
                             break
                         attempts += 1
@@ -412,10 +422,11 @@ class ProcessingService:
             job.rubric_snapshot = reservation.rubric_snapshot
             if not await self._stage(job, "analyzing"):
                 return
-            result = (
-                await provider.assess(text, sources=research.sources, rubric=job.rubric_snapshot)
-                if research.sources
-                else await provider.assess(text, rubric=job.rubric_snapshot)
+            result = await provider.assess(
+                text,
+                sources=research.sources or None,
+                rubric=job.rubric_snapshot,
+                primary_url=job.original_url,
             )
             self._event("model.result", result=result.model_dump(mode="json"))
             recorded = await self._store.record_result(job, result)
@@ -439,6 +450,7 @@ class ProcessingService:
             "primary": job.original_url,
             **{source.id: source.url for source in research.sources},
         }
+        rules = job.rubric_snapshot or RubricConfig.default(version=1)
         citations: list[CitationView] = []
         criteria: list[Criterion] = []
         for criterion in result.assessment.criteria:
@@ -468,25 +480,62 @@ class ProcessingService:
                 criterion.name is CriterionName.INDEPENDENT_CORROBORATION
                 and not independently_cited
             ):
-                criterion.score = 1
+                criterion.score = 1 if rules.version == 1 else None
+                criterion.status = "assessed" if rules.version == 1 else "not_verified"
                 criterion.rationale = (
-                    "Independent corroboration was not established. " + criterion.rationale
+                    "Independent corroboration was not established "
+                    "from a supplied external passage. "
+                    "This is missing verification, not evidence of a contradiction."
+                    if rules.version == 2
+                    else "Independent corroboration was not established. " + criterion.rationale
                 )
             criteria.append(
-                Criterion(criterion.name, criterion.score, criterion.rationale, (str(identifier),))
+                Criterion(
+                    criterion.name,
+                    criterion.score,
+                    criterion.rationale,
+                    (str(identifier),),
+                    criterion.status,
+                )
             )
+        hype_signals: list[HypeSignal] = []
+        for signal in result.assessment.hype_signals:
+            start = text.find(signal.excerpt)
+            if signal.source_id != "primary" or start < 0 or not signal.rationale.strip():
+                await self._stage(job, "invalid_model_output", "failed")
+                return
+            identifier = uuid4()
+            citations.append(
+                CitationView(
+                    id=identifier,
+                    excerpt=signal.excerpt,
+                    start_position=start,
+                    end_position=start + len(signal.excerpt),
+                    source_url=job.original_url,
+                )
+            )
+            hype_signals.append(HypeSignal(signal.rationale, (str(identifier),)))
+        if rules.version == 1 and (hype_signals or any(c.status != "assessed" for c in criteria)):
+            await self._stage(job, "invalid_model_output", "failed")
+            return
         assessment = complete_assessment(
-            AssessmentDraft(result.assessment.note, tuple(criteria)),
+            AssessmentDraft(result.assessment.note, tuple(criteria), tuple(hype_signals)),
             float(job.threshold_snapshot),
-            rubric=(job.rubric_snapshot or RubricConfig.default()).to_domain(),
+            rubric=rules.to_domain(),
         )
         view = AssessmentView(
-            rubric_snapshot=job.rubric_snapshot or RubricConfig.default(),
+            rubric_snapshot=rules,
+            verdict_reason=assessment.verdict_reason,
+            hype_signals=[
+                {"rationale": h.rationale, "citation_ids": list(h.citation_ids)}
+                for h in hype_signals
+            ],
             note=assessment.note,
             criteria=[
                 {
                     "name": criterion.name.value,
                     "score": criterion.score,
+                    "status": criterion.status,
                     "rationale": criterion.rationale,
                     "citation_ids": list(criterion.citation_ids),
                 }

@@ -17,6 +17,7 @@ const reasons: Record<string, string> = {
   unavailable: 'The page could not be fetched.', blocked: 'The page blocked access.',
 }
 const modelReasons: Record<string, string> = {
+  input_too_large: 'The source and assessment rules exceed the safe analysis size limit.',
   unknown_citation_source: 'The model cited a source that was not supplied for this analysis.',
   output_truncated: 'The model response reached the output limit.', invalid_schema: 'The response did not match the required assessment format.',
   invalid_criteria: 'The response omitted or repeated a scoring criterion.', invalid_citation: 'A quoted passage did not match its attributed source.',
@@ -64,7 +65,7 @@ export function Queue({ items, onOpen, onPaste, onResume, busy }: {
           {stage === 'budget_exhausted' && <p>Ask an administrator to raise your limit, or resume after the monthly reset.</p>}
         </div>
         <div className="item-actions">
-          {item.status === 'completed' && item.score !== null && <><strong>{item.score}%</strong><small>{item.verdict?.replaceAll('_', ' ')}</small><button className="secondary" onClick={() => onOpen(item.id)}>Read assessment</button></>}
+          {item.status === 'completed' && <><strong>{item.score === null ? 'Not scored' : `${item.score}%`}</strong><small>{item.verdict?.replaceAll('_', ' ')}</small><button className="secondary" onClick={() => onOpen(item.id)}>Read assessment</button></>}
           {item.status === 'awaiting_manual_content' && <button className="secondary" disabled={busy} onClick={() => onPaste(item.id)}>Paste content</button>}
           {item.status === 'failed' && retryable.has(stage) && <button className="secondary" disabled={busy} onClick={() => onResume(item.id)}>Resume analysis</button>}
           {item.status === 'failed' && retryable.has(stage) && <small>Uses your monthly budget.</small>}

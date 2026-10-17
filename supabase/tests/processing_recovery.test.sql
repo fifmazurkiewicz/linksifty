@@ -5,6 +5,7 @@ insert into auth.users(id,email) values
  ('22222222-2222-4222-8222-222222222222','recovery2@example.test');
 select public.get_or_create_account_profile('11111111-1111-4111-8111-111111111111','recovery1@example.test',true);
 select public.get_or_create_account_profile('22222222-2222-4222-8222-222222222222','recovery2@example.test',true);
+select public.update_user_assessment_settings('11111111-1111-4111-8111-111111111111',60,public.legacy_assessment_rubric());
 set local role service_role;
 select public.get_user_settings('11111111-1111-4111-8111-111111111111');
 select public.get_user_settings('22222222-2222-4222-8222-222222222222');

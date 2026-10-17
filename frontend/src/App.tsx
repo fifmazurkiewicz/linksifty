@@ -212,7 +212,7 @@ function AuthenticatedApp() {
         </>}
         {inputMode === 'links' && <>
           <label className="search-consent"><input type="checkbox" checked={webSearch && searchPrice !== null} disabled={searchPrice === null || busy} onChange={event => setWebSearch(event.target.checked)} /> Search additional sources with Brave</label>
-          <p className="hint">{searchPrice !== null ? `One search per link (${searchPrice} USD at the configured plan rate), plus AI analysis, uses your monthly budget. A short query from this public article is sent to Brave. Up to five additional pages are checked.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
+          <p className="hint">{searchPrice !== null ? `One search per link (${searchPrice} USD at the configured plan rate), plus AI analysis, uses your monthly budget. A short query from this public article is sent to Brave. Up to 20 additional pages are checked; bounded excerpts are used for comparison.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
         </>}
         <p className="hint">Submitting starts analysis and uses your monthly budget.</p>
         <button className="primary" disabled={busy || duplicateLinks || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>
