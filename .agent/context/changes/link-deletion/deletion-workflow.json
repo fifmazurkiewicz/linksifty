@@ -1,0 +1,291 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Linksifty Permanent Link Deletion",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/link-deletion/deletion-workflow.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "97dc92f6f87c2177d058b7530f2f6ce9e7e1b282",
+      "link_mode": "web"
+    }
+  },
+  "lanes": [
+    {
+      "id": "queue",
+      "label": "Queue and explicit confirmation"
+    },
+    {
+      "id": "request",
+      "label": "Authenticated request and atomic transaction"
+    },
+    {
+      "id": "content",
+      "label": "Permanent content removal"
+    },
+    {
+      "id": "billing",
+      "label": "Billing records and late provider responses"
+    }
+  ],
+  "mainPath": [
+    "select",
+    "confirm",
+    "owner",
+    "transaction",
+    "erase",
+    "success"
+  ],
+  "nodes": [
+    {
+      "id": "select",
+      "lane": "queue",
+      "col": 0,
+      "type": "frontend",
+      "label": "Select links",
+      "sublabel": "One link or visible group",
+      "width": 145,
+      "sources": [
+        {
+          "path": "frontend/src/features/queue/Queue.tsx",
+          "line": 33,
+          "end_line": 40
+        },
+        {
+          "path": "frontend/src/features/queue/Queue.tsx",
+          "line": 63,
+          "end_line": 67
+        }
+      ]
+    },
+    {
+      "id": "confirm",
+      "lane": "queue",
+      "col": 1,
+      "type": "security",
+      "label": "Confirm deletion",
+      "sublabel": "Cancel sends no request",
+      "width": 145,
+      "sources": [
+        {
+          "path": "frontend/src/features/queue/Queue.tsx",
+          "line": 41,
+          "end_line": 49
+        }
+      ]
+    },
+    {
+      "id": "owner",
+      "lane": "request",
+      "col": 2,
+      "type": "security",
+      "label": "Verify owner",
+      "sublabel": "Strict confirmation and IDs",
+      "width": 145,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/api/items.py",
+          "line": 14,
+          "end_line": 48
+        },
+        {
+          "path": "backend/src/linksifty/api/auth.py",
+          "line": 51,
+          "end_line": 63
+        }
+      ]
+    },
+    {
+      "id": "transaction",
+      "lane": "request",
+      "col": 3,
+      "type": "database",
+      "label": "Lock and validate",
+      "sublabel": "All selected IDs must belong",
+      "width": 145,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261017_000011_delete_items.sql",
+          "line": 6,
+          "end_line": 38
+        },
+        {
+          "path": "backend/src/linksifty/infrastructure/supabase_repository.py",
+          "line": 350,
+          "end_line": 363
+        }
+      ]
+    },
+    {
+      "id": "reject",
+      "lane": "request",
+      "col": 4,
+      "type": "security",
+      "label": "Reject entire batch",
+      "sublabel": "Missing or foreign IDs: 404",
+      "width": 145,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/api/items.py",
+          "line": 45,
+          "end_line": 48
+        },
+        {
+          "path": "supabase/migrations/20261017_000011_delete_items.sql",
+          "line": 25,
+          "end_line": 38
+        }
+      ]
+    },
+    {
+      "id": "erase",
+      "lane": "content",
+      "col": 4,
+      "type": "database",
+      "label": "Cascade deletion",
+      "sublabel": "Links, text, analyses and chat",
+      "width": 145,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261017_000011_delete_items.sql",
+          "line": 40,
+          "end_line": 46
+        },
+        {
+          "path": "supabase/migrations/20261012_000001_personal_mvp.sql",
+          "line": 20,
+          "end_line": 43
+        }
+      ]
+    },
+    {
+      "id": "success",
+      "lane": "content",
+      "col": 5,
+      "type": "frontend",
+      "label": "Update queue",
+      "sublabel": "Ignore stale deleted IDs",
+      "width": 145,
+      "sources": [
+        {
+          "path": "frontend/src/App.tsx",
+          "line": 164,
+          "end_line": 180
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "line": 91,
+          "end_line": 98
+        }
+      ]
+    },
+    {
+      "id": "ledger",
+      "lane": "billing",
+      "col": 4,
+      "type": "database",
+      "label": "Keep billing only",
+      "sublabel": "Scrub rubric; orphan charges",
+      "width": 145,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261017_000011_delete_items.sql",
+          "line": 40,
+          "end_line": 44
+        },
+        {
+          "path": "supabase/migrations/20261015_000005_processing_usage.sql",
+          "line": 19,
+          "end_line": 28
+        }
+      ]
+    },
+    {
+      "id": "late",
+      "lane": "billing",
+      "col": 5,
+      "type": "backend",
+      "label": "Late paid result",
+      "sublabel": "Generation ID, never content",
+      "width": 145,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261015_000005_processing_usage.sql",
+          "line": 189,
+          "end_line": 200
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "select",
+      "to": "confirm"
+    },
+    {
+      "from": "confirm",
+      "to": "owner",
+      "label": "confirmed",
+      "variant": "security"
+    },
+    {
+      "from": "owner",
+      "to": "transaction",
+      "label": "owner IDs"
+    },
+    {
+      "from": "transaction",
+      "to": "reject",
+      "label": "unavailable",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "transaction",
+      "to": "erase",
+      "label": "all owned",
+      "variant": "emphasis"
+    },
+    {
+      "from": "erase",
+      "to": "success",
+      "label": "deleted IDs"
+    },
+    {
+      "from": "transaction",
+      "to": "ledger",
+      "label": "retain charges",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "from": "late",
+      "to": "ledger",
+      "label": "reconcile",
+      "variant": "dashed",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Permanent removal",
+      "items": [
+        "Deletion is irreversible after confirmation.",
+        "Source content, assessments, citations, chats and jobs cascade with links.",
+        "A retained billing record contains no article text or custom rubric."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Active analyses",
+      "items": [
+        "Removed jobs cannot save late source or assessment data.",
+        "An already sent provider call may still incur a charge.",
+        "Paid amounts, unresolved reservations and trial usage do not reset."
+      ]
+    }
+  ]
+}

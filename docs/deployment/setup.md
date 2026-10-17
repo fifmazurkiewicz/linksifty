@@ -773,3 +773,33 @@ New `processing_interrupted` logs include `operation`, `error_type` and
 timeout during live snapshots now closes the stream for normal client
 reconnection instead of attempting an HTTP error after headers were sent.
 Successful `/health` responses alone do not establish worker or database health.
+
+## Permanent link deletion (migration 000011)
+
+Apply `supabase/migrations/20261017_000011_delete_items.sql` after 000010, then
+deploy the matching backend/frontend. It adds a server-only function without
+deleting any existing records. There is no new configuration or dependency.
+Pushing the code does not apply the hosted database migration.
+
+The queue provides per-link Delete, checkboxes, Select all visible links and
+Delete selected. A native confirmation states the count and irreversible scope.
+`POST /v1/items/delete` accepts 1–50 unique UUIDs and strict `confirmed: true`.
+The authenticated owner is supplied by the server; even administrators cannot
+target another user's content. Missing or foreign IDs reject the entire batch.
+Historical child-owner inconsistencies also reject deletion without changing
+any records. Refresh the queue after unavailable-item errors before selecting
+the remaining links again. Failed requests are never silently retried.
+
+The transaction deletes links, primary source text, model output, analyses,
+citations, research context, chats and jobs through existing cascades. It scrubs
+custom rubric text from retained reservations, detaches those billing records,
+and preserves spend, unsettled amounts and trial accounting. Late worker writes
+cannot recreate removed content; late generation IDs can still reconcile the
+original charge. Already dispatched paid calls may still be billed. Existing
+Langfuse traces and provider-side records are outside this database operation.
+
+Local verification covers real cascade/ownership behavior and deletion racing
+with reservation admission and late-result persistence. Hosted acceptance should
+use an explicitly disposable link: cancel once, then confirm single deletion;
+repeat with a selected group and verify database content removal and unchanged
+billing totals. No hosted content has been deleted by these local tests.

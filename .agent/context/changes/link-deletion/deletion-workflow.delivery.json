@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "92c3cf27-e433-4e67-8955-fc110fe231ec",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/link-deletion/deletion-workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/link-deletion/deletion-workflow.html",
+  "specification": {
+    "sha256": "b57781539ccc662bc3d0e736099e8cacdf95d3a3eb37a9c929b4f7a58386e9de",
+    "bytes": 6692
+  },
+  "artifact": {
+    "sha256": "22cd0a98144cb46852c614743a9631eacabdcc29335dc75ba76d8fd32c85a7a3",
+    "bytes": 763241
+  }
+}

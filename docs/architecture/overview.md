@@ -6,7 +6,7 @@ Updated 2026-10-16. The repository is a monorepo: `backend/` is the uv-managed F
 
 1. The browser starts Google OAuth through Supabase and restores its session. Every API request sends that session's access token. `api/auth.py` asks Supabase's authenticated user endpoint to validate it and returns the verified UUID and email. Missing/rejected tokens return 401; unavailable authentication returns 503.
 2. FastAPI routes pass that UUID to `ItemService`. The service uses the application repository contract; concrete Supabase HTTP integration is wired in the entrypoint.
-3. Every repository query includes an owner predicate. Submission calls the server-only `submit_fetch_items` transaction to insert item and job together before returning 202. List and detail routes are wired; read/delete repository methods still need routes.
+3. Every repository query includes an owner predicate. Submission calls the server-only `submit_fetch_items` transaction to insert item and job together before returning 202. List, detail and confirmed bulk-deletion routes are wired; marking read still needs a product route.
 4. `/v1/me` creates a pending profile for new users and reports the verified owner as admin only when `LINKSIFTY_ADMIN_EMAIL` matches. Pending users may submit three trial links; rejected users are blocked. The admin API returns account metadata only and never exposes another user's content. Approval mail is sent through Resend after the status transaction commits.
 5. Explicit `LINKSIFTY_DEMO_MODE=true` enables sample responses. Demo responses carry `demo: true`; production defaults to false.
 
@@ -73,8 +73,29 @@ Database tests include pgTAP and a local disposable-database concurrent-reservat
 gate. No database validation is inferred from service-role HTTP mocks; cross-owner
 foreign-key hardening and the remaining broader C1/MVP work retain their own gates.
 Provider credentials stay server-only. Source/provider text is untrusted; all
-private reads and writes carry verified owner scope. Existing read/delete
-repository helpers still need product routes outside this change's scope.
+private reads and writes carry verified owner scope. Marking read still needs
+a product route outside this change's scope.
+
+## Confirmed permanent deletion (migration 000011)
+
+The queue's single and bulk actions share `POST /v1/items/delete`, with 1–50
+unique item IDs and strict confirmation. `ItemService` delegates to one
+owner-scoped, server-only SQL transaction. It locks profile/settings, then
+reservations/jobs/items in established writer order; all IDs must belong to
+the authenticated owner, and inconsistent child ownership fails closed.
+Existing foreign-key cascades delete links, source text, analyses, citations,
+chat and job/research/model content. Retained billing records are detached and
+their custom rubric snapshots scrubbed. Current spend, unresolved reservations
+and trial usage remain. Deleted jobs fence late content writes while the
+original reservation can still receive late generation metadata for settlement.
+The browser filters deleted IDs out of stale in-flight queue snapshots.
+
+Editable source and artifact:
+[workflow JSON](../../.agent/context/changes/link-deletion/deletion-workflow.json)
+and [workflow HTML](../../.agent/context/changes/link-deletion/deletion-workflow.html).
+Source/schema validation, delivery and strict artifact checks pass; diagram
+browser QA is unavailable because Chrome/Chromium is absent. This is local
+verification, not evidence of a hosted deletion.
 
 ## Diagrams
 

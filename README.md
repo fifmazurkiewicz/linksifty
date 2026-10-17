@@ -111,3 +111,12 @@ coverage and explain the verdict; historical results keep their original rules.
 Future settings upgrade default descriptions while preserving custom wording and
 weights. Deploy database, backend and frontend together; see the
 [rollout instructions](docs/deployment/setup.md#calibrated-assessment-and-20-source-checking-migration-000010).
+
+### Delete links and analyses
+
+Each queue entry has **Delete**. Use the checkboxes and **Delete selected** to
+remove a group (up to 50 visible links). Confirm permanent removal of the links,
+source text, analyses, citations, chats and jobs. Billing records remain for
+charge reconciliation; deleting content does not refund charges or trial usage.
+Requires migration `20261017_000011_delete_items.sql`; see the
+[activation notes](docs/deployment/setup.md#permanent-link-deletion-migration-000011).
