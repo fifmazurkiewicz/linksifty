@@ -38,7 +38,7 @@ def test_long_post_uses_complete_text_and_fixed_official_endpoint() -> None:
         assert "note_tweet" in request.url.params["tweet.fields"]
         assert "referenced_tweets" in request.url.params["tweet.fields"]
         assert "author_id" in request.url.params["tweet.fields"]
-        assert "expansions" not in request.url.params
+        assert request.url.params["expansions"] == "referenced_tweets.id"
         if request.url.path == "/2/tweets/100":
             return httpx.Response(
                 200, json={"data": post(text="preview…", note_post={"text": TEXT})}
@@ -361,7 +361,7 @@ def test_transport_and_decode_errors_log_type_without_exception_details(
         ({"withheld": {"country_codes": ["private-country"]}}, "withheld_content"),
         ({"note_post": None}, "missing_long_text"),
         ({"text": "private-truncated-text…"}, "empty_or_truncated_text"),
-        ({"referenced_posts": [{"type": "quoted", "id": "90"}]}, "unsupported_references"),
+        ({"referenced_posts": [{"type": "unknown", "id": "90"}]}, "unsupported_references"),
         ({"id": "999"}, "lookup_id_mismatch"),
     ],
 )
@@ -422,3 +422,294 @@ def test_invalid_search_logs_schema_check_and_discards_successful_lookup(
     assert result.failure == "partial_content"
     assert "check=invalid_search_payload" in caplog.text
     assert "private-invalid-count" not in caplog.text
+
+
+@pytest.mark.parametrize("wire_name", ["tweets", "posts"])
+def test_quote_includes_complete_referenced_text_and_provenance(wire_name: str) -> None:
+    calls: list[str] = []
+    quoted_text = "Complete quoted source with its own author's evidence. " * 5
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        assert request.url.params["expansions"] == "referenced_tweets.id"
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_posts=[{"type": "quoted", "id": "90"}]),
+                    "includes": {
+                        wire_name: [
+                            post(
+                                "90",
+                                author_id="70",
+                                conversation_id="90",
+                                text="preview…",
+                                note_tweet={"text": quoted_text},
+                            )
+                        ]
+                    },
+                },
+            )
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond)
+    assert result.failure is None
+    assert result.text is not None
+    assert TEXT in result.text and quoted_text in result.text
+    assert "quoted: https://x.com/i/web/status/90" in result.text
+    assert "author_id=70" in result.text
+    assert "preview…" not in result.text
+    assert calls == ["/2/tweets/100", "/2/tweets/search/all"]
+
+
+def test_reply_can_quote_another_author_without_losing_its_thread_parent() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(200, json={"data": post()})
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    post(
+                        "101",
+                        "100",
+                        referenced_posts=[
+                            {"type": "replied_to", "id": "100"},
+                            {"type": "quoted", "id": "90"},
+                        ],
+                    )
+                ],
+                "includes": {"tweets": [post("90", author_id="70", conversation_id="90")]},
+                "meta": {"result_count": 1},
+            },
+        )
+
+    result = acquire(respond)
+    assert result.failure is None
+    assert result.text is not None
+    assert result.text.index("/100") < result.text.index("/101")
+    assert "quoted: https://x.com/i/web/status/90" in result.text
+
+
+def test_repost_uses_original_author_thread_instead_of_truncated_rt_preview() -> None:
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/200":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(
+                        "200",
+                        author_id="70",
+                        text="RT @original: preview…",
+                        referenced_posts=[{"type": "retweeted", "id": "100"}],
+                    ),
+                    "includes": {"tweets": [post()]},
+                },
+            )
+        assert request.url.params["query"] == "conversation_id:100 from:50"
+        return httpx.Response(200, json={"data": [post("101", "100")], "meta": {"result_count": 1}})
+
+    result = acquire(respond, "https://x.com/user/status/200")
+    assert result.failure is None
+    assert result.text is not None
+    assert "Submitted repost: https://x.com/i/web/status/200" in result.text
+    assert "/100" in result.text and "/101" in result.text
+    assert "RT @original" not in result.text
+    assert calls == ["/2/tweets/200", "/2/tweets/search/all"]
+
+
+@pytest.mark.parametrize("kind", ["quoted", "retweeted"])
+def test_missing_reference_never_returns_outer_post_or_retries(
+    caplog: pytest.LogCaptureFixture, kind: str
+) -> None:
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        return httpx.Response(
+            200, json={"data": post(referenced_posts=[{"type": kind, "id": "90"}])}
+        )
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "partial_content"
+    assert "check=missing_referenced_post" in caplog.text
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"attachments": {"media_keys": ["image"]}},
+        {"article": {}},
+        {"text": "preview…"},
+        {"referenced_posts": [{"type": "quoted", "id": "80"}]},
+        {"referenced_posts": [{"type": "quoted", "id": "100"}]},
+    ],
+)
+def test_incomplete_or_cyclic_quote_never_returns_outer_post(extra: dict[str, object]) -> None:
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        return httpx.Response(
+            200,
+            json={
+                "data": post(referenced_posts=[{"type": "quoted", "id": "90"}]),
+                "includes": {"tweets": [post("90", author_id="70", conversation_id="90", **extra)]},
+            },
+        )
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "partial_content"
+    assert len(calls) == 1
+
+
+def test_unrelated_expanded_posts_are_not_used_as_source_or_to_pass_minimum() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200, json={"data": post(text="Short"), "includes": {"tweets": [post("90")]}}
+            )
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "too_short"
+
+
+def test_expanded_context_is_bounded_by_the_existing_post_limit() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "data": post(referenced_posts=[{"type": "quoted", "id": "101"}]),
+                "includes": {
+                    "tweets": [
+                        post(
+                            str(i),
+                            conversation_id=str(i),
+                            referenced_posts=[{"type": "quoted", "id": str(i + 1)}]
+                            if i < 200
+                            else [],
+                        )
+                        for i in range(101, 201)
+                    ]
+                },
+            },
+        )
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "too_large"
+
+
+def test_nested_quote_text_is_deduplicated_and_unrelated_expansion_is_excluded() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_posts=[{"type": "quoted", "id": "90"}]),
+                    "includes": {
+                        "tweets": [
+                            post(
+                                "90",
+                                conversation_id="90",
+                                referenced_posts=[{"type": "quoted", "id": "80"}],
+                            ),
+                            post("80", conversation_id="80", text="nested source evidence " * 20),
+                            post("70", text="unrelated expansion"),
+                        ]
+                    },
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    post(
+                        "101",
+                        "100",
+                        referenced_posts=[
+                            {"type": "replied_to", "id": "100"},
+                            {"type": "quoted", "id": "80"},
+                        ],
+                    )
+                ],
+                "meta": {"result_count": 1},
+            },
+        )
+
+    result = acquire(respond)
+    assert result.failure is None
+    assert result.text is not None
+    assert result.text.count("nested source evidence " * 20) == 1
+    assert "unrelated expansion" not in result.text
+    assert result.text.index("/100") < result.text.index("/101")
+
+
+def test_changed_reference_on_later_page_is_not_silently_accepted() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_posts=[{"type": "quoted", "id": "90"}]),
+                    "includes": {"tweets": [post("90", conversation_id="90")]},
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "data": [post(referenced_posts=[{"type": "quoted", "id": "80"}])],
+                "includes": {"tweets": [post("80", conversation_id="80")]},
+                "meta": {"result_count": 1},
+            },
+        )
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "partial_content"
+
+
+def test_short_repost_cannot_pass_minimum_using_rt_preview_and_labels() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/200":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(
+                        "200",
+                        author_id="70",
+                        text=TEXT,
+                        referenced_posts=[{"type": "retweeted", "id": "100"}],
+                    ),
+                    "includes": {"tweets": [post(text="Too short")]},
+                },
+            )
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond, "https://x.com/user/status/200")
+    assert result.text is None
+    assert result.failure == "too_short"
+
+
+@pytest.mark.parametrize(
+    "references",
+    [
+        [{"type": "quoted", "id": "90"}, {"type": "quoted", "id": "80"}],
+        [{"type": "retweeted", "id": "90"}, {"type": "quoted", "id": "80"}],
+        [{"type": "replied_to", "id": "90"}, {"type": "replied_to", "id": "80"}],
+    ],
+)
+def test_invalid_reference_combinations_remain_rejected(references: list[dict[str, str]]) -> None:
+    result = acquire(
+        lambda _: httpx.Response(200, json={"data": post(referenced_posts=references)})
+    )
+    assert result.text is None
+    assert result.failure == "partial_content"

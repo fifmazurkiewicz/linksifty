@@ -86,3 +86,36 @@ explicit disposable LINKSIFTY_TEST_DATABASE_URL. Frontend checks run in frontend
   Content acceptance and paid retry boundaries are unchanged. No live API call
   or hosted retry was made. Public browsing could not retrieve the specific
   post, so no claim about its media/Article content is made.
+
+## Quote/repost support fix — 2026-10-18
+
+- Evidence: owner-provided Render logs identify `unsupported_references`. This
+  traces to the former parent guard rejecting quoted/reposted references and
+  any multi-reference reply. The screenshot alone supplies no network status
+  for the red activity request and is not evidence of a separate API failure.
+- Red: new success cases for quotes (both include aliases), quoting replies and
+  repost originals failed before implementation; missing-reference diagnostics
+  and expanded-post bounds also failed (seven failing focused cases in total).
+- Green: quote/repost expansion and related source context are handled in the
+  original requests. New tests cover nested/deduplicated context, conflicting
+  versions, unavailable/partial references, cycles, invalid combinations,
+  unrelated expansions and RT previews not padding the minimum, plus shared
+  post limits. Pipeline tests verify complete context is saved before model
+  reservation and incomplete context is neither saved nor reserved/assessed.
+- Deliberate break: disallow quoted/retweeted types again; all four selected
+  successful quote/quoting-reply/repost cases fail. Restored support before checks.
+- Final full backend suite: 357 pass, one pre-existing Starlette/httpx deprecation
+  warning. Strict mypy passes for 40 source files; repository Ruff lint/format
+  pass for 108 files. `git diff --check` passes.
+- Archify workflow: editable JSON and HTML updated. Validation, delivery and
+  strict artifact checks pass. Finalize exits 2 at skipped browser check because
+  Chrome/Chromium is unavailable; no visual review claimed. Current receipts:
+  [finalize summary](reference-diagram-check/x-workflow.finalize-summary.json),
+  [browser status](reference-diagram-check/x-workflow.browser-check.json).
+  Specification SHA256: `1bfef07562b4e559fa1b6de3b384756cdea32988e27f8a8c70afa65ffe61bc0e`;
+  HTML SHA256: `16007ce15421114a55960f28bcb46eded68bcbbf6c1451f3efd4520e497adbec`.
+- Toolkit check is unavailable (exit 127); Graft unavailable. No new dependencies,
+  migration, env flag, frontend change or live provider request. Expansion may
+  increase resource-based X charges; HTTP request count and retry rules unchanged.
+- Hosted outcome remains unverified until the owner explicitly retries after
+  deployment. Missing reference text/media/Articles still require manual paste.

@@ -59,6 +59,9 @@ class _Post(BaseModel):
             raise _Failure(FetchFailure.PARTIAL, "article_present")
         if self.withheld:
             raise _Failure(FetchFailure.PARTIAL, "withheld_content")
+        # Repost text is an RT preview; only the referenced original is source text.
+        if len(self.references) == 1 and self.references[0].type == "retweeted":
+            return ""
         if "note" in self.model_fields_set:
             if self.note is None or not self.note.text.strip():
                 raise _Failure(FetchFailure.PARTIAL, "missing_long_text")
@@ -68,13 +71,27 @@ class _Post(BaseModel):
         return self.text
 
     def parent(self) -> str | None:
-        if len(self.references) > 1 or any(ref.type != "replied_to" for ref in self.references):
+        kinds = [ref.type for ref in self.references]
+        if (
+            len(kinds) != len(set(kinds))
+            or any(kind not in {"replied_to", "quoted", "retweeted"} for kind in kinds)
+            or ("retweeted" in kinds and len(kinds) != 1)
+        ):
             raise _Failure(FetchFailure.PARTIAL, "unsupported_references")
-        return self.references[0].id if self.references else None
+        return next((ref.id for ref in self.references if ref.type == "replied_to"), None)
+
+
+class _Includes(BaseModel):
+    posts: list[_Post] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("posts", "tweets"),
+        max_length=_MAX_POSTS,
+    )
 
 
 class _Lookup(BaseModel):
     data: _Post
+    includes: _Includes = Field(default_factory=_Includes)
 
 
 class _Meta(BaseModel):
@@ -86,6 +103,7 @@ class _Meta(BaseModel):
 class _Search(BaseModel):
     data: list[_Post] = Field(default_factory=list, max_length=100)
     meta: _Meta
+    includes: _Includes = Field(default_factory=_Includes)
 
 
 class _Failure(Exception):
@@ -125,7 +143,7 @@ class XAdapter:
         async with client.stream(
             "GET",
             f"https://api.x.com/2/tweets/{path}",
-            params={"tweet.fields": _FIELDS, **params},
+            params={"tweet.fields": _FIELDS, "expansions": "referenced_tweets.id", **params},
             headers={"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
         ) as response:
             if response.status_code != 200:
@@ -160,22 +178,44 @@ class XAdapter:
                 raise _Failure(FetchFailure.PARTIAL, "provider_partial_errors")
             return payload
 
-    async def _lookup(self, client: httpx.AsyncClient, identifier: str) -> _Post:
+    async def _lookup(
+        self, client: httpx.AsyncClient, identifier: str, available: dict[str, _Post]
+    ) -> _Post:
         payload = await self._get(client, identifier)
         try:
-            post = _Lookup.model_validate(payload).data
+            lookup = _Lookup.model_validate(payload)
         except ValidationError as error:
             raise _Failure(FetchFailure.PARTIAL, "invalid_post_payload") from error
-        if post.id != identifier:
+        if lookup.data.id != identifier:
             raise _Failure(FetchFailure.PARTIAL, "lookup_id_mismatch")
-        return post
+        self._remember(available, [lookup.data, *lookup.includes.posts])
+        return lookup.data
 
     async def _thread(self, client: httpx.AsyncClient, identifier: str) -> FetchResult:
-        selected = await self._lookup(client, identifier)
+        submitted_id = identifier
+        available: dict[str, _Post] = {}
+        selected = await self._lookup(client, identifier, available)
+        reposts: set[str] = set()
+        while True:
+            selected.parent()
+            original_id = next(
+                (ref.id for ref in selected.references if ref.type == "retweeted"), None
+            )
+            if original_id is None:
+                break
+            selected.content()
+            if selected.id in reposts:
+                raise _Failure(FetchFailure.PARTIAL, "reference_cycle")
+            reposts.add(selected.id)
+            original = available.get(original_id)
+            if original is None:
+                raise _Failure(FetchFailure.PARTIAL, "missing_referenced_post")
+            selected = original
+        identifier = selected.id
         root = (
             selected
             if selected.conversation_id == identifier
-            else await self._lookup(client, selected.conversation_id)
+            else await self._lookup(client, selected.conversation_id, available)
         )
         if (
             root.conversation_id != root.id
@@ -185,9 +225,7 @@ class XAdapter:
             raise _Failure(FetchFailure.PARTIAL, "invalid_conversation_root")
         posts = {root.id: root}
         # Validate before requesting more potentially billed resources.
-        root.content()
-        selected.content()
-        selected.parent()
+        self._source_posts([root, selected], available)
         token: str | None = None
         seen_tokens: set[str] = set()
         for _ in range(_MAX_PAGES):
@@ -206,14 +244,11 @@ class XAdapter:
                 raise _Failure(FetchFailure.PARTIAL, "invalid_search_payload") from error
             if page.meta.result_count != len(page.data):
                 raise _Failure(FetchFailure.PARTIAL, "search_count_mismatch")
+            self._remember(available, [*page.data, *page.includes.posts])
             for post in page.data:
                 if post.author_id != root.author_id or post.conversation_id != root.id:
                     raise _Failure(FetchFailure.PARTIAL, "search_identity_mismatch")
-                if post.id in posts and self._identity(posts[post.id]) != self._identity(post):
-                    raise _Failure(FetchFailure.PARTIAL, "conflicting_post_versions")
                 posts[post.id] = post
-                if len(posts) > _MAX_POSTS:
-                    raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
             token = page.meta.next_token
             if token is None:
                 break
@@ -222,7 +257,7 @@ class XAdapter:
             seen_tokens.add(token)
         else:
             raise _Failure(FetchFailure.PARTIAL, "page_limit")
-        if identifier not in posts or self._identity(posts[identifier]) != self._identity(selected):
+        if identifier not in posts:
             raise _Failure(FetchFailure.PARTIAL, "selected_post_missing_or_changed")
         ordered = [root]
         remaining = {key: value for key, value in posts.items() if key != root.id}
@@ -238,17 +273,63 @@ class XAdapter:
                 ordered.append(post)
                 visited.add(post.id)
                 del remaining[post.id]
-        # Source URLs aid citations but must not make short posts pass the minimum.
-        readable_text = "\n\n".join(post.content() for post in ordered)
+        sources = self._source_posts(ordered, available)
+        # Labels, URLs and RT previews must not make short sources pass the minimum.
+        readable_text = "\n\n".join(post.content() for post in sources)
         if evaluate_content(readable_text, fetched=False).readiness is not ContentReadiness.READY:
             raise _Failure(FetchFailure.TOO_SHORT, "minimum_text_length")
         text = "\n\n".join(
-            f"https://x.com/i/web/status/{post.id}\n{post.content()}" for post in ordered
+            f"https://x.com/i/web/status/{post.id}\nauthor_id={post.author_id}\n{post.content()}"
+            + "".join(
+                f"\n{ref.type}: https://x.com/i/web/status/{ref.id}" for ref in post.references
+            )
+            for post in sources
         )
+        if reposts:
+            text = f"Submitted repost: https://x.com/i/web/status/{submitted_id}\n\n{text}"
         if len(text.encode("utf-8")) > _MAX_TEXT_BYTES:
             raise _Failure(FetchFailure.TOO_LARGE, "text_size_limit")
         return FetchResult(text=text)
 
     @staticmethod
-    def _identity(post: _Post) -> tuple[str, str, str | None, str]:
-        return post.author_id, post.conversation_id, post.parent(), post.content()
+    def _remember(available: dict[str, _Post], posts: list[_Post]) -> None:
+        for post in posts:
+            previous = available.get(post.id)
+            if previous is not None and (
+                previous != post
+                or ("note" in previous.model_fields_set) != ("note" in post.model_fields_set)
+            ):
+                raise _Failure(FetchFailure.PARTIAL, "conflicting_post_versions")
+            available[post.id] = post
+            if len(available) > _MAX_POSTS:
+                raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
+
+    @staticmethod
+    def _source_posts(ordered: list[_Post], available: dict[str, _Post]) -> list[_Post]:
+        thread_ids = {post.id for post in ordered}
+        visited: set[str] = set()
+        active: set[str] = set()
+        sources: list[_Post] = []
+
+        def visit(post: _Post) -> None:
+            if post.id in active:
+                raise _Failure(FetchFailure.PARTIAL, "reference_cycle")
+            if post.id in visited:
+                return
+            post.parent()
+            post.content()
+            active.add(post.id)
+            for ref in post.references:
+                if ref.type == "replied_to" and post.id in thread_ids:
+                    continue  # The author's thread parents are validated by _thread.
+                target = available.get(ref.id)
+                if target is None:
+                    raise _Failure(FetchFailure.PARTIAL, "missing_referenced_post")
+                visit(target)
+            active.remove(post.id)
+            visited.add(post.id)
+            sources.append(post)
+
+        for post in ordered:
+            visit(post)
+        return sources

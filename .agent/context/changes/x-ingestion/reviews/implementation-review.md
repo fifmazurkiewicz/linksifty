@@ -29,9 +29,31 @@ real local SQL ownership/concurrency tests, strict typing, X-file lint, frontend
 tests/build and mutation evidence. Transient shared-workspace lint failures in concurrent
 chat code settled; the final full-repository Ruff lint/format checks pass. Toolkit and diagram browser checks cannot
 run in this environment. API visibility cannot prove hidden/deleted descendants;
-media, Article previews and external quote/repost context require paste. These
+media, Article previews and unavailable external quote/repost context require paste. These
 boundaries are explicit in the plan/setup and do not claim full hosted readiness.
 
 Canonical progress and derived boards describe local completion, with external
 activation separate. Keep the change record here until those external gates are
 resolved; do not archive it as hosted verification.
+
+## Quote/repost follow-up review — 2026-10-18
+
+Outcome: approve local fix for publication. No unresolved actionable findings.
+The previous rejection of all quote/repost context is superseded by the reference
+handling section of the plan. Separate parent selection admits a quoting reply,
+and expanded originals determine the author/thread for submitted reposts.
+The source graph retains author IDs, URLs and relation labels, deduplicates text,
+rejects unavailable/cyclic/conflicting context and applies the 100-post cap to
+the collected pool. A common merge check owns identity/version validation.
+
+Reviewed callers remain the same owner-scoped primary acquisition path. No
+route, scoring rule, job admission, credential handling or paid retry behavior
+changed. Existing operator opt-in covers X fetching and explicit retry; setup
+documentation discloses expanded-resource costs despite unchanged HTTP limits.
+Incomplete context stops before saving source or reserving model spend.
+
+Plan coverage is supported by the 357-test suite and focused mutation evidence,
+strict mypy and repository lint/format. Diagram source/artifact checks pass;
+browser and toolkit checks remain unavailable. No frontend/SQL changes require
+additional gates. Canonical plan/progress/evidence are updated before the derived
+board; hosted reference acceptance remains planned. No live X test is claimed.

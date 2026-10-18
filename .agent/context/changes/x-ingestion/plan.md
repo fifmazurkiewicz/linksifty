@@ -25,11 +25,11 @@ No new dependency, scraper, worker, or model call on incomplete content.
 - x.com/twitter.com normal, www/mobile and /i/web/status URLs supported; numeric
   IDs only, no credentials or custom ports; tokens sent only to api.x.com.
 - One selected lookup, optional root lookup, at most ten search pages, at most
-  100 unique author posts; 100 KB final UTF-8 text and 1 MB response bodies.
+  100 unique posts including expanded context; 100 KB final UTF-8 text and 1 MB response bodies.
 - Full archive search is required: never silently substitute a seven-day search.
 - Parent-linked author posts ordered from root, each with its own canonical URL.
   A missing parent, missing selected post, partial API error, missing long text,
-  multimedia, quote/repost dependency or X Article requests manual paste.
+  multimedia, unavailable quote/repost dependency or X Article requests manual paste.
 - Completeness means all accessible matching results returned by X pagination;
   X cannot prove the existence of hidden/deleted descendants. No completeness
   claim about undisclosed content or future additions.
@@ -44,3 +44,29 @@ endpoint's access and may incur operator charges. Bounded failures request a
 paste instead of producing a misleading partial assessment. A durable attempt
 marker may require paste even when a process crashed before sending its first
 request; this conservative behavior avoids duplicate charges.
+
+## Reference handling fix — 2026-10-18
+
+Observed hosted blocker: `unsupported_references`. The initial adapter rejected
+every quote/repost and any multi-reference reply. Resolve text dependencies via
+`expansions=referenced_tweets.id` on the existing lookup/search requests. Accept
+`includes.tweets` and `includes.posts`. Preserve the existing wire dialect without
+retrying another parameter spelling after rejection.
+
+- Separate `replied_to` parent selection from `quoted`/`retweeted` dependencies.
+  Allow one reply parent plus one quote; reject duplicate/unknown reference types
+  and reposts combined with another relation.
+- Resolve a submitted repost to its expanded original before selecting the
+  conversation root/author. Use original text/thread, never the RT preview.
+- Require each referenced post and recursively needed context to be present and
+  complete. Include canonical URLs, author IDs and explicit reference links;
+  deduplicate sources and reject cycles/conflicting versions. Quoted context is
+  the expanded post/context, not an independently searched second author's thread.
+- Keep at most two lookups and ten archive pages. No extra HTTP calls, automatic
+  retry or network fallback for missing expanded posts. Expanded posts may incur
+  additional resource-based X charges; operator opt-in and explicit Retry remain.
+- Count all collected thread/context posts toward 100, and retain the response,
+  source-size and time limits. Only actual source text counts toward the minimum.
+- Mock successful quotes, quoting replies, reposts, nested/deduplicated context,
+  missing/partial dependencies, cycles, version changes and size/count guards.
+  Update canonical docs/diagram and run required verification before publication.

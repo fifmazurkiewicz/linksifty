@@ -17,3 +17,17 @@
   https://docs.x.com/x-api/posts/search/integrate/build-a-query describes
   conversation_id and from operators. Full archive pagination is bounded.
 - No real provider calls or credentials were used. Graft runtime unavailable.
+
+## Reference support follow-up — 2026-10-18
+
+The original no-expansion choice above is superseded for quote/repost support.
+Owner-provided hosted logs identify `unsupported_references`; the guard rejects
+quotes/reposts and multiple references without inspecting their type separately.
+
+Official [expansions documentation](https://docs.x.com/x-api/fundamentals/expansions)
+documents `referenced_tweets.id`, related objects in `includes`, and combining
+expansions with requested fields. The [lookup reference](https://docs.x.com/x-api/posts/get-post-by-id)
+also shows renamed `referenced_posts`, `includes.posts` and type `retweeted`.
+Use the established wire parameter from the expansion guide, accept both payload
+dialects and require complete expanded dependencies. No undocumented scraping,
+follow-up lookup of missing context or live paid experiment is needed.

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "X Post and Thread Acquisition Contract",
+    "title": "X Post, Thread and Reference Acquisition Contract",
     "locale": "en",
     "quality_profile": "showcase",
     "output": ".agent/context/changes/x-ingestion/x-workflow.html"
@@ -61,7 +61,7 @@
       "col": 3,
       "type": "cloud",
       "label": "Official lookup",
-      "sublabel": "Selected post and root",
+      "sublabel": "Post, root and references",
       "width": 160
     },
     {
@@ -78,8 +78,8 @@
       "lane": "complete",
       "col": 2,
       "type": "security",
-      "label": "Validate thread",
-      "sublabel": "All pages and parent links",
+      "label": "Validate source",
+      "sublabel": "Thread and context links",
       "width": 160
     },
     {
@@ -157,7 +157,7 @@
     {
       "from": "lookup",
       "to": "search",
-      "label": "root found"
+      "label": "context ready"
     },
     {
       "from": "search",
@@ -209,8 +209,8 @@
       "dot": "amber",
       "title": "Bounded official reads",
       "items": [
-        "At most 12 HTTP requests, 100 author posts and 60 seconds.",
-        "X billing belongs to the operator account, outside model and Brave usage.",
+        "At most 12 HTTP requests, 100 thread/context posts and 60 seconds.",
+        "Expanded X resources may incur charges outside model and Brave usage.",
         "No scraping, recent-search downgrade or automatic attempt retry."
       ]
     },
@@ -218,10 +218,11 @@
       "dot": "slate",
       "title": "Completeness boundary",
       "items": [
-        "Long-post text replaces previews; source URLs remain attached.",
-        "Missing parents, pages, media or Article text require paste.",
-        "Accessible indexed snapshot; hidden or deleted descendants cannot be proved.",
-        "Contract diagram; local tests do not establish hosted X access."
+        "Expand quoted/reposted text in existing requests; keep author IDs and URLs.",
+        "Reposts use the original author thread; referenced context is deduplicated.",
+        "Missing references, parents, pages, media or Article text require paste.",
+        "No partial assessment or automatic lookup of missing context.",
+        "Contract diagram; local tests do not establish hosted completeness."
       ]
     }
   ]

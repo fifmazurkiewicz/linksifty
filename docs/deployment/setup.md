@@ -367,16 +367,28 @@ measure or cap X's invoice.
 
 The adapter reads the selected post, optionally its conversation root, then
 paginates that author's conversation through full-archive search. Limits are
-12 HTTP requests (two lookups plus ten search pages), 100 unique author posts,
+12 HTTP requests (two lookups plus ten search pages), 100 unique thread/context posts,
 1 MB per response, 100 KB final UTF-8 text and 60 seconds per acquisition. Each
 post retains its canonical URL in the saved text. Long-post `note_post.text`
 (legacy `note_tweet.text`) replaces the short preview. The archive start is
 explicitly set to 2006-03-21; recent search is never a fallback.
 
+Lookup/search requests also expand `referenced_tweets.id` to acquire quoted or
+reposted content in the same response. Replies may contain a quote alongside
+their thread parent. A submitted repost resolves to the original author's thread;
+RT previews are never treated as source text. Expanded dependencies are validated
+recursively and saved once, with author IDs, canonical URLs and explicit reference
+links. Quoted context is the returned post and its dependencies, not a separately
+searched second author's full thread. Missing expanded posts do not trigger extra
+HTTP requests. Expansions can increase resource-based X charges despite unchanged
+HTTP request limits; they use the same operator opt-in and explicit queue retry.
+
 Missing parents/pages, API partial errors, absent long text, images/video/polls,
-quote/repost dependencies and X Article previews request manually pasted content.
+missing quote/repost dependencies and X Article previews request manually pasted content.
 Only parent-connected posts by the root author form the thread; other users'
-replies are not assessment source text. The API cannot prove undisclosed deleted
+replies are excluded unless explicitly required as expanded reference context.
+Unknown/duplicate reference types, cycles and conflicting versions also stop
+acquisition. The API cannot prove undisclosed deleted
 or hidden descendants or future additions; this is the accessible indexed thread
 snapshot, not a guarantee about all content ever posted.
 
@@ -417,8 +429,10 @@ x_fetch_failed reason=partial_content check=attachments_present
 
 `attachments_present`, `article_present`, `withheld_content`, `missing_long_text`
 and `empty_or_truncated_text` explain missing source material. Paste the complete
-content for these cases. `unsupported_references` identifies quote/repost
-dependencies; `disconnected_thread` identifies missing parents or cycles.
+content for these cases. `unsupported_references` identifies unknown or invalid
+combinations of reference types; `missing_referenced_post` identifies an absent
+dependency, and `reference_cycle` identifies cyclic references.
+`disconnected_thread` identifies missing thread parents or cycles.
 `provider_partial_errors` means X returned an error alongside its response;
 `invalid_post_payload` and `invalid_search_payload` identify schema failures.
 Other fixed check names distinguish identity, count, pagination and size guards.

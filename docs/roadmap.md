@@ -91,3 +91,9 @@ flag explicitly approves X account billing outside the model/Brave ledger.
 [Canonical progress](../.agent/context/changes/x-ingestion/progress.md) ·
 [Verification evidence](../.agent/context/changes/x-ingestion/evidence.md).
 Hosted migration, endpoint/billing approval and live acceptance remain external.
+
+Hosted diagnostics later identified the adapter's blanket quote/repost rejection.
+The local follow-up expands referenced posts in existing requests, separates
+quotes from thread parents and resolves reposts to their original author/thread.
+Complete context remains required; 357 backend tests pass. Hosted acceptance of
+this follow-up awaits deployment and an explicit owner retry.

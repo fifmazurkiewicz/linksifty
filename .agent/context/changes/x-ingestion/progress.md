@@ -1,5 +1,20 @@
 # X ingestion
 
+## Quote/repost fix — 2026-10-18
+
+Owner-supplied hosted log identifies `unsupported_references`. The adapter's
+parent guard treated all references as reply parents. Implemented expansion of
+referenced posts in existing requests, separate reply-parent selection, original
+thread acquisition for reposts, complete context validation and attributed source
+text. Updated plan/research document decisions and boundaries before the derived
+board. Full backend suite: 357 pass; strict mypy and repository Ruff lint/format
+pass. Contract diagram source/HTML updated; validation, delivery and strict
+artifact checks pass, browser check is skipped because Chrome is unavailable.
+Toolkit remains unavailable. Local implementation review approves publication;
+hosted acceptance of the quote/repost fix requires deployment and an explicit
+owner retry. No live paid request was made. Graft remains unavailable; focused
+reads used.
+
 ## Render diagnostics follow-up — 2026-10-18
 
 Owner reports deployed X ingestion still fails with no visible Render error and

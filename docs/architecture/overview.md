@@ -194,13 +194,22 @@ Owner, expiry, account-access and duplicate guards apply. The UI discloses analy
 budget use and separate X charges. Automatic recovery never resets X admission.
 
 The adapter uses fixed api.x.com HTTPS lookup/full-archive endpoints, at most
-12 HTTP requests, 100 author posts, 1 MB response bodies, 100 KB source text
+12 HTTP requests, 100 thread/context posts, 1 MB response bodies, 100 KB source text
 and a 60-second deadline. All returned pages and author/conversation identities
 are checked, parents must connect to the root, and long text replaces previews.
 Source URLs stay with each post. Missing/partial, multimedia and Article content
 requests paste before model reservation. X may omit undisclosed deleted/hidden
 posts; the result represents the accessible indexed snapshot. X billing is
 operator-approved and separate from the model/Brave ledger.
+
+Existing lookup/search requests expand referenced posts. Reply-parent selection
+is separate from quote/repost dependencies, so a quoting reply remains connected
+to its author's thread. A submitted repost resolves to its expanded original's
+author/conversation; its RT preview is excluded. Complete recursive dependencies
+are deduplicated and attributed by URL/author ID. Missing references, cycles or
+conflicting versions request paste, with no extra lookup or implicit retry.
+Expanded resource charges remain in the operator's X account. The 100-post bound
+includes collected expanded context; unrelated expanded content is not source.
 
 - [Acquisition contract HTML](../../.agent/context/changes/x-ingestion/x-workflow.html)
   · [Editable JSON](../../.agent/context/changes/x-ingestion/x-workflow.json)

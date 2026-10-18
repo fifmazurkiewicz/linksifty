@@ -220,3 +220,75 @@ def test_short_x_post_is_not_padded_into_passing_completeness() -> None:
         store.stage.assert_awaited_with(job, "too_short", "awaiting_manual_content")
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("complete", [False, True])
+def test_quote_context_must_be_complete_before_saving_or_reserving_model_spend(
+    complete: bool,
+) -> None:
+    async def run() -> None:
+        text = "Complete quoted source evidence with practical examples. " * 10
+        source = {
+            "id": "100",
+            "author_id": "50",
+            "conversation_id": "100",
+            "text": text,
+            "referenced_tweets": [{"type": "quoted", "id": "90"}],
+        }
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/2/tweets/100":
+                return httpx.Response(
+                    200,
+                    json={
+                        "data": source,
+                        "includes": {
+                            "tweets": [
+                                {
+                                    "id": "90",
+                                    "author_id": "70",
+                                    "conversation_id": "90",
+                                    "text": text,
+                                }
+                            ]
+                            if complete
+                            else []
+                        },
+                    },
+                )
+            return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+        store = create_autospec(ProcessingStore, instance=True)
+        store.stage.return_value = True
+        store.begin_x_fetch.return_value = True
+        store.save_source.return_value = True
+        store.reserve.return_value = None
+        provider = create_autospec(AssessmentProvider, instance=True)
+        provider.estimate.return_value = Decimal("0.02")
+        adapter = XAdapter("test-x-token", transport=httpx.MockTransport(respond))
+        job = ProcessingJob(
+            id=uuid4(),
+            item_id=uuid4(),
+            user_id=uuid4(),
+            lease_token=uuid4(),
+            original_url="https://x.com/user/status/100",
+        )
+        await ProcessingService(
+            cast(ProcessingStore, store),
+            cast(AssessmentProvider, provider),
+            AsyncMock(),
+            x_fetch=adapter.fetch,
+        ).process(job)
+        provider.assess.assert_not_awaited()
+        if complete:
+            store.save_source.assert_awaited_once()
+            saved = store.save_source.await_args.args[1]
+            assert "quoted: https://x.com/i/web/status/90" in saved
+            assert "author_id=70" in saved
+            store.reserve.assert_awaited_once()
+        else:
+            store.save_source.assert_not_awaited()
+            store.reserve.assert_not_awaited()
+            store.stage.assert_awaited_with(job, "partial_content", "awaiting_manual_content")
+
+    asyncio.run(run())
