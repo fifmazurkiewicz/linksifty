@@ -53,19 +53,23 @@ class _Post(BaseModel):
     withheld: dict[str, object] | None = None
 
     def content(self) -> str:
-        if self.attachments or self.article is not None or self.withheld:
-            raise _Failure(FetchFailure.PARTIAL)
+        if self.attachments:
+            raise _Failure(FetchFailure.PARTIAL, "attachments_present")
+        if self.article is not None:
+            raise _Failure(FetchFailure.PARTIAL, "article_present")
+        if self.withheld:
+            raise _Failure(FetchFailure.PARTIAL, "withheld_content")
         if "note" in self.model_fields_set:
             if self.note is None or not self.note.text.strip():
-                raise _Failure(FetchFailure.PARTIAL)
+                raise _Failure(FetchFailure.PARTIAL, "missing_long_text")
             return self.note.text
         if not self.text.strip() or _TRUNCATED.search(self.text):
-            raise _Failure(FetchFailure.PARTIAL)
+            raise _Failure(FetchFailure.PARTIAL, "empty_or_truncated_text")
         return self.text
 
     def parent(self) -> str | None:
         if len(self.references) > 1 or any(ref.type != "replied_to" for ref in self.references):
-            raise _Failure(FetchFailure.PARTIAL)
+            raise _Failure(FetchFailure.PARTIAL, "unsupported_references")
         return self.references[0].id if self.references else None
 
 
@@ -85,8 +89,9 @@ class _Search(BaseModel):
 
 
 class _Failure(Exception):
-    def __init__(self, reason: FetchFailure) -> None:
+    def __init__(self, reason: FetchFailure, check: str) -> None:
         self.reason = reason
+        self.check = check
 
 
 class XAdapter:
@@ -105,6 +110,7 @@ class XAdapter:
                 ) as client:
                     return await self._thread(client, identifier)
         except _Failure as failure:
+            _logger.warning("x_fetch_failed reason=%s check=%s", failure.reason, failure.check)
             return FetchResult(failure=failure.reason)
         except (ValidationError, ValueError, UnicodeError) as error:
             _logger.warning(
@@ -137,25 +143,31 @@ class XAdapter:
                 429: FetchFailure.X_RATE_LIMITED,
             }.get(response.status_code)
             if failure is not None:
-                raise _Failure(failure)
+                raise _Failure(failure, "http_status")
             if response.status_code != 200:
-                raise _Failure(FetchFailure.UNAVAILABLE)
+                raise _Failure(FetchFailure.UNAVAILABLE, "http_status")
             if response.headers.get("content-type", "").split(";", 1)[0] != "application/json":
-                raise _Failure(FetchFailure.PARTIAL)
+                raise _Failure(FetchFailure.PARTIAL, "unexpected_content_type")
             body = bytearray()
             async for chunk in response.aiter_bytes():
                 body.extend(chunk)
                 if len(body) > _MAX_BODY_BYTES:
-                    raise _Failure(FetchFailure.TOO_LARGE)
+                    raise _Failure(FetchFailure.TOO_LARGE, "response_size_limit")
             payload: object = json.loads(body)
-            if not isinstance(payload, dict) or payload.get("errors"):
-                raise _Failure(FetchFailure.PARTIAL)
+            if not isinstance(payload, dict):
+                raise _Failure(FetchFailure.PARTIAL, "invalid_response_shape")
+            if payload.get("errors"):
+                raise _Failure(FetchFailure.PARTIAL, "provider_partial_errors")
             return payload
 
     async def _lookup(self, client: httpx.AsyncClient, identifier: str) -> _Post:
-        post = _Lookup.model_validate(await self._get(client, identifier)).data
+        payload = await self._get(client, identifier)
+        try:
+            post = _Lookup.model_validate(payload).data
+        except ValidationError as error:
+            raise _Failure(FetchFailure.PARTIAL, "invalid_post_payload") from error
         if post.id != identifier:
-            raise _Failure(FetchFailure.PARTIAL)
+            raise _Failure(FetchFailure.PARTIAL, "lookup_id_mismatch")
         return post
 
     async def _thread(self, client: httpx.AsyncClient, identifier: str) -> FetchResult:
@@ -170,7 +182,7 @@ class XAdapter:
             or root.author_id != selected.author_id
             or root.parent() is not None
         ):
-            raise _Failure(FetchFailure.PARTIAL)
+            raise _Failure(FetchFailure.PARTIAL, "invalid_conversation_root")
         posts = {root.id: root}
         # Validate before requesting more potentially billed resources.
         root.content()
@@ -187,27 +199,31 @@ class XAdapter:
             }
             if token is not None:
                 query["next_token"] = token
-            page = _Search.model_validate(await self._get(client, "search/all", **query))
+            payload = await self._get(client, "search/all", **query)
+            try:
+                page = _Search.model_validate(payload)
+            except ValidationError as error:
+                raise _Failure(FetchFailure.PARTIAL, "invalid_search_payload") from error
             if page.meta.result_count != len(page.data):
-                raise _Failure(FetchFailure.PARTIAL)
+                raise _Failure(FetchFailure.PARTIAL, "search_count_mismatch")
             for post in page.data:
                 if post.author_id != root.author_id or post.conversation_id != root.id:
-                    raise _Failure(FetchFailure.PARTIAL)
+                    raise _Failure(FetchFailure.PARTIAL, "search_identity_mismatch")
                 if post.id in posts and self._identity(posts[post.id]) != self._identity(post):
-                    raise _Failure(FetchFailure.PARTIAL)
+                    raise _Failure(FetchFailure.PARTIAL, "conflicting_post_versions")
                 posts[post.id] = post
                 if len(posts) > _MAX_POSTS:
-                    raise _Failure(FetchFailure.TOO_LARGE)
+                    raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
             token = page.meta.next_token
             if token is None:
                 break
             if token in seen_tokens:
-                raise _Failure(FetchFailure.PARTIAL)
+                raise _Failure(FetchFailure.PARTIAL, "repeated_pagination_token")
             seen_tokens.add(token)
         else:
-            raise _Failure(FetchFailure.PARTIAL)
+            raise _Failure(FetchFailure.PARTIAL, "page_limit")
         if identifier not in posts or self._identity(posts[identifier]) != self._identity(selected):
-            raise _Failure(FetchFailure.PARTIAL)
+            raise _Failure(FetchFailure.PARTIAL, "selected_post_missing_or_changed")
         ordered = [root]
         remaining = {key: value for key, value in posts.items() if key != root.id}
         visited = {root.id}
@@ -217,7 +233,7 @@ class XAdapter:
                 key=lambda post: int(post.id),
             )
             if not ready:
-                raise _Failure(FetchFailure.PARTIAL)
+                raise _Failure(FetchFailure.PARTIAL, "disconnected_thread")
             for post in ready:
                 ordered.append(post)
                 visited.add(post.id)
@@ -225,12 +241,12 @@ class XAdapter:
         # Source URLs aid citations but must not make short posts pass the minimum.
         readable_text = "\n\n".join(post.content() for post in ordered)
         if evaluate_content(readable_text, fetched=False).readiness is not ContentReadiness.READY:
-            raise _Failure(FetchFailure.TOO_SHORT)
+            raise _Failure(FetchFailure.TOO_SHORT, "minimum_text_length")
         text = "\n\n".join(
             f"https://x.com/i/web/status/{post.id}\n{post.content()}" for post in ordered
         )
         if len(text.encode("utf-8")) > _MAX_TEXT_BYTES:
-            raise _Failure(FetchFailure.TOO_LARGE)
+            raise _Failure(FetchFailure.TOO_LARGE, "text_size_limit")
         return FetchResult(text=text)
 
     @staticmethod

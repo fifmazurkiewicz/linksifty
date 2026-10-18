@@ -66,3 +66,23 @@ explicit disposable LINKSIFTY_TEST_DATABASE_URL. Frontend checks run in frontend
 - No frontend, migration, paid request, deployment or hosted validation performed.
   Render diagnosis requires backend deployment and a new explicitly requested
   attempt; prior failures cannot produce logs retroactively.
+
+## Completeness diagnostics follow-up — 2026-10-18
+
+- Hosted logs supplied by the owner show the first diagnostics build running,
+  but only the job-level `partial_content` reason. No HTTP-status or parse warning
+  accompanies it. Exact failing content check remains unverified.
+- Red: 11 focused cases failed on missing check labels before implementation.
+- Green: 80 focused X cases pass. New checks cover attachments, Articles,
+  withheld text, missing long text, truncation, unsupported references, mismatched
+  identities, provider partial errors and lookup/search validation. Tests assert
+  no source/body leakage, no extra reads on rejected lookup and no returned text.
+- Deliberate break: replaced logged check names with `unknown`; all 11 new cases
+  failed. Restored the check names before final verification.
+- Full backend suite: 336 pass; existing Starlette/httpx deprecation warning.
+  Strict mypy (40 source files), repository Ruff lint/format (108 files) and
+  `git diff --check` pass. `agent-toolkit check` is unavailable (exit 127).
+- Every internal adapter rejection now has a static diagnostic check label.
+  Content acceptance and paid retry boundaries are unchanged. No live API call
+  or hosted retry was made. Public browsing could not retrieve the specific
+  post, so no claim about its media/Article content is made.

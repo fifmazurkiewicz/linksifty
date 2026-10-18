@@ -351,3 +351,74 @@ def test_transport_and_decode_errors_log_type_without_exception_details(
     assert f"error_type={'JSONDecodeError' if invalid_json else 'ReadTimeout'}" in caplog.text
     for private in ("private-invalid-body", "private-exception-detail", "test-x-token"):
         assert private not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "extra,check",
+    [
+        ({"attachments": {"media_keys": ["private-media"]}}, "attachments_present"),
+        ({"article": {"title": "private-article"}}, "article_present"),
+        ({"withheld": {"country_codes": ["private-country"]}}, "withheld_content"),
+        ({"note_post": None}, "missing_long_text"),
+        ({"text": "private-truncated-text…"}, "empty_or_truncated_text"),
+        ({"referenced_posts": [{"type": "quoted", "id": "90"}]}, "unsupported_references"),
+        ({"id": "999"}, "lookup_id_mismatch"),
+    ],
+)
+def test_content_rejection_logs_the_specific_check_without_source_data(
+    caplog: pytest.LogCaptureFixture, extra: dict[str, object], check: str
+) -> None:
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        return httpx.Response(200, json={"data": post(**extra)})
+
+    result = acquire(respond)
+
+    assert result.text is None
+    assert result.failure == "partial_content"
+    assert len(calls) == 1
+    assert f"x_fetch_failed reason=partial_content check={check}" in caplog.text
+    for private in (
+        "private-media",
+        "private-article",
+        "private-country",
+        "private-truncated-text",
+        TEXT,
+    ):
+        assert private not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "payload,check",
+    [
+        ({"data": post(), "errors": [{"detail": "private-error"}]}, "provider_partial_errors"),
+        ({"data": None}, "invalid_post_payload"),
+        ({"data": post("999")}, "lookup_id_mismatch"),
+    ],
+)
+def test_response_rejection_logs_the_specific_check(
+    caplog: pytest.LogCaptureFixture, payload: object, check: str
+) -> None:
+    result = acquire(lambda _: httpx.Response(200, json=payload))
+    assert result.text is None
+    assert result.failure == "partial_content"
+    assert f"check={check}" in caplog.text
+    assert "private-error" not in caplog.text
+    assert TEXT not in caplog.text
+
+
+def test_invalid_search_logs_schema_check_and_discards_successful_lookup(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(200, json={"data": post()})
+        return httpx.Response(200, json={"meta": {"result_count": "private-invalid-count"}})
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "partial_content"
+    assert "check=invalid_search_payload" in caplog.text
+    assert "private-invalid-count" not in caplog.text

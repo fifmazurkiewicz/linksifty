@@ -408,8 +408,23 @@ source_fetch_failed job_id=<job UUID> provider=x reason=x_access_denied
 against the [official X error reference](https://developer.x.com/en/support/twitter-api/error-troubleshooting)
 and the app's access/billing in the X console. The status identifies the rejected
 request; it does not by itself prove which account setting caused it.
-`x_fetch_failed` reports transport/decoding/validation exception types without
-their messages. `source_fetch_failed` also covers disabled X fetching, uncertain
+`x_fetch_failed` now also records a fixed `check` name for every intentional
+adapter rejection, including completeness failures returned with HTTP 200:
+
+```text
+x_fetch_failed reason=partial_content check=attachments_present
+```
+
+`attachments_present`, `article_present`, `withheld_content`, `missing_long_text`
+and `empty_or_truncated_text` explain missing source material. Paste the complete
+content for these cases. `unsupported_references` identifies quote/repost
+dependencies; `disconnected_thread` identifies missing parents or cycles.
+`provider_partial_errors` means X returned an error alongside its response;
+`invalid_post_payload` and `invalid_search_payload` identify schema failures.
+Other fixed check names distinguish identity, count, pagination and size guards.
+These diagnostics do not make partial content eligible for analysis.
+Transport/decoding exceptions log their types without their messages.
+`source_fetch_failed` also covers disabled X fetching, uncertain
 prior attempts, partial content and ordinary web fetch failures. It includes the
 job UUID so operators can identify the failed job. Tokens, headers, post IDs,
 request URLs/queries, source text and raw provider payloads are excluded from

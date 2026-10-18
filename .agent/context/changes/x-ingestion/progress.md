@@ -12,6 +12,15 @@ Document Render filters and explicit retry/billing implications. Local regressio
 verification is recorded in evidence.md; deployment and live diagnosis remain
 outstanding.
 
+Follow-up: owner supplied hosted logs showing only `source_fetch_failed` with
+`partial_content`. This confirms the first diagnostics build runs but leaves the
+intentional completeness guard unidentified. Every internal adapter rejection
+now carries a static `check` label logged at the existing warning boundary;
+payload validation distinguishes post lookup from thread search. No source
+acceptance rules or retry/billing behavior change. Regression cases verify
+specific checks and payload exclusion; details are in evidence.md. The failing
+post's precise hosted guard remains unknown until the next explicit attempt.
+
 2026-10-18 — Local implementation complete. Owner requested implementation and explicitly selected
 individual posts plus full threads. Graft is unavailable; focused repository
 reads and official X documentation establish the integration contract.
