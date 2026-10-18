@@ -50,3 +50,29 @@ still applies. No new request, provider, persisted data or schema is introduced.
 Four new cases cover both Article locations and both expansion outcomes. The
 observed hosted media error does not alone prove this is its exact payload shape;
 post-deploy live verification remains pending. One authorized Retry was consumed.
+
+
+## Opt-in wire logger maintenance review
+
+Outcome: approve local change for the owner-authorized push to main; hosted
+acceptance remains pending. This review applies the implementation-review skill
+using the approved in-chat design, existing plan/progress, final diff and evidence.
+
+No actionable findings by severity. The server flag defaults off and does not
+activate billed reads. Entry-point composition passes all configured secrets;
+HTTP details stay in infrastructure, routes and scoring remain unchanged.
+Configured/common secrets are redacted before truncation/chunking; headers are
+excluded. Public source text, post IDs and queries become visible only in the
+explicitly enabled operator log mode, as approved and documented. No additional
+request/retry/persistence/schema/frontend behavior is introduced.
+
+Accepted criteria have behavioral evidence: request/response correlation, 200
+and 403 bodies before validation, request parameters for successful thread fetch,
+invalid/oversized body rejection, transport interruption and status preservation,
+privacy, output limits, default-off behavior, and startup wiring without Langfuse.
+Secret-redaction mutation is detected. Final 423 tests, strict mypy and Ruff pass;
+agent-toolkit is unavailable, not passed. Graft is unavailable; focused source
+reads replace its orientation. Existing board states match canonical T1–T3 local
+completion and pending hosted acceptance, so no board regeneration is needed.
+No Skip decisions, archive or production success claim. No live paid request or
+hosted environment mutation was performed. Operator activation remains separate.

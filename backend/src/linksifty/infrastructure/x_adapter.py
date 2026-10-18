@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from typing import Annotated
+from uuid import uuid4
 
 import httpx
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
@@ -12,6 +13,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 from linksifty.domain.acquisition import FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.x_urls import x_post_id
+from linksifty.infrastructure.redaction import redact
 from linksifty.infrastructure.x_content import XContentFailure as _Failure
 from linksifty.infrastructure.x_content import XMedia, parse_article
 from linksifty.infrastructure.x_images import fetch_images, validate_media
@@ -149,9 +151,58 @@ class _Search(BaseModel):
 
 
 class XAdapter:
-    def __init__(self, token: str, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        token: str,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+        debug: bool = False,
+        secrets: tuple[str, ...] = (),
+    ) -> None:
         self._token = token
         self._transport = transport
+        self._debug = debug
+        self._secrets = tuple(value for value in (token, *secrets) if value)
+
+    def _log_debug(self, event: str, request_id: str, details: dict[str, object]) -> None:
+        if not self._debug:
+            return
+        # Redact before truncating/chunking so secrets cannot straddle a boundary.
+        payload = json.dumps(redact(details, self._secrets), ensure_ascii=True)
+        truncated = len(payload) > 32000
+        payload = payload[:32000] + (" [TRUNCATED at 32000 characters]" if truncated else "")
+        chunks = [payload[start : start + 4000] for start in range(0, len(payload), 4000)]
+        for part, chunk in enumerate(chunks, 1):
+            # Warning level deliberately works with the existing Render stderr configuration.
+            _logger.warning(
+                "x_api_debug event=%s request_id=%s part=%s/%s truncated=%s payload=%s",
+                event,
+                request_id,
+                part,
+                len(chunks),
+                str(truncated).lower(),
+                chunk,
+            )
+
+    def _log_response(self, request_id: str, response: httpx.Response, body: bytearray) -> None:
+        if not self._debug:
+            return
+        try:
+            payload: object = json.loads(body)
+        except (ValueError, RecursionError):
+            payload = body.decode("utf-8", errors="replace")
+        try:
+            self._log_debug(
+                "response",
+                request_id,
+                {"status": response.status_code, "body": payload},
+            )
+        except RecursionError:
+            self._log_debug(
+                "response",
+                request_id,
+                {"status": response.status_code, "body": "[OMITTED: nesting limit]"},
+            )
 
     async def fetch(self, url: str) -> FetchResult:
         identifier = x_post_id(url)
@@ -176,52 +227,75 @@ class XAdapter:
             return FetchResult(failure=FetchFailure.UNAVAILABLE)
 
     async def _get(self, client: httpx.AsyncClient, path: str, **params: str) -> dict[str, object]:
-        async with client.stream(
-            "GET",
-            f"https://api.x.com/2/tweets/{path}",
-            params={
-                "tweet.fields": _FIELDS,
-                "expansions": (
-                    "referenced_tweets.id,attachments.media_keys,"
-                    "referenced_tweets.id.attachments.media_keys,"
-                    "article.cover_media,article.media_entities"
-                ),
-                "media.fields": "media_key,type,url,width,height,alt_text",
-                **params,
-            },
-            headers={"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
-        ) as response:
-            if response.status_code != 200:
-                # Fixed endpoint labels only: no post IDs, queries, headers or provider bodies.
-                _logger.warning(
-                    "x_api_request_failed endpoint=%s status=%s",
-                    "full_archive_search" if path == "search/all" else "post_lookup",
-                    response.status_code,
+        request_id = uuid4().hex if self._debug else ""
+        url = f"https://api.x.com/2/tweets/{path}"
+        parameters = {
+            "tweet.fields": _FIELDS,
+            "expansions": (
+                "referenced_tweets.id,attachments.media_keys,"
+                "referenced_tweets.id.attachments.media_keys,"
+                "article.cover_media,article.media_entities"
+            ),
+            "media.fields": "media_key,type,url,width,height,alt_text",
+            **params,
+        }
+        self._log_debug("request", request_id, {"method": "GET", "url": url, "params": parameters})
+        try:
+            async with client.stream(
+                "GET",
+                url,
+                params=parameters,
+                headers={"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
+            ) as response:
+                if response.status_code != 200:
+                    # Default logs retain fixed labels only; details require explicit debug opt-in.
+                    _logger.warning(
+                        "x_api_request_failed endpoint=%s status=%s",
+                        "full_archive_search" if path == "search/all" else "post_lookup",
+                        response.status_code,
+                    )
+                is_json = (
+                    response.headers.get("content-type", "").split(";", 1)[0] == "application/json"
                 )
-            failure = {
-                401: FetchFailure.X_ACCESS_DENIED,
-                402: FetchFailure.X_ACCESS_DENIED,
-                403: FetchFailure.X_ACCESS_DENIED,
-                404: FetchFailure.X_NOT_FOUND,
-                429: FetchFailure.X_RATE_LIMITED,
-            }.get(response.status_code)
-            if failure is not None:
-                raise _Failure(failure, "http_status")
-            if response.status_code != 200:
-                raise _Failure(FetchFailure.UNAVAILABLE, "http_status")
-            if response.headers.get("content-type", "").split(";", 1)[0] != "application/json":
-                raise _Failure(FetchFailure.PARTIAL, "unexpected_content_type")
-            body = bytearray()
-            async for chunk in response.aiter_bytes():
-                body.extend(chunk)
+                body = bytearray()
+                if self._debug or (response.status_code == 200 and is_json):
+                    try:
+                        async for chunk in response.aiter_bytes():
+                            body.extend(chunk[: _MAX_BODY_BYTES + 1 - len(body)])
+                            if len(body) > _MAX_BODY_BYTES:
+                                break
+                    except httpx.HTTPError as error:
+                        if response.status_code == 200:
+                            self._log_response(request_id, response, body)
+                            raise
+                        self._log_debug(
+                            "transport_error", request_id, {"error_type": type(error).__name__}
+                        )
+                self._log_response(request_id, response, body)
+                failure = {
+                    401: FetchFailure.X_ACCESS_DENIED,
+                    402: FetchFailure.X_ACCESS_DENIED,
+                    403: FetchFailure.X_ACCESS_DENIED,
+                    404: FetchFailure.X_NOT_FOUND,
+                    429: FetchFailure.X_RATE_LIMITED,
+                }.get(response.status_code)
+                if failure is not None:
+                    raise _Failure(failure, "http_status")
+                if response.status_code != 200:
+                    raise _Failure(FetchFailure.UNAVAILABLE, "http_status")
+                if not is_json:
+                    raise _Failure(FetchFailure.PARTIAL, "unexpected_content_type")
                 if len(body) > _MAX_BODY_BYTES:
                     raise _Failure(FetchFailure.TOO_LARGE, "response_size_limit")
-            payload: object = json.loads(body)
-            if not isinstance(payload, dict):
-                raise _Failure(FetchFailure.PARTIAL, "invalid_response_shape")
-            if payload.get("errors"):
-                raise _Failure(FetchFailure.PARTIAL, "provider_partial_errors")
-            return payload
+                payload: object = json.loads(body)
+                if not isinstance(payload, dict):
+                    raise _Failure(FetchFailure.PARTIAL, "invalid_response_shape")
+                if payload.get("errors"):
+                    raise _Failure(FetchFailure.PARTIAL, "provider_partial_errors")
+                return payload
+        except (httpx.HTTPError, TimeoutError) as error:
+            self._log_debug("transport_error", request_id, {"error_type": type(error).__name__})
+            raise
 
     async def _lookup(
         self,

@@ -196,6 +196,7 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
 | `X_API_BEARER_TOKEN` | Official X app-only bearer token | Server-only; post lookup and full-archive search access required |
 | `X_API_READS_ENABLED` | Explicit operator approval for potentially billed X reads | Defaults false; token alone does not enable reads |
+| `X_API_DEBUG` | Redacted X request/response diagnostics in Render logs | Defaults false; includes source content; disable after diagnosis |
 | `PORT` | Supplied by Render | Do not manually set |
 
 On Docker, changing Render `UV_VERSION` or `PYTHON_VERSION` does not change the
@@ -460,6 +461,33 @@ prior attempts, partial content and ordinary web fetch failures. It includes the
 job UUID so operators can identify the failed job. Tokens, headers, post IDs,
 request URLs/queries, source text and raw provider payloads are excluded from
 these diagnostic messages. No failed request is automatically repeated.
+
+For request and response inspection, temporarily set the **server-only** Render
+variable `X_API_DEBUG=true`, save/redeploy, then filter Logs for `x_api_debug`.
+This works without Langfuse or a global debug log level. Each `event=request`
+records the GET URL and query parameters; `event=response` records the HTTP status
+and JSON body, including rejected responses and HTTP 200 payloads that later fail
+Article validation. Invalid JSON is logged as redacted text. Transport failures
+use `event=transport_error` with only the exception type. A shared `request_id`
+pairs entries; concurrent requests have distinct IDs. For example:
+
+```text
+x_api_debug event=request request_id=<ID> part=1/1 truncated=false payload={"method":"GET","url":"https://api.x.com/2/tweets/<post ID>","params":{...}}
+x_api_debug event=response request_id=<ID> part=1/1 truncated=false payload={"status":200,"body":{"data":{...}}}
+```
+
+All configured provider credentials and common token/email patterns are redacted
+before truncation or chunking. Headers are never logged. Source text, post IDs,
+URLs and queries are intentionally visible in this opt-in mode. Restrict access
+to Render logs and set `X_API_DEBUG=false` after diagnosis; changing the flag does
+not remove earlier logs. The serialized event is limited to 32,000 characters,
+with an explicit `[TRUNCATED ...]` marker and `truncated=true`, and split into
+numbered `part=N/total` chunks of at most 4,000 payload characters. Reassemble
+payload chunks with the same event/request ID in part order. A truncated payload
+is only a diagnostic excerpt, not complete JSON or evidence of source completeness.
+The existing bounded response reader, completeness checks and no-retry rule remain
+in force. The flag does not enable X reads or make any request on its own. Existing
+jobs do not gain logs retroactively; a new explicit Retry can incur X charges.
 
 Links already awaiting manual content stay there after rollout. Paste the full
 thread, or explicitly delete and re-add the link after enabling the integration.

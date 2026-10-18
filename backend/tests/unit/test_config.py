@@ -1,3 +1,6 @@
+from dataclasses import replace
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -23,3 +26,25 @@ def test_x_reads_require_explicit_operator_enablement(monkeypatch: pytest.Monkey
     assert not Settings.from_environment().x_api_reads_enabled
     monkeypatch.setenv("X_API_READS_ENABLED", "true")
     assert Settings.from_environment().x_api_reads_enabled
+
+
+def test_x_debug_requires_explicit_operator_enablement(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("X_API_DEBUG", raising=False)
+    assert not Settings.from_environment().x_api_debug
+    monkeypatch.setenv("X_API_DEBUG", "true")
+    assert Settings.from_environment().x_api_debug
+
+
+def test_startup_wires_x_debug_and_configured_secrets_without_langfuse() -> None:
+    settings = replace(
+        Settings.for_test(),
+        x_api_bearer_token="test-x-token",
+        x_api_reads_enabled=True,
+        x_api_debug=True,
+    )
+    with patch("linksifty.main.XAdapter") as adapter:
+        with TestClient(create_app(settings)):
+            pass
+    assert adapter.call_args.kwargs["debug"] is True
+    assert "test-x-token" in adapter.call_args.kwargs["secrets"]
+    assert "test-service-role-key" in adapter.call_args.kwargs["secrets"]

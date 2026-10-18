@@ -91,3 +91,30 @@ Final media-reference gate: all 411 backend tests pass, strict mypy (44 files),
 Ruff lint and format pass. Existing Starlette/httpx warning remains. Toolkit is
 still unavailable (attempted, exit 127). Frontend/SQL unchanged; prior evidence
 applies. Hosted success after this fix is not claimed.
+
+
+## Opt-in request/response logger follow-up
+
+- Initial test-first run: six failures from absent debug constructor/settings,
+  four existing/default checks passed. Logging includes HTTP 200 schema rejection
+  and HTTP 403 error bodies, with configured and common credential/email redaction.
+- Focused green run: 149 X acquisition/config/telemetry cases passed. Added success
+  and thread-query logging, long JSON redaction/chunking, startup wiring without
+  Langfuse, and interrupted stream checks. The interrupted 403 body initially
+  exposed duplicate response entries; one response entry now preserves status
+  and no-retry behavior for both 200 and 403 interruptions.
+- Deliberately bypassing redaction makes both paired-response privacy tests fail
+  (2 failed, 8 deselected); implementation restored before final verification.
+- Final: UV_CACHE_DIR=/private/tmp/linksifty-uv-cache uv run --package linksifty
+  pytest backend/tests -q --tb=short: 423 passed, one existing TestClient warning.
+- Strict mypy backend/src: success, 45 source files. Ruff check .: passed;
+  Ruff format --check .: 117 files already formatted. git diff --check: passed.
+- agent-toolkit check: attempted, exit 127 (not installed). Graft unavailable.
+  Frontend and SQL unchanged; no new frontend, SQL or diagram validation claimed.
+- Shared redaction code is moved unchanged from telemetry. Default warning logs
+  retain their privacy guarantees; detailed logs require explicit X_API_DEBUG.
+  Event payloads redact before a 32K-character cap and 4K-character chunking;
+  truncation is explicit. Headers are excluded. Stream reads retain a 1MB limit.
+- Setup documentation and .env.example describe activation, content visibility,
+  chunk reconstruction and disabling afterward. No credentials were read, no
+  actual X request was made, and Render's environment was not modified.

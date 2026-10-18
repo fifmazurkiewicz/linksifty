@@ -44,3 +44,24 @@ closed and do not trigger extra API calls. Four new cases fail before the fix
 and pass afterward, including both cover/body media and missing expansion paths.
 Deliberately removing normalization makes all four fail again. No further live
 retry is included in the one-attempt authorization or local verification.
+
+
+## Approved opt-in X wire diagnostics
+
+The owner approved the in-chat logger design and explicitly requested preparation
+and push to main. Completed locally: server-only X_API_DEBUG (default false),
+paired request/response IDs, GET URL/parameters, response status/body including
+provider and Article-validation failures, redacted transport-error types, bounded
+chunked log output. Existing telemetry redaction is reused from a shared module;
+configured secrets are passed by the entrypoint even with Langfuse disabled.
+Headers are never logged. Opt-in source text/IDs/query visibility is documented.
+No additional request, retry, source acceptance, schema or frontend change.
+
+Acceptance: focused red/green and secret-redaction mutation evidence, all 423
+backend tests, strict mypy (45 files), Ruff lint/format and whitespace pass.
+agent-toolkit remains unavailable (attempted exit 127); Graft unavailable.
+Local implementation review approves this bounded diagnostic maintenance.
+Existing T1–T3 local completion and pending hosted acceptance board statuses
+remain accurate; no new milestone or architecture change. No live paid request
+or hosted environment change was made. Activation requires X_API_DEBUG=true
+on Render and a new separately authorized Retry. Publishing to main is authorized.

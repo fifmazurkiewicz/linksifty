@@ -107,6 +107,20 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        diagnostic_secrets = tuple(
+            value
+            for value in (
+                configuration.supabase_anon_key,
+                configuration.supabase_service_role_key,
+                configuration.openrouter_api_key,
+                configuration.brave_search_api_key,
+                configuration.langfuse_public_key,
+                configuration.langfuse_secret_key,
+                configuration.resend_api_key,
+                configuration.x_api_bearer_token,
+            )
+            if value
+        )
         telemetry = LangfuseTelemetry()
         if (
             configuration.langfuse_enabled
@@ -121,20 +135,7 @@ def create_app(
                         base_url=configuration.langfuse_base_url,
                         timeout=3,
                     ),
-                    secrets=tuple(
-                        value
-                        for value in (
-                            configuration.supabase_anon_key,
-                            configuration.supabase_service_role_key,
-                            configuration.openrouter_api_key,
-                            configuration.brave_search_api_key,
-                            configuration.langfuse_public_key,
-                            configuration.langfuse_secret_key,
-                            configuration.resend_api_key,
-                            configuration.x_api_bearer_token,
-                        )
-                        if value
-                    ),
+                    secrets=diagnostic_secrets,
                 )
             except Exception:
                 logging.getLogger(__name__).warning("telemetry_unavailable")
@@ -177,7 +178,12 @@ def create_app(
                     processing_repository,
                     provider,
                     fetch_public_text,
-                    x_fetch=XAdapter(configuration.x_api_bearer_token, transport=transport).fetch
+                    x_fetch=XAdapter(
+                        configuration.x_api_bearer_token,
+                        transport=transport,
+                        debug=configuration.x_api_debug,
+                        secrets=diagnostic_secrets,
+                    ).fetch
                     if configuration.x_api_reads_enabled and configuration.x_api_bearer_token
                     else None,
                     image_reader=OpenRouterImageReader(
