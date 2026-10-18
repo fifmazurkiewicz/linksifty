@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5205e20e-d66c-4049-a9f3-2642f020e2eb",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-sequence.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-sequence.html",
+  "specification": {
+    "sha256": "7a251840ba6d5a4c2639361a296358bbc0f892af0bb421da5c801c0da6b21acb",
+    "bytes": 4204
+  },
+  "artifact": {
+    "sha256": "07f18d3a3a3467103dc0e33de135107aff31d3849b23de147c8ac0435f2d9ae7",
+    "bytes": 756247
+  }
+}

@@ -263,6 +263,6 @@ The existing OpenRouter adapter owns HTTP and validation; application orchestrat
 and owner-scoped persistence remain in their established layers. Classification
 shares the monthly USD ledger, unique-call fences, cost settlement, generation-ID
 recovery and deletion behavior. No new dependency, key or worker is introduced.
-See the [editable workflow](../../.agent/context/changes/chat-query-classification/chat-workflow.json),
-[workflow HTML](../../.agent/context/changes/chat-query-classification/chat-workflow.html)
+See the [editable sequence](../../.agent/context/changes/chat-query-classification/chat-sequence.json),
+[sequence HTML](../../.agent/context/changes/chat-query-classification/chat-sequence.html)
 and [verification record](../../.agent/context/changes/chat-query-classification/evidence.md).

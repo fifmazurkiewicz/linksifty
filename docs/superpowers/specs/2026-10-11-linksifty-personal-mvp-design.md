@@ -1,5 +1,9 @@
 # Linksifty personal MVP — technical design
 
+> Scope update, 2026-10-18: the owner approved Jev only for the analysis-chat
+> relevance/safety gate. That supersedes this historical plan's Jev exclusion;
+> assessment scoring remains deterministic. See [current roadmap](../../roadmap.md).
+
 **Status:** proposed for review  
 **Date:** 2026-10-11  
 **Product contract:** [PRD](../../../context/foundation/prd.md)  

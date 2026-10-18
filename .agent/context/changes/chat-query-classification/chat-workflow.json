@@ -223,8 +223,7 @@
       "role": "error",
       "variant": "security",
       "fromSide": "bottom",
-      "toSide": "top",
-      "route": "straight"
+      "toSide": "top"
     },
     {
       "from": "classify",

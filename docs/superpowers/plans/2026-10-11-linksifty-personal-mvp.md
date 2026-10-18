@@ -1,5 +1,9 @@
 # Linksifty Personal MVP Implementation Plan
 
+> Scope update, 2026-10-18: the owner approved Jev only for the analysis-chat
+> relevance/safety gate. That supersedes this historical plan's Jev exclusion;
+> assessment scoring remains deterministic. See [current roadmap](../../roadmap.md).
+
 **Current execution supplement (2026-10-13):** [completion plan](2026-10-13-linksifty-completion.md). It owns the remaining C1–C8 cards, concrete acceptance and evidence; this original plan remains the approved design breakdown. Demo code and mock tests do not constitute completion of Tasks 3–10.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `implementation` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

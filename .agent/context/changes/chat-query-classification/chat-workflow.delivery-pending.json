@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "command": "deliver",
   "status": "pending",
-  "receiptId": "1b62c456-c903-4234-854f-da3efb9835b4",
+  "receiptId": "d80918a3-eaed-4517-9980-fc816389d97d",
   "input": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.json",
   "output": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.html"
 }

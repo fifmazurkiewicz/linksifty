@@ -154,6 +154,7 @@ def test_budget_denial_prevents_provider_call() -> None:
         assert result.status == "failed"
         assert result.error == "budget_exhausted"
         provider.reply.assert_not_awaited()
+        provider.classify.assert_not_awaited()
 
     asyncio.run(run())
 
@@ -379,5 +380,19 @@ def test_relevant_follow_up_classifies_with_topic_and_history_before_answering()
         ]
         provider.reply.assert_awaited_once()
         search.search.assert_not_awaited()
+
+    asyncio.run(run())
+
+
+def test_answer_budget_rejection_after_classification_cannot_make_an_answer_call() -> None:
+    async def run() -> None:
+        service, store, provider, fetch, search, turn = setup_chat()
+        store.reserve_call.side_effect = [uuid4(), None]
+        result = await service.ask(uuid4(), turn.item_id, turn.id, turn.question)
+        assert result.status == "failed" and result.error == "budget_exhausted"
+        provider.classify.assert_awaited_once()
+        provider.reply.assert_not_awaited()
+        search.search.assert_not_awaited()
+        store.settle.assert_awaited_once()
 
     asyncio.run(run())

@@ -1,5 +1,9 @@
 # Linksifty completion plan
 
+> Scope update, 2026-10-18: the owner approved Jev only for the analysis-chat
+> relevance/safety gate. That supersedes this historical plan's Jev exclusion;
+> assessment scoring remains deterministic. See [current roadmap](../../roadmap.md).
+
 Updated: 2026-10-13. Owner: Codex for coding; Filip for accounts, credentials and live acceptance.
 
 This is the canonical remaining-work plan. It refines the approved [original plan](2026-10-11-linksifty-personal-mvp.md) without changing product scope. The PRD and design remain the product contracts. C1–C8 replace vague “integration later” steps with reviewable deliverables. No additional approval is required for the already-authorized coding scope.
