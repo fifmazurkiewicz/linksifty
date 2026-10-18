@@ -9,7 +9,7 @@ Canonical product roadmap · updated 2026-10-17. [Derived Kanban](roadmap-kanban
 | M3 Submission and durable processing | In progress | URL/paste submission, fenced bounded execution, heartbeat and recovery implemented locally with mocked tests | Hosted restart validation (duplicate blocking implemented locally) | C1, C4, C5 |
 | M4 Source-grounded verdict | In progress | Safe redirects/body controls, completeness guard, OpenRouter schema/excerpts, pure scorer and USD reservation code locally verified | Hosted source/provider acceptance (local SQL budget/RLS gate passed) | C2, C3, C4 |
 | M5 Inbox and detail | In progress | Authenticated queue, filters, stages, detail, recovery, settings and confirmed single/bulk deletion locally implemented | Hosted acceptance and browser QA; marking read remains broader MVP work | C5, C6 |
-| M6 Chat and source enrichment | In progress (local source checking) | Opt-in Brave up-to-20 source checks/provenance and content-inclusive, redacted Langfuse implemented; local mock/SQL tests | Hosted search acceptance, grounded chat and official X adapter | C7 |
+| M6 Chat and source enrichment | In progress (local chat, source checking and X ingestion) | Saved analysis/topic chat with citations, conditional one-search research, shared budget and idempotency; Brave/Langfuse and official X adapter implemented locally | Hosted chat/search/X acceptance and live answer-quality evaluation | C7 |
 | M7 Validation and release | In progress | C8.1 GitHub CI and Docker build/smoke verified; 138 backend tests, 89 local pgTAP assertions, mypy/Ruff and 21 frontend tests/lint/build | Log redaction, deployment artifacts, hosted RLS/auth and 20-link evaluation | C8, E1 |
 | M8 Google access and account approval | In progress | Backend access rules, admin API, Resend flow and authenticated frontend implemented locally; mock suites pass | Apply and validate database migrations, configure hosted Google OAuth/Resend, run hosted account-flow check | [Implementation plan](superpowers/plans/2026-10-14-multi-user-access-admin.md) |
 | M9 Per-user model spend | In progress (local implementation) | Exact USD ledger/reservations, supported-model bound, admin caps and scoped user/admin views implemented with mocked tests | Retention schedule and hosted provider/cost acceptance (local PostgreSQL/RLS/concurrency passed) | [Current plan](../.agent/context/changes/processing-usage-inbox/plan.md) |
@@ -62,3 +62,26 @@ late-worker fences, and preserved billing accounting. Requires migration
 and five concurrency checks. Toolkit and diagram browser QA are unavailable;
 hosted migration/deletion acceptance remains separate.
 [Canonical progress](../.agent/context/changes/link-deletion/progress.md).
+
+## Analysis and topic chat — local delivery
+
+Owner requested analysis/topic investigation, web search only when necessary,
+at most one search per query, and native completion on 2026-10-18. M5/M6/M9 now
+include persisted private chat, restored passage citations, conditional research,
+shared monthly spending and durable duplicate-request protection. Requires
+migration 000013 and coordinated backend/frontend deployment. Local evidence:
+283 backend tests, 57 frontend tests, 33 chat SQL assertions and four chat
+concurrency checks, plus the existing SQL/regression gates. Toolkit/browser QA
+and hosted paid acceptance remain separate; no production readiness is inferred.
+[Canonical progress](../.agent/context/changes/analysis-chat/progress.md).
+
+## Official X posts and threads — local delivery
+
+On 2026-10-18 the owner requested official X ingestion and selected individual
+posts plus full threads. C7.1 is implemented locally with long-post text, archive
+pagination, completeness guards and distinct manual fallback explanations.
+Migration 000012 fences potentially billed attempts across crashes; a server
+flag explicitly approves X account billing outside the model/Brave ledger.
+[Canonical progress](../.agent/context/changes/x-ingestion/progress.md) ·
+[Verification evidence](../.agent/context/changes/x-ingestion/evidence.md).
+Hosted migration, endpoint/billing approval and live acceptance remain external.

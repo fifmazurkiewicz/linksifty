@@ -323,6 +323,42 @@ def concurrent_deletion(environment: dict[str, str]) -> None:
             execute(f"delete from auth.users where id='{user}';", environment)
 
 
+def concurrent_x_admission(environment: dict[str, str]) -> None:
+    """Only one connection may admit potentially billed reads for a job."""
+    user = str(uuid4())
+    try:
+        execute(
+            f"""
+            insert into auth.users(id,email) values ('{user}','x-race@example.test');
+            select public.get_or_create_account_profile('{user}','x-race@example.test',true);
+            select public.submit_fetch_items('{user}',array['https://x.com/user/status/100']);
+            """,
+            environment,
+        )
+        job = json.loads(
+            execute(
+                f"select row_to_json(j) from public.claim_processing_job('{user}') j;",
+                environment,
+            ).strip()
+        )
+        barrier = Barrier(2)
+
+        def admit() -> str:
+            barrier.wait(timeout=10)
+            return execute(
+                f"select admitted from public.begin_x_fetch('{user}',"
+                f"'{job['id']}','{job['lease_token']}');",
+                environment,
+            ).strip()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = pool.submit(admit), pool.submit(admit)
+            assert sorted([first.result(), second.result()]) == ["f", "t"]
+        print("PASS: concurrent X reads admit exactly one attempt")
+    finally:
+        execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -340,6 +376,8 @@ def main() -> int:
         "assessment_rubric.test.sql",
         "assessment_calibration.test.sql",
         "delete_items.test.sql",
+        "analysis_chat.test.sql",
+        "x_ingestion.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -349,6 +387,7 @@ def main() -> int:
     concurrent_duplicate_submissions(environment)
     concurrent_rubric_snapshot(environment)
     concurrent_deletion(environment)
+    concurrent_x_admission(environment)
     return 0
 
 

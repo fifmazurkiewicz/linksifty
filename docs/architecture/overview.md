@@ -50,8 +50,9 @@ and the deterministic score/verdict remains in pure domain code.
 
 These paths have mocked application/API/adapter tests; PostgreSQL/hosted checks
 are separate gates. The older standalone `AssessmentService` remains a draft-to-
-score utility; it is not the runtime provider orchestration path. Dedicated X,
-chat and additional-source enrichment remain planned.
+score utility; it is not the runtime provider orchestration path. Primary X
+ingestion has an optional official adapter (see below). Analysis/topic chat is
+implemented locally (see below); hosted chat/source acceptance remains separate.
 
 ## Data and trust
 
@@ -133,7 +134,7 @@ An explicit unchecked Add checkbox discloses a short public-article query and th
 
 The job first validates/acquires the primary source. Research reserves a separate provider-tagged amount under the same owner budget lock, sends one query, then checks at most 20 additional pages through the safe fetcher. Transient search responses/snippets are not evidence or stored. Normalized content hashes and host checks reduce duplicates; these heuristics do not prove independence. Bounded fetched passages and source identities are owner-scoped in job search_context and expire with the item. A confirmed search response settles at operator-configured plan price; uncertain outcomes remain reserved and are never automatically resent. Model retries reuse persisted research. Usage labels disclose actual OpenRouter cost versus plan-derived Brave charge.
 
-The model receives primary/additional source texts, not a browsing tool. The model selects a supplied passage ID per criterion. The adapter derives the original source and exact text; application and SQL validate offsets against stored material. For v2, cross-source confirmation is not_verified without an external supporting citation; legacy v1 retains its minimum-score guard. Detail exposes checked-source URLs and unavailable/uncertain status. No claim of complete factual verification, official X integration or grounded chat.
+The model receives primary/additional source texts, not a browsing tool. The model selects a supplied passage ID per criterion. The adapter derives the original source and exact text; application and SQL validate offsets against stored material. For v2, cross-source confirmation is not_verified without an external supporting citation; legacy v1 retains its minimum-score guard. Detail exposes checked-source URLs and unavailable/uncertain status. Source discovery does not establish complete factual verification or grounded chat.
 
 Langfuse root/fetch/research/generation observations and discrete events capture the complete relevant analysis flow: stages, search/skip/fetch decisions, source passages, model messages and completion, citation validation, budget changes, persistence, heartbeat and recovery. Article/model content is included by default when existing LANGFUSE_ENABLED is enabled, per the owner’s revised decision. Trace fields are bounded and redacted; configured secrets, account identity, lease tokens and authentication headers are excluded. Exceptions are reduced to class names; telemetry errors neither repeat nor stop business work. This is best-effort observability, not a durable charge ledger. SDK shutdown is flushed outside the event loop. Langfuse defaults off; its access and retention are operator-managed independently of Supabase cleanup.
 
@@ -177,3 +178,66 @@ main repository's HEAD.
 Coordinated database/backend/frontend rollout and live model calibration remain
 external activation steps; local mocked tests cannot establish model agreement
 on live articles.
+
+## Official X acquisition — local implementation, 2026-10-18
+
+For primary X URLs, ProcessingService selects the injected XAdapter only when
+X_API_READS_ENABLED and the server token are configured. Ordinary pages and
+additional research sources use the existing safe fetcher. Migration 000012
+adds a private atomic begin_x_fetch RPC: verified owner, current lease, account
+access and item expiry must hold, and each job may admit only one X attempt.
+A recovered attempt requests paste; cached complete text is reused.
+
+The adapter uses fixed api.x.com HTTPS lookup/full-archive endpoints, at most
+12 HTTP requests, 100 author posts, 1 MB response bodies, 100 KB source text
+and a 60-second deadline. All returned pages and author/conversation identities
+are checked, parents must connect to the root, and long text replaces previews.
+Source URLs stay with each post. Missing/partial, multimedia and Article content
+requests paste before model reservation. X may omit undisclosed deleted/hidden
+posts; the result represents the accessible indexed snapshot. X billing is
+operator-approved and separate from the model/Brave ledger.
+
+- [Acquisition contract HTML](../../.agent/context/changes/x-ingestion/x-workflow.html)
+  · [Editable JSON](../../.agent/context/changes/x-ingestion/x-workflow.json)
+- [Progress and activation boundaries](../../.agent/context/changes/x-ingestion/progress.md)
+
+The diagram describes the contract; it does not claim repository snapshot
+provenance or hosted X validation. Local tests mock all provider requests.
+
+## Analysis and topic chat — local implementation, 2026-10-18
+
+`ChatService` orchestrates owner-scoped context/history, durable question claims,
+model calls and conditional research. `api/chat.py` only handles authentication,
+input validation, response privacy and error translation. `main.py` wires the
+existing OpenRouter, Brave and safe fetcher with `ChatRepository`; no new provider
+framework, dependency or worker is added.
+
+The first structured generation answers from supplied passages or requests one
+targeted search for missing evidence. A unique search reservation admits at most
+one Brave request for the turn. Up to 20 result URLs are safely fetched, with four
+concurrent reads and bounded content/time. One final generation cannot request
+another search. Every answer paragraph selects known passages; the application
+restores exact excerpts and source URLs. Search snippets are never evidence.
+Saved analysis describes its historical assessment, rather than independently
+verifying article claims. Model grounding/necessity still needs live evaluation.
+
+Migration 000013 adds RLS-protected `chat_turns` with a composite item/owner
+foreign key. Browser writes are revoked. A client request UUID admits one
+executor, one active turn per item, and unique decision/search/answer billing
+slots. All reservations share the existing user settings lock and USD ledger.
+Unknown costs remain reserved; generation IDs can settle after deletion. Item
+deletion/expiry cascades all chat content; late answer writes require an existing,
+unexpired, owner-matching turn and completed item. Chat GET/POST uses no-store.
+
+Chat restores the latest 100 questions. Generation uses the recent eight completed
+turns, analysis/original text and up to 30 relevant saved research sources, with
+byte-bounded passage selection. Word overlap is a simple retrieval heuristic,
+not exhaustive evidence coverage. Interrupted turns become explicit failures
+after five minutes on a later read; paid calls are never automatically retried.
+
+- [Behavioral contract HTML](../../.agent/context/changes/analysis-chat/chat-workflow.html)
+  · [Editable JSON](../../.agent/context/changes/analysis-chat/chat-workflow.json)
+- [Progress and verification](../../.agent/context/changes/analysis-chat/progress.md)
+
+Archify source/artifact checks pass. Browser QA is skipped because Chrome/Chromium
+is unavailable; no perceptual review or hosted acceptance is claimed.

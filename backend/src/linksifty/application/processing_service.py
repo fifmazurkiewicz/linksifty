@@ -24,10 +24,11 @@ from linksifty.application.processing_contracts import (
     UserSettings,
 )
 from linksifty.application.research_contracts import SearchProvider
-from linksifty.domain.acquisition import FetchResult
+from linksifty.domain.acquisition import FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.models import AssessmentDraft, Criterion, CriterionName, HypeSignal
 from linksifty.domain.scoring import complete_assessment
+from linksifty.domain.x_urls import is_x_url, x_post_id
 
 _logger = logging.getLogger(__name__)
 HEARTBEAT_SECONDS = 15
@@ -43,7 +44,9 @@ class ProcessingService:
         search: SearchProvider | None = None,
         search_price: Decimal = Decimal(0),
         telemetry: Telemetry | None = None,
+        x_fetch: Callable[[str], Awaitable[FetchResult]] | None = None,
     ) -> None:
+        self._x_fetch = x_fetch
         self._search = search
         self._search_price = search_price
         self._telemetry = telemetry
@@ -322,6 +325,18 @@ class ProcessingService:
         job.search_context = context
         return context
 
+    async def _fetch_primary(self, job: ProcessingJob) -> FetchResult:
+        url = job.original_url or ""
+        if not is_x_url(url):
+            return await self._fetch(url)
+        if x_post_id(url) is None:
+            return FetchResult(failure=FetchFailure.UNSAFE_URL)
+        if self._x_fetch is None:
+            return FetchResult(failure=FetchFailure.X_NOT_CONFIGURED)
+        if not await self._store.begin_x_fetch(job):
+            return FetchResult(failure=FetchFailure.X_ATTEMPT_UNCERTAIN)
+        return await self._x_fetch(url)
+
     async def process(self, job: ProcessingJob) -> None:
         provider = self._provider
         if provider is None:
@@ -336,7 +351,7 @@ class ProcessingService:
                 if self._telemetry
                 else nullcontext()
             ):
-                fetched = await self._fetch(job.original_url or "")
+                fetched = await self._fetch_primary(job)
             self._event(
                 "source.fetched", url=job.original_url, text=fetched.text, failure=fetched.failure
             )

@@ -17,7 +17,7 @@ service. Mock tests and local UI checks do not certify RLS or provider behavior.
 | Render API | Authentication, resumable bounded runner, OpenRouter, progress SSE and recovery routes | Hosted restart/streaming and verified provider cost |
 | Vercel frontend | Google session, queue, live progress, detail/citations, paste, settings and admin limits | Rebuild with matching API, hosted two-account check |
 | OpenRouter | Actual-cost adapter and strict source-citation validation | Server key and verified model; explicitly approved paid acceptance |
-| X/chat | Deferred; unsupported X content requests manual paste | Separate roadmap scope |
+| X | Official post/thread reads implemented locally; operator opt-in required | Migration 000012, server token and full-archive search access |
 
 Setup order: **Supabase → Render → Vercel → final CORS/Auth URLs → optional
 provider credentials → staging checks → release verification after coding**.
@@ -191,7 +191,8 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `RESEND_FROM_EMAIL` | Sender identity on a domain verified in Resend, e.g. `Linksifty <noreply@example.com>` | Yes for approval email |
 | `OPENROUTER_API_KEY` | Server-only OpenRouter inference key | Required for assessment; missing key yields an explicit not-configured state |
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
-| `X_API_BEARER_TOKEN` | Official X app-only bearer token | Optional preparation; X adapter is unfinished |
+| `X_API_BEARER_TOKEN` | Official X app-only bearer token | Server-only; post lookup and full-archive search access required |
+| `X_API_READS_ENABLED` | Explicit operator approval for potentially billed X reads | Defaults false; token alone does not enable reads |
 | `PORT` | Supplied by Render | Do not manually set |
 
 On Docker, changing Render `UV_VERSION` or `PYTHON_VERSION` does not change the
@@ -342,23 +343,52 @@ Sources checked 2026-10-15: [model context](https://openrouter.ai/openai/gpt-4o-
 [provider price ceilings](https://openrouter.ai/docs/guides/routing/provider-selection),
 [usage cost and generation lookup](https://openrouter.ai/docs/cookbook/administration/usage-accounting).
 
-## 8. Prepare official X access (optional until C7)
+## 8. Enable official X post and thread reads (optional)
 
 1. Open the [X Developer Console](https://console.x.com/), sign in, and complete
    developer onboarding/use-case details.
 2. Create an application and obtain an **app-only Bearer Token** for public-data
    reads. Save it in your password manager.
-3. Review access to the required post/thread read endpoints and current billing
-   in the console. Do not purchase access merely to finish unrelated coding.
+3. Review access and current billing for `GET /2/tweets/:id` and
+   `GET /2/tweets/search/all` in the console. Full-archive search is required
+   even for a single post, so older thread continuations are not silently omitted.
 4. Store that token only on Render as `X_API_BEARER_TOKEN`.
 5. This app does not currently require user OAuth posting permissions, access-token
    secrets, or an OAuth callback for reading public posts.
 
 [Official X access/credential guide](https://docs.x.com/x-api/getting-started/getting-access).
 
-The X adapter is unfinished. Having a token does not activate X ingestion;
-C7.1 will implement official reads and explicit manual-content fallback for
-inaccessible posts/access limits. If you are deferring X, leave this variable unset.
+Apply `20261018_000012_x_ingestion.sql` before deploying the backend, then set
+`X_API_READS_ENABLED=true` on Render only after approving the X account's billing
+and endpoint access. Leave it false to retain manual paste. X charges belong to
+the operator's X account and are **outside Linksifty's model/Brave monthly ledger**;
+configure X account limits accordingly. This implementation does not claim to
+measure or cap X's invoice.
+
+The adapter reads the selected post, optionally its conversation root, then
+paginates that author's conversation through full-archive search. Limits are
+12 HTTP requests (two lookups plus ten search pages), 100 unique author posts,
+1 MB per response, 100 KB final UTF-8 text and 60 seconds per acquisition. Each
+post retains its canonical URL in the saved text. Long-post `note_post.text`
+(legacy `note_tweet.text`) replaces the short preview. The archive start is
+explicitly set to 2006-03-21; recent search is never a fallback.
+
+Missing parents/pages, API partial errors, absent long text, images/video/polls,
+quote/repost dependencies and X Article previews request manually pasted content.
+Only parent-connected posts by the root author form the thread; other users'
+replies are not assessment source text. The API cannot prove undisclosed deleted
+or hidden descendants or future additions; this is the accessible indexed thread
+snapshot, not a guarantee about all content ever posted.
+
+Before any X HTTP request, an owner/lease-fenced database RPC marks the job's
+attempt. Interrupted jobs cannot automatically repeat potentially billed reads;
+they request paste. Successfully cached text is reused for later analysis.
+401/402/403, 404 and 429 get distinct queue explanations. Additional-source
+research never uses the X adapter or incurs X reads. No live X acceptance has
+been performed by the local mock tests.
+
+Links already awaiting manual content stay there after rollout. Paste the full
+thread, or explicitly delete and re-add the link after enabling the integration.
 
 ## 9. Local development environment
 
@@ -377,6 +407,7 @@ SUPABASE_SERVICE_ROLE_KEY=<sb_secret-key-or-legacy-service-role-JWT>
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4o-mini
 X_API_BEARER_TOKEN=
+X_API_READS_ENABLED=false
 LINKSIFTY_DEMO_MODE=false
 FRONTEND_ORIGIN=http://localhost:5173
 ```
@@ -741,7 +772,8 @@ application code back; an old frontend must not render v2 rows.
 Source checking remains one explicitly opted-in Brave request per public link,
 now requesting 20 results and attempting up to 20 additional page fetches.
 Failed/duplicate pages can reduce the usable count. There is no dedicated
-Reddit or X research; the current fetcher still rejects X/Twitter. Comparison
+Reddit or X research; the additional-source fetcher rejects X/Twitter. Primary
+X submissions have their own explicitly enabled official API adapter. Comparison
 sources are bounded excerpts; the model input budget may shorten them further.
 Paid-call reservations, source safety, owner isolation and no-implicit-retry
 rules remain required.
@@ -803,3 +835,50 @@ with reservation admission and late-result persistence. Hosted acceptance should
 use an explicitly disposable link: cancel once, then confirm single deletion;
 repeat with a selected group and verify database content removal and unchanged
 billing totals. No hosted content has been deleted by these local tests.
+
+## Analysis and topic chat (migration 000013)
+
+Apply `supabase/migrations/20261018_000013_analysis_chat.sql` after all earlier
+migrations, then deploy matching backend and frontend. The migration adds
+`chat_turns`, owner-consistent references, server-only chat RPCs and unique
+per-question reservation slots in the existing USD ledger. Existing analyses
+and legacy `chat_messages` remain compatible; new conversations use turn records.
+
+Reuse server-only `OPENROUTER_API_KEY` and the already supported `OPENROUTER_MODEL`.
+Optional Brave research reuses `BRAVE_SEARCH_API_KEY` and the existing positive,
+operator-verified search price. No new model, agent framework or worker is required.
+The UI discloses model/search spending before Send; sending consents to the bounded
+question operation. Without Brave configuration chat answers from saved material.
+
+Each question first uses saved analysis/source passages, up to 30 relevant saved
+research sources and the last eight completed turns. Passage selection is bounded
+and uses question-word overlap; it is not exhaustive retrieval. The UI restores
+the latest 100 questions. Only the model's explicit evidence-gap decision can
+trigger one search. The server makes no more than one Brave request, fetches up
+to 20 result URLs with four concurrent reads and ten seconds per read, and runs
+one final generation with search disabled. Failed/partial sources and snippets
+never count as evidence. Search results are untrusted and fetched under existing
+URL/DNS/redirect controls.
+
+Model decision, search and final answer reserve distinct slots under the same
+settings lock as analysis work. Generations settle actual reported USD, search
+uses the configured rate, and unknown costs remain reserved. Refresh/retry with
+the same request UUID returns stored state. Only one turn runs per item; an
+interrupted turn becomes failed after five minutes on the next read/submission.
+There is no automatic paid retry. A new explicit submission after a known failed
+turn is a new question and may incur cost. Pending work can survive a browser
+disconnect; reopening chat polls its state. No streaming response is required.
+
+Delete/expiry cascades turn text, evidence and saved research. Ledger rows retain
+no question/source content and are detached for late cost settlement. The existing
+authenticated-visit reconciliation can settle orphan model reservations with a
+generation ID. No-ID uncertain outcomes retain the existing operator-reconciliation
+requirement. Chat does not change saved scores, verdicts or assessment rules.
+
+Local gates include `supabase/tests/analysis_chat.test.sql` and
+`backend/tests/integration/check_chat_database.py` using the explicit disposable
+database convention in section 13. Hosted acceptance remains manual: verify two
+accounts' isolation, one saved-context answer, one necessary search with supporting
+passages, a failed/duplicate submission, budget exhaustion and deletion while a
+question is pending. Paid model quality and the decision to research need live
+evaluation under an explicitly approved budget. Local tests never call paid APIs.

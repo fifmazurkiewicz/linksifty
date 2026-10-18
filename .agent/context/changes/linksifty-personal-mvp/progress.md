@@ -22,7 +22,7 @@ Jednostką wykonania jest 40 mniejszych zadań w completion plan. **C2.1 Done:**
 | C4 Durable execution | Planned | Lease fencing, restart/resume, atomic finalization |
 | C5 Product API | Planned | Paste/duplicates/read/delete/settings and owner tests |
 | C6 Authenticated frontend | Planned | Login, detail/recovery/filters/settings, behavior tests |
-| C7 Grounded chat/X | Planned | Saved-evidence chat, official X, cited-source cap |
+| C7 Grounded chat/X | In progress (local code complete) | Chat/X/source code and local checks complete; hosted provider/quality acceptance remains |
 | C8 Release tooling | In progress | C8.1 CI Done locally; logging/deploy docs/full audit remain |
 | E1 External activation | Blocked (live verification only) | Filip's Supabase/X/OpenRouter configuration and hosted acceptance |
 
@@ -41,3 +41,7 @@ Jobs are persisted but not executed by a runner. Retry rules and SQL claims need
 ## Verification
 
 73 backend tests (38 fetcher/security cases), strict mypy and Ruff passed for C2.1 on 2026-10-13. Frontend lint/build and locked installs passed earlier for C8.1; no frontend changes in C2.1. C8.1 workflow runs on GitHub; Docker build/smoke and both package jobs passed in run 38480767728 on 2026-10-14. No frontend behavior test runner exists yet (C6.1). See evidence.md. The agent-toolkit executable is missing, so its gate has not passed. Diagrams and boards are planning artifacts; their verification is recorded separately. No real provider calls, hosted migrations or deployments were performed.
+
+## Analysis/topic chat — 2026-10-18
+
+C7.3–C7.5 are locally implemented with saved history, restored citations, conditional one-search research and shared budget/idempotency. Current chat execution/verification is canonical in [analysis-chat/progress.md](../analysis-chat/progress.md). Migration 000013 and matching backend/frontend deployment remain operator steps. Earlier gap lists above are historical; they do not describe the current chat implementation.

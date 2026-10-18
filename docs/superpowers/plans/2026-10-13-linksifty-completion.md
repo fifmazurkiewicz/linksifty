@@ -123,13 +123,13 @@ Order: C1 and independent C2/C3 tests first, then C4 → C5 → C6/C7 → C8. On
 
 ### C7 — Grounded chat and official X
 
-**Status:** Planned · **Original reference:** Tasks 5–6 / Phase 6 · **Owner:** Codex  
+**Status:** In progress (chat/X/source code implemented locally; hosted acceptance remains) · **Original reference:** Tasks 5–6 / Phase 6 · **Owner:** Codex
 **Dependencies:** C2, C3, C5  
-**Files:** application/chat_service.py, infrastructure/x_adapter.py, api/routes/chat.py, frontend/src/features/chat/
+**Files:** application/chat_service.py, infrastructure/x_adapter.py, api/chat.py, frontend/src/features/queue/AnalysisChat.tsx
 
-**Deliverable:** Item-bound chat using saved evidence and a dedicated official X acquisition adapter.
+**Deliverable:** Item-bound analysis/topic chat using saved evidence and conditional one-search research and a dedicated official X acquisition adapter.
 
-**Acceptance:** Reject other-user and incomplete items. Answers cite saved excerpts or decline unsupported questions; input text cannot override grounding rules. Charge chat through the shared budget. X uses official API only and explains access/tier failures. Check no more than five cited sources.
+**Acceptance:** Reject other-user and incomplete items. Answers cite saved excerpts or decline unsupported questions; input text cannot override grounding rules. Charge chat through the shared budget. X uses official API only and explains access/tier failures. For each question, search only when necessary and at most once; safely read up to 20 results. Restore exact passage evidence.
 
 **Verification:** Mock X and OpenRouter tests for access errors, unsupported claims, invalid citation IDs, injection attempts, source cap and budget rejection.
 
@@ -613,7 +613,7 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 #### C7.1 — Oficjalny adapter X
 
-**Status:** Planned · **Zależności:** C2.5
+**Status:** Done (local implementation; hosted X access remains external) · **Zależności:** C2.5
 
 **Opis:** Obsłuż URL post/thread przez oficjalne X API i wspólny SourceResult, bez generycznego scrapingu X.
 
@@ -621,9 +621,11 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 **Sprawdzenie:** Mock odpowiedzi X: sukces, usunięty post, 401/403/429 i niepełna treść.
 
-- [ ] Kod i przypadki błędów.
-- [ ] Testy/quality gates oraz evidence.md.
-- [ ] Zaktualizowany progress i kanban.
+- [x] Kod i przypadki błędów.
+- [x] Mock/SQL/UI tests and evidence.md; unavailable toolkit/browser gates documented.
+- [x] Updated progress and derived boards.
+
+Local implementation and boundaries: [canonical progress](../../../.agent/context/changes/x-ingestion/progress.md). Migration 000012 and explicit operator enablement required.
 
 #### C7.2 — Sprawdzenie do pięciu źródeł
 
@@ -641,21 +643,23 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 #### C7.3 — Use case grounded chat
 
-**Status:** Planned · **Zależności:** C3.3, C3.4, C3.2
+**Status:** Done (local implementation; hosted quality acceptance remains) · **Zależności:** C3.3, C3.4, C3.2
 
-**Opis:** Odpowiadaj tylko z własnej zapisanej treści i cytatów; odmów niepopartym pytaniom i ignoruj instrukcje w source.
+**Opis:** Answer analysis/topic questions using saved evidence; search only for missing evidence, once per question. Cite exact supplied passages, decline unsupported claims and ignore source instructions.
 
 **Gotowe, gdy:** Nie ma odpowiedzi o obcym/niedokończonym item; każda claim ma prawidłowy citation_id; chat używa wspólnego cap.
 
 **Sprawdzenie:** Mock provider: unsupported pytanie, injection w source, fabricated IDs i budget rejection.
 
-- [ ] Kod i przypadki błędów.
-- [ ] Testy/quality gates oraz evidence.md.
-- [ ] Zaktualizowany progress i kanban.
+- [x] Kod i przypadki błędów.
+- [x] Testy/quality gates oraz evidence.md.
+- [x] Zaktualizowany progress i kanban.
+
+**Evidence 2026-10-18:** [Chat progress](../../../.agent/context/changes/analysis-chat/progress.md); 283 backend / 57 frontend tests, chat SQL/RLS and concurrency gates. Migration 000013; unavailable toolkit/browser and hosted acceptance remain separate.
 
 #### C7.4 — API i historia rozmowy
 
-**Status:** Planned · **Zależności:** C7.3, C5.5
+**Status:** Done (local implementation; hosted quality acceptance remains) · **Zależności:** C7.3, C5.5
 
 **Opis:** Dodaj item-scoped chat endpoints, zapis wiadomości i walidację błędów; wiadomości wygasają z item.
 
@@ -663,13 +667,15 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 **Sprawdzenie:** HTTP test owner, incomplete item, historia i rollback/awaria.
 
-- [ ] Kod i przypadki błędów.
-- [ ] Testy/quality gates oraz evidence.md.
-- [ ] Zaktualizowany progress i kanban.
+- [x] Kod i przypadki błędów.
+- [x] Testy/quality gates oraz evidence.md.
+- [x] Zaktualizowany progress i kanban.
+
+**Evidence 2026-10-18:** [Chat progress](../../../.agent/context/changes/analysis-chat/progress.md); 283 backend / 57 frontend tests, chat SQL/RLS and concurrency gates. Migration 000013; unavailable toolkit/browser and hosted acceptance remain separate.
 
 #### C7.5 — UI czatu z cytatami
 
-**Status:** Planned · **Zależności:** C7.4, C6.4
+**Status:** Done (local implementation; hosted quality acceptance remains) · **Zależności:** C7.4, C6.4
 
 **Opis:** Dodaj chat na detail, pending message, retry błędu oraz linki do cytowanych excerptów.
 
@@ -677,9 +683,11 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 **Sprawdzenie:** Frontend mocked chat: pending/success/refusal/error, keyboard i cytaty.
 
-- [ ] Kod i przypadki błędów.
-- [ ] Testy/quality gates oraz evidence.md.
-- [ ] Zaktualizowany progress i kanban.
+- [x] Kod i przypadki błędów.
+- [x] Testy/quality gates oraz evidence.md.
+- [x] Zaktualizowany progress i kanban.
+
+**Evidence 2026-10-18:** [Chat progress](../../../.agent/context/changes/analysis-chat/progress.md); 283 backend / 57 frontend tests, chat SQL/RLS and concurrency gates. Migration 000013; unavailable toolkit/browser and hosted acceptance remain separate.
 
 ### C8 — Jakość i wydanie
 

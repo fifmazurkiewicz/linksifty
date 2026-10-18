@@ -120,3 +120,17 @@ source text, analyses, citations, chats and jobs. Billing records remain for
 charge reconciliation; deleting content does not refund charges or trial usage.
 Requires migration `20261017_000011_delete_items.sql`; see the
 [activation notes](docs/deployment/setup.md#permanent-link-deletion-migration-000011).
+
+### Chat about an analysis and its topic
+
+Completed analyses now include a saved conversation with inspectable source
+passages. Chat uses the analysis, original article, saved research and recent
+conversation first. Only missing evidence triggers web research: at most one
+Brave search per question, followed by safe page reads and a final answer.
+Model and search calls share the existing monthly budget. Request IDs prevent
+duplicate paid work after a network error. Deleting/expiring the item removes
+chat content while preserving charge reconciliation.
+
+Requires `20261018_000013_analysis_chat.sql` and matching backend/frontend.
+Existing OpenRouter and optional Brave configuration is reused; chat works
+with saved material when Brave is unavailable. See [rollout and recovery](docs/deployment/setup.md#analysis-and-topic-chat-migration-000013).

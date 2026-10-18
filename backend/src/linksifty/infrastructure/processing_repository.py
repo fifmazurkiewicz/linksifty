@@ -20,6 +20,10 @@ from linksifty.infrastructure.supabase_repository import RepositoryUnavailable, 
 
 
 class ProcessingRepository(SupabaseRepository):
+    async def begin_x_fetch(self, job: ProcessingJob) -> bool:
+        rows = await self._rpc("begin_x_fetch", job.user_id, **self._job_values(job))
+        return bool(rows and rows[0].get("admitted") is True)
+
     async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
         return [
             ItemRecord.model_validate(row)

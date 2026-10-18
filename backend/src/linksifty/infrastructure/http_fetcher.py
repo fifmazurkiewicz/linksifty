@@ -12,6 +12,7 @@ import httpx
 
 from linksifty.domain.acquisition import FetchFailure as FetchFailure
 from linksifty.domain.acquisition import FetchResult as FetchResult
+from linksifty.domain.x_urls import X_HOSTS
 
 
 class _TextParser(HTMLParser):
@@ -110,7 +111,7 @@ async def _fetch(url: str, transport: httpx.AsyncBaseTransport | None) -> FetchR
         if target is None:
             return FetchResult(failure=FetchFailure.UNSAFE_URL)
         host = target.raw_host.decode("ascii")
-        if host.rstrip(".") in {"x.com", "twitter.com", "www.x.com", "www.twitter.com"}:
+        if host.rstrip(".") in X_HOSTS:
             return FetchResult(failure=FetchFailure.UNSUPPORTED)
         try:
             addresses = await _addresses(

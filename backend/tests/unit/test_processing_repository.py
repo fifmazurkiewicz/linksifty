@@ -1,12 +1,39 @@
 import asyncio
+import json
 from decimal import Decimal
 from uuid import UUID
 
 import httpx
 
+from linksifty.application.processing_contracts import ProcessingJob
 from linksifty.infrastructure.processing_repository import ProcessingRepository
 
 USER = UUID("11111111-1111-4111-8111-111111111111")
+
+
+def test_x_admission_is_owner_and_lease_scoped_and_checks_result() -> None:
+    job = ProcessingJob(
+        id=USER,
+        item_id=USER,
+        user_id=USER,
+        lease_token=UUID("22222222-2222-4222-8222-222222222222"),
+    )
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/rpc/begin_x_fetch")
+        assert json.loads(request.content) == {
+            "p_user_id": str(USER),
+            "p_job_id": str(job.id),
+            "p_lease": str(job.lease_token),
+        }
+        return httpx.Response(200, json=[{"admitted": True}])
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            repo = ProcessingRepository("https://supabase.example", "sb_secret_test", client)
+            assert await repo.begin_x_fetch(job)
+
+    asyncio.run(run())
 
 
 def test_usage_is_owner_scoped_and_preserves_subcent_cost() -> None:

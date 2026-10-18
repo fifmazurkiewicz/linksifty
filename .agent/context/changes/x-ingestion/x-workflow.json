@@ -1,0 +1,228 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "X Post and Thread Acquisition Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/x-ingestion/x-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "acquire",
+      "label": "Owner-scoped acquisition"
+    },
+    {
+      "id": "early",
+      "label": "Acquisition fallbacks",
+      "variant": "exception"
+    },
+    {
+      "id": "complete",
+      "label": "Complete accessible thread"
+    },
+    {
+      "id": "manual",
+      "label": "Explicit fallback",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "submit",
+      "lane": "acquire",
+      "col": 0,
+      "type": "frontend",
+      "label": "Submit X URL",
+      "sublabel": "Post or thread position",
+      "width": 160
+    },
+    {
+      "id": "enabled",
+      "lane": "acquire",
+      "col": 1,
+      "type": "security",
+      "label": "Approve X reads",
+      "sublabel": "Server flag and token",
+      "width": 160
+    },
+    {
+      "id": "attempt",
+      "lane": "acquire",
+      "col": 2,
+      "type": "database",
+      "label": "Admit one attempt",
+      "sublabel": "Owner and lease fenced",
+      "width": 160
+    },
+    {
+      "id": "lookup",
+      "lane": "acquire",
+      "col": 3,
+      "type": "cloud",
+      "label": "Official lookup",
+      "sublabel": "Selected post and root",
+      "width": 160
+    },
+    {
+      "id": "search",
+      "lane": "complete",
+      "col": 3,
+      "type": "cloud",
+      "label": "Archive search",
+      "sublabel": "Author and conversation",
+      "width": 160
+    },
+    {
+      "id": "validate",
+      "lane": "complete",
+      "col": 2,
+      "type": "security",
+      "label": "Validate thread",
+      "sublabel": "All pages and parent links",
+      "width": 160
+    },
+    {
+      "id": "save",
+      "lane": "complete",
+      "col": 1,
+      "type": "database",
+      "label": "Save source",
+      "sublabel": "Complete text and URLs",
+      "width": 160
+    },
+    {
+      "id": "assess",
+      "lane": "complete",
+      "col": 0,
+      "type": "backend",
+      "label": "Assess evidence",
+      "sublabel": "Existing budget and scorer",
+      "width": 160
+    },
+    {
+      "id": "paste",
+      "lane": "manual",
+      "col": 2,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "No partial assessment",
+      "width": 160
+    },
+    {
+      "id": "disabled",
+      "lane": "early",
+      "col": 1,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "X reads are disabled",
+      "width": 160
+    },
+    {
+      "id": "uncertain",
+      "lane": "early",
+      "col": 2,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "Prior attempt is fenced",
+      "width": 160
+    },
+    {
+      "id": "apierror",
+      "lane": "early",
+      "col": 4,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "X access or request failed",
+      "width": 160
+    }
+  ],
+  "edges": [
+    {
+      "from": "submit",
+      "to": "enabled"
+    },
+    {
+      "from": "enabled",
+      "to": "attempt",
+      "label": "enabled",
+      "variant": "security"
+    },
+    {
+      "from": "attempt",
+      "to": "lookup",
+      "label": "first attempt",
+      "variant": "emphasis"
+    },
+    {
+      "from": "lookup",
+      "to": "search",
+      "label": "root found"
+    },
+    {
+      "from": "search",
+      "to": "validate",
+      "label": "all pages"
+    },
+    {
+      "from": "validate",
+      "to": "save",
+      "label": "complete",
+      "variant": "emphasis"
+    },
+    {
+      "from": "save",
+      "to": "assess",
+      "label": "reuse cache"
+    },
+    {
+      "from": "enabled",
+      "to": "disabled",
+      "label": "disabled",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "attempt",
+      "to": "uncertain",
+      "label": "prior attempt",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "validate",
+      "to": "paste",
+      "label": "incomplete",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "search",
+      "to": "apierror",
+      "label": "API failure",
+      "variant": "dashed",
+      "role": "error"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Bounded official reads",
+      "items": [
+        "At most 12 HTTP requests, 100 author posts and 60 seconds.",
+        "X billing belongs to the operator account, outside model and Brave usage.",
+        "No scraping, recent-search downgrade or automatic attempt retry."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Completeness boundary",
+      "items": [
+        "Long-post text replaces previews; source URLs remain attached.",
+        "Missing parents, pages, media or Article text require paste.",
+        "Accessible indexed snapshot; hidden or deleted descendants cannot be proved.",
+        "Contract diagram; local tests do not establish hosted X access."
+      ]
+    }
+  ]
+}

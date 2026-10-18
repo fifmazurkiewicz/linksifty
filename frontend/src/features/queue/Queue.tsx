@@ -15,6 +15,11 @@ const reasons: Record<string, string> = {
   unsupported: 'This source format is not supported.', too_large: 'The page exceeds the size limit.',
   too_short: 'Not enough readable text was available.', unsafe_url: 'The page cannot be safely fetched.',
   unavailable: 'The page could not be fetched.', blocked: 'The page blocked access.',
+  x_not_configured: 'Automatic X fetching is not enabled. Paste the post or full thread to continue.',
+  x_access_denied: 'X denied API access. The server token, credits, or full-archive search access may need attention.',
+  x_not_found: 'X could not return this post. It may be deleted or unavailable to the API.',
+  x_rate_limited: 'X has reached its API rate limit. Paste the full thread to continue.',
+  x_attempt_uncertain: 'An earlier X fetch was interrupted. Paste the full thread to avoid repeating potentially billed reads.',
 }
 const modelReasons: Record<string, string> = {
   input_too_large: 'The source and assessment rules exceed the safe analysis size limit.',

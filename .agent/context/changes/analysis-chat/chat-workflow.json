@@ -1,0 +1,206 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Analysis and Topic Chat Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/analysis-chat/chat-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "reader",
+      "label": "Reader"
+    },
+    {
+      "id": "application",
+      "label": "Private conversation"
+    },
+    {
+      "id": "research",
+      "label": "Conditional public research"
+    },
+    {
+      "id": "recovery",
+      "label": "Safety and recovery",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "question",
+    "guard",
+    "decide",
+    "final",
+    "save",
+    "response"
+  ],
+  "nodes": [
+    {
+      "id": "question",
+      "lane": "reader",
+      "col": 0,
+      "type": "frontend",
+      "label": "Ask a question",
+      "sublabel": "Analysis or its topic",
+      "width": 160
+    },
+    {
+      "id": "response",
+      "lane": "reader",
+      "col": 5,
+      "type": "frontend",
+      "label": "Read the answer",
+      "sublabel": "Inspect cited passages",
+      "width": 160
+    },
+    {
+      "id": "guard",
+      "lane": "application",
+      "col": 1,
+      "type": "security",
+      "label": "Owner and request",
+      "sublabel": "Completed, unexpired item",
+      "tag": "Claim once",
+      "width": 160
+    },
+    {
+      "id": "decide",
+      "lane": "application",
+      "col": 2,
+      "type": "backend",
+      "label": "Answer or research",
+      "sublabel": "Saved relevant evidence",
+      "tag": "Reserve model cost",
+      "width": 160
+    },
+    {
+      "id": "final",
+      "lane": "application",
+      "col": 4,
+      "type": "backend",
+      "label": "Validate the answer",
+      "sublabel": "Known passage IDs",
+      "tag": "Fail closed",
+      "width": 160
+    },
+    {
+      "id": "save",
+      "lane": "application",
+      "col": 5,
+      "type": "database",
+      "label": "Save the turn",
+      "sublabel": "Deletion fences late writes",
+      "width": 160
+    },
+    {
+      "id": "search",
+      "lane": "research",
+      "col": 2,
+      "type": "cloud",
+      "label": "One web search",
+      "sublabel": "Targeted public query",
+      "tag": "Unique reserved slot",
+      "width": 160
+    },
+    {
+      "id": "fetch",
+      "lane": "research",
+      "col": 3,
+      "type": "backend",
+      "label": "Fetch and answer",
+      "sublabel": "Safe bounded evidence",
+      "tag": "Search disabled",
+      "width": 160
+    },
+    {
+      "id": "stop",
+      "lane": "recovery",
+      "col": 1,
+      "type": "security",
+      "label": "Stop safely",
+      "sublabel": "Access, budget or failure",
+      "tag": "No paid retry",
+      "width": 160
+    }
+  ],
+  "edges": [
+    {
+      "from": "question",
+      "to": "guard",
+      "label": "Request UUID"
+    },
+    {
+      "from": "guard",
+      "to": "decide",
+      "label": "New request"
+    },
+    {
+      "from": "guard",
+      "to": "response",
+      "label": "Duplicate: saved state",
+      "role": "branch",
+      "route": "up-channel"
+    },
+    {
+      "from": "decide",
+      "to": "final",
+      "label": "Evidence sufficient",
+      "role": "main"
+    },
+    {
+      "from": "decide",
+      "to": "search",
+      "label": "New evidence needed",
+      "role": "branch"
+    },
+    {
+      "from": "search",
+      "to": "fetch"
+    },
+    {
+      "from": "fetch",
+      "to": "final",
+      "label": "Final generation"
+    },
+    {
+      "from": "final",
+      "to": "save",
+      "label": "Validated answer"
+    },
+    {
+      "from": "save",
+      "to": "response",
+      "fromSide": "right",
+      "toSide": "right",
+      "route": "outside-right",
+      "channelX": 1200
+    },
+    {
+      "from": "guard",
+      "to": "stop",
+      "label": "Denied or uncertain",
+      "role": "error",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Agreed behavior",
+      "items": [
+        "Use saved analysis, sources and recent conversation first.",
+        "At most one search per question; no pagination or recursive research.",
+        "This is the behavioral contract; local and hosted verification are recorded separately."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Spending and privacy",
+      "items": [
+        "Model and search reservations share the monthly budget.",
+        "Unknown charges remain reserved; duplicate requests never repeat calls.",
+        "Deletion and expiry cascade conversation content; billing metadata remains."
+      ]
+    }
+  ]
+}

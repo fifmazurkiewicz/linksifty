@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { api, type Assessment, type Item } from '../../lib/api'
 import { isRubric, criterionLabel } from '../../lib/rubric'
+import { AnalysisChat } from './AnalysisChat'
 
 function sourceLink(value: string | null | undefined): URL | null {
   try {
@@ -113,6 +114,7 @@ export function AssessmentDetail({ id, item, session, onBack }: {
           </li>)}</ul>}
         </div>
       </details>
+      <AnalysisChat key={`${session.user.id}:${id}`} id={id} session={session} />
     </>}
   </div>
 }
