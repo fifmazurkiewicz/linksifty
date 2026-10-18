@@ -85,7 +85,7 @@ it('keeps hype warnings visible and reveals their exact source evidence inline',
 
 it.each([
   ['ready', '1 page fetched', /presence alone does not/],
-  ['uncertain', 'Search outcome uncertain', /charge remains reserved/],
+  ['uncertain', 'Research outcome uncertain', /charge remains reserved/],
   ['failed', 'Sources not verified', /could not be verified/],
   ['not_requested', 'Primary source only', /independent sources were not searched/],
 ])('keeps %s research status visible and explains its limitations when opened', async (status, label, explanation) => {

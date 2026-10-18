@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a7c48e36-7381-4526-a1b6-af6617d6572e",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/source-relevance/source-selection-workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/source-relevance/source-selection-workflow.html",
+  "specification": {
+    "sha256": "58d64707acc54faa3207f6274e013f32c3957c8e96b8399251ff96c4c7382dd8",
+    "bytes": 6088
+  },
+  "artifact": {
+    "sha256": "878ea3d7cc1708b6e978a64f558912a3692a469d13bf7eb954bc3e5f72a6386b",
+    "bytes": 766734
+  }
+}

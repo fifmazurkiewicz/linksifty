@@ -1,0 +1,265 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Topic-Relevant Source Selection Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/source-relevance/source-selection-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "research",
+      "label": "Explicit consent, accountable selection, fetched evidence"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "consent",
+      "lane": "research",
+      "col": 1,
+      "type": "frontend",
+      "label": "Explicit source opt-in",
+      "sublabel": "Brave fee + Jev cost/data",
+      "width": 164,
+      "yOffset": -448
+    },
+    {
+      "id": "topic",
+      "lane": "research",
+      "col": 1,
+      "type": "backend",
+      "label": "Derive topic query",
+      "sublabel": "Complete primary prose",
+      "width": 164,
+      "yOffset": -336
+    },
+    {
+      "id": "search",
+      "lane": "research",
+      "col": 1,
+      "type": "cloud",
+      "label": "Reserve and search",
+      "sublabel": "One Brave call; settle fee",
+      "width": 164,
+      "yOffset": -224
+    },
+    {
+      "id": "admit",
+      "lane": "research",
+      "col": 1,
+      "type": "database",
+      "label": "Reserve selection",
+      "sublabel": "Owner, lease, shared budget",
+      "width": 164,
+      "yOffset": -112
+    },
+    {
+      "id": "select",
+      "lane": "research",
+      "col": 1,
+      "type": "cloud",
+      "label": "Classify candidates",
+      "sublabel": "One typed Jev batch",
+      "width": 164,
+      "yOffset": 0
+    },
+    {
+      "id": "gate",
+      "lane": "research",
+      "col": 1,
+      "type": "security",
+      "label": "Validate every choice",
+      "sublabel": "Relevant, confidence >=0.8",
+      "width": 164,
+      "yOffset": 112
+    },
+    {
+      "id": "fetch",
+      "lane": "research",
+      "col": 1,
+      "type": "backend",
+      "label": "Fetch accepted pages",
+      "sublabel": "Safe reads and deduplication",
+      "width": 164,
+      "yOffset": 224
+    },
+    {
+      "id": "cache",
+      "lane": "research",
+      "col": 1,
+      "type": "database",
+      "label": "Save fetched evidence",
+      "sublabel": "Snippets never evidence",
+      "width": 164,
+      "yOffset": 336
+    },
+    {
+      "id": "assess",
+      "lane": "research",
+      "col": 1,
+      "type": "backend",
+      "label": "Run assessment",
+      "sublabel": "Reuse saved research",
+      "width": 164,
+      "yOffset": 448
+    },
+    {
+      "id": "noquery",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "Primary article only",
+      "sublabel": "No readable topic",
+      "width": 164,
+      "yOffset": -336
+    },
+    {
+      "id": "nosearch",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "Primary article only",
+      "sublabel": "Uncertain search; hold fee",
+      "width": 164,
+      "yOffset": -224
+    },
+    {
+      "id": "nobudget",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "Primary article only",
+      "sublabel": "No selection budget",
+      "width": 164,
+      "yOffset": -112
+    },
+    {
+      "id": "hold",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "Primary article only",
+      "sublabel": "Unknown cost; retain hold",
+      "width": 164,
+      "yOffset": 0
+    },
+    {
+      "id": "none",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "Primary article only",
+      "sublabel": "Invalid or no relevant choice",
+      "width": 164,
+      "yOffset": 112
+    }
+  ],
+  "edges": [
+    {
+      "to": "topic",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "consent"
+    },
+    {
+      "to": "search",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "topic"
+    },
+    {
+      "to": "admit",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "search"
+    },
+    {
+      "to": "select",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "admit"
+    },
+    {
+      "to": "gate",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "select"
+    },
+    {
+      "to": "fetch",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "gate"
+    },
+    {
+      "to": "cache",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "fetch"
+    },
+    {
+      "to": "assess",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "from": "cache"
+    },
+    {
+      "from": "topic",
+      "to": "noquery",
+      "label": "empty topic",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "search",
+      "to": "nosearch",
+      "label": "uncertain",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "admit",
+      "to": "nobudget",
+      "label": "not admitted",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "select",
+      "to": "hold",
+      "label": "unknown cost",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "gate",
+      "to": "none",
+      "label": "none accepted",
+      "variant": "security",
+      "role": "error"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "One bounded selection request",
+      "items": [
+        "At most twenty Brave URL/title/snippet candidates; no invented URLs.",
+        "Maximum Jev reservation USD 0.02688; settle actual cost when known.",
+        "Unknown-cost calls are not repeated; record generation for reconciliation."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Evidence and rollout boundaries",
+      "items": [
+        "Jev selects by topic, including contrary evidence; confidence is provisional.",
+        "Transient snippets are neither citations nor persisted passages or trace payloads.",
+        "Trace each candidate URL, relevance, confidence and admission reason.",
+        "Contract diagram, not a frozen code map. Apply migration 000017 before deployment.",
+        "Pause old workers and submissions; old unsaved opt-ins are disabled."
+      ]
+    }
+  ]
+}

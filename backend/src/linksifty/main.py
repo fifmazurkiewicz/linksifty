@@ -32,6 +32,7 @@ from linksifty.infrastructure.openrouter_client import OpenRouterClient
 from linksifty.infrastructure.openrouter_images import OpenRouterImageReader
 from linksifty.infrastructure.processing_repository import ProcessingRepository
 from linksifty.infrastructure.resend_client import ResendApprovalMailer
+from linksifty.infrastructure.source_selector import JevSourceSelector
 from linksifty.infrastructure.supabase_auth import SupabaseAuthenticator
 from linksifty.infrastructure.supabase_repository import (
     AccountPolicyViolation,
@@ -199,6 +200,9 @@ def create_app(
                     if configuration.brave_search_api_key
                     else None,
                     search_price=configuration.brave_search_price,
+                    selector=JevSourceSelector(configuration.openrouter_api_key, client)
+                    if configuration.openrouter_api_key
+                    else None,
                     telemetry=telemetry,
                 )
                 application.state.chat = ChatService(
@@ -317,6 +321,9 @@ def create_app(
         return {
             "web_search": processor.search_available if processor else False,
             "search_price_usd": str(processor.search_price)
+            if processor and processor.search_available
+            else None,
+            "selection_max_usd": str(processor.selection_max_price)
             if processor and processor.search_available
             else None,
         }

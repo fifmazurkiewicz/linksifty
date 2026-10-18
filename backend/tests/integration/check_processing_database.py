@@ -417,6 +417,65 @@ def _concurrent_image_case(environment: dict[str, str], same_job: bool) -> None:
         execute(f"delete from auth.users where id='{user}';", environment)
 
 
+def concurrent_source_selection(environment: dict[str, str], same_job: bool = False) -> None:
+    user = str(uuid4())
+    try:
+        execute(
+            f"""insert into auth.users(id,email)
+                values ('{user}','selection-race@example.test');
+                select public.get_or_create_account_profile(
+                    '{user}','selection-race@example.test',true);
+                select public.set_user_budget('{user}',{0.1 if same_job else 0.04});
+                select public.submit_search_items('{user}',
+                    array['https://selection-one.example','https://selection-two.example']);""",
+            environment,
+        )
+        jobs = [
+            json.loads(
+                execute(
+                    f"select row_to_json(j) from public.claim_processing_job('{user}') j;",
+                    environment,
+                )
+            )
+            for _ in range(2)
+        ]
+        for job in jobs:
+            execute(
+                f"""select public.save_job_source('{user}',
+                    '{job["id"]}','{job["lease_token"]}',repeat('Evidence ',40));
+                    select public.settle_analysis('{user}',id,0.001)
+                    from public.reserve_web_search('{user}',
+                        '{job["id"]}','{job["lease_token"]}',0.001);""",
+                environment,
+            )
+        barrier = Barrier(2)
+
+        def reserve(index: int) -> str:
+            job = jobs[0 if same_job else index]
+            barrier.wait(timeout=10)
+            return execute(
+                f"""begin; select id from public.reserve_source_selection('{user}',
+                    '{job["id"]}','{job["lease_token"]}',0.02688);
+                    select pg_sleep(0.25); commit;""",
+                environment,
+            ).strip()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = pool.submit(reserve, 0), pool.submit(reserve, 1)
+            assert sum(bool(value) for value in (first.result(), second.result())) == 1
+        held = Decimal(
+            execute(
+                f"select reserved_usd from public.get_usage_summary('{user}');",
+                environment,
+            ).strip()
+        )
+        assert held == Decimal("0.02688")
+        label = "same-job admission" if same_job else "shared monthly budget"
+        print(f"PASS: concurrent source selection {label}")
+    finally:
+        execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -438,6 +497,7 @@ def main() -> int:
         "x_ingestion.test.sql",
         "retry_fetch.test.sql",
         "image_reading.test.sql",
+        "source_selection.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -449,6 +509,8 @@ def main() -> int:
     concurrent_deletion(environment)
     concurrent_x_admission(environment)
     concurrent_image_reading(environment)
+    concurrent_source_selection(environment, same_job=True)
+    concurrent_source_selection(environment)
     return 0
 
 

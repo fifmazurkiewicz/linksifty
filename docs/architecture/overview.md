@@ -128,11 +128,11 @@ skipped because Chrome/Chromium is unavailable; no visual QA is claimed.
 
 ## Optional source discovery and diagnostics
 
-`main.py` additionally composes BraveSearch (existing HTTPX) and LangfuseTelemetry (official SDK at the infrastructure edge). The application only depends on SearchProvider and a scope/event Protocol. No new worker/broker or general agent framework.
+`main.py` additionally composes BraveSearch and JevSourceSelector (existing HTTPX), plus LangfuseTelemetry (official SDK at the infrastructure edge). The application only depends on SearchProvider, SourceSelector and a scope/event Protocol. No new worker/broker or general agent framework.
 
-An explicit unchecked Add checkbox discloses a short public-article query and the configured request charge. `/v1/capabilities` enables it only with a server key and positive verified plan rate. `/v1/items` carries `web_search`; a server-only transaction persists consent with the original item/job trial accounting. Pasted content remains outside search. Migration 000007 is required before activation.
+An explicit unchecked Add checkbox discloses a public-article query, Brave charge, bounded article/candidate sharing and Jev maximum reservation/actual cost. `/v1/capabilities` enables it only with configured search/selection adapters and a positive verified plan rate. `/v1/items` carries `web_search`; a server-only transaction persists consent with the original item/job trial accounting. Pasted content remains outside search. Migration 000017 is required for the current pipeline; old unfinished opt-ins are disabled during coordinated rollout.
 
-The job first validates/acquires the primary source. Research reserves a separate provider-tagged amount under the same owner budget lock, sends one query, then checks at most 20 additional pages through the safe fetcher. Transient search responses/snippets are not evidence or stored. Normalized content hashes and host checks reduce duplicates; these heuristics do not prove independence. Bounded fetched passages and source identities are owner-scoped in job search_context and expire with the item. A confirmed search response settles at operator-configured plan price; uncertain outcomes remain reserved and are never automatically resent. Model retries reuse persisted research. Usage labels disclose actual OpenRouter cost versus plan-derived Brave charge.
+The job first validates/acquires the primary source. Research reserves a separate provider-tagged amount under the same owner budget lock, sends one query derived from readable primary title/prose (excluding URLs/provenance/long numeric IDs), then reserves one separate Jev selection call. Brave supplies at most twenty transient URL/title/snippet candidates; Jev makes a typed relevant/irrelevant decision per supplied ID. Only relevant decisions with confidence >=0.8 and known cost proceed to at most twenty safe page fetches. Invalid/missing decisions, budget denial or unknown cost yield primary-only analysis. There is no fetch-all fallback or automatic retry. The confidence threshold is provisional, not proof of relevance. Transient search responses/snippets are not evidence or stored. Normalized content hashes and host checks reduce duplicates; these heuristics do not prove independence. Bounded fetched passages and source identities are owner-scoped in job search_context and expire with the item. A confirmed search response settles at operator-configured plan price; uncertain outcomes remain reserved and are never automatically resent. Migration 000017 persists a distinct selection reservation pointer; reclaimed workers never resend it. Late generation recording and orphan reconciliation reuse the shared ledger. Model retries reuse persisted research. Usage labels disclose actual OpenRouter cost versus plan-derived Brave charge.
 
 The model receives primary/additional source texts, not a browsing tool. The model selects a supplied passage ID per criterion. The adapter derives the original source and exact text; application and SQL validate offsets against stored material. For v2, cross-source confirmation is not_verified without an external supporting citation; legacy v1 retains its minimum-score guard. Detail exposes checked-source URLs and unavailable/uncertain status. Source discovery does not establish complete factual verification or grounded chat.
 
@@ -318,3 +318,29 @@ recovery and deletion behavior. No new dependency, key or worker is introduced.
 See the [editable sequence](../../.agent/context/changes/chat-query-classification/chat-sequence.json),
 [sequence HTML](../../.agent/context/changes/chat-query-classification/chat-sequence.html)
 and [verification record](../../.agent/context/changes/chat-query-classification/evidence.md).
+
+
+## Source relevance contract — migration 000017
+
+`domain/search_query.py` derives the bounded public query. The Brave adapter
+retains metadata transiently; `infrastructure/source_selector.py` reuses the
+existing Jev typed-choice validator and price caps. `ProcessingService` validates
+complete decision coverage, maps IDs only to supplied candidates and gates safe
+fetches. Snippets are not evidence or persisted passages. The selector adds no
+SDK/dependency, search-query model or domain blacklist. Existing content/host
+hash deduplication and exact passage provenance remain necessary after selection.
+
+One bounded request reserves at most USD 0.02688 (twenty conservative per-question
+input bounds), then settles actual returned cost. Unknown cost remains held;
+failed selection does not buy a retry. SQL admission is owner/lease/expiry/account
+fenced and requires cached primary content plus a settled Brave reservation.
+Deletion retains accounting and the first late generation ID. The new purpose
+and pointer require migration 000017 before deployment. Existing cached research
+is reused, without retroactive quality claims. New source checking requires the
+updated unchecked opt-in and data/cost disclosure.
+
+[Source selection workflow](../../.agent/context/changes/source-relevance/source-selection-workflow.html)
+· [editable contract JSON](../../.agent/context/changes/source-relevance/source-selection-workflow.json).
+This is a behavior contract for the approved change, not a frozen repository map.
+Automated artifact checks and browser limitations are recorded in the change's
+evidence. Chat answering/research policy remains unchanged.

@@ -2,7 +2,7 @@
 
 import httpx
 
-from linksifty.application.research_contracts import SearchResponse
+from linksifty.application.research_contracts import SearchCandidate, SearchResponse
 from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 
 
@@ -42,12 +42,20 @@ class BraveSearch:
             results = web.get("results", []) if isinstance(web, dict) else []
             if not isinstance(results, list):
                 return SearchResponse(confirmed=True)
-            urls = tuple(
-                row["url"]
+            candidates = tuple(
+                SearchCandidate(
+                    row["url"],
+                    row["title"][:160] if isinstance(row.get("title"), str) else "",
+                    row["description"][:320] if isinstance(row.get("description"), str) else "",
+                )
                 for row in results[:20]
-                if isinstance(row, dict) and isinstance(row.get("url"), str)
+                if isinstance(row, dict)
+                and isinstance(row.get("url"), str)
+                and len(row["url"]) <= 2000
             )
-            return SearchResponse(confirmed=True, urls=urls)
+            return SearchResponse(
+                confirmed=True, urls=tuple(c.url for c in candidates), candidates=candidates
+            )
         except (httpx.HTTPError, ValueError) as error:
             self._telemetry.event(
                 "brave.request_failed", {"exception": type(error).__name__, "confirmed": confirmed}

@@ -1,7 +1,7 @@
 # Linksifty setup: Supabase, Render, Vercel, OpenRouter and X
 
-Latest local rich-source implementation: **2026-10-18**. Apply migration 000016
-before deploying that backend; see [rich X sources](#rich-x-articles-and-images-migration-000016).
+Latest local source-selection implementation: **2026-10-18**. Apply migration 000017
+before deploying this backend/UI; see [Jev source selection](#topic-relevant-source-selection-migration-000017).
 
 Checked against repository code and official documentation on **2026-10-14**. Google OAuth is the requested login method.
 Follow the steps in order. Example names and URLs below must be replaced with
@@ -728,7 +728,7 @@ Configure these **server-only Render** variables (never VITE variables):
 | `LANGFUSE_BASE_URL` | Project region URL; EU default `https://cloud.langfuse.com` |
 | `LANGFUSE_TRACING_ENVIRONMENT` | e.g. `production` |
 
-Brave uses one Web Search API query per opted-in public link, at most 20 transient URL candidates and at most 20 extra page fetch attempts (migration 000010 with matching backend). The unchecked Add checkbox discloses query transfer and plan charge. Pasted text is not sent to Brave. Missing key/rate disables this capability; ordinary single-source analysis remains available. We do not infer a free tier or inspect your account/subscription. Search queries are short terms from a public article URL (fallback: initial source words); they are sent only to Brave. Search response snippets/payloads are not persisted or used as proof. Retain plan rights appropriate for your use; article passages are fetched separately with existing source guards.
+Brave uses one Web Search API query per opted-in public link, at most 20 transient URL candidates and at most 20 extra page fetch attempts (migration 000010 with matching backend). The unchecked Add checkbox discloses query transfer and plan charge. Pasted text is not sent to Brave. Missing key/rate disables this capability; ordinary single-source analysis remains available. We do not infer a free tier or inspect your account/subscription. With migration 000017 and matching code, search queries use readable public article title/prose, excluding source URLs, provenance and long numeric post IDs; they are sent only to Brave. Search response snippets/payloads are not persisted or used as proof. Retain plan rights appropriate for your use; article passages are fetched separately with existing source guards.
 
 One host per candidate and identical normalized-content hashes reduce duplicates; this does not establish publisher independence. Only successfully fetched readable content enters comparison, bounded to 12K characters per source. Detail shows which pages were supplied and warns when extra sources were unavailable/unverified. Corroboration cannot receive a high score from primary-only evidence. URL/ID/excerpt offsets are validated against stored text; no search snippet alone counts as confirmation. Official X API and grounded chat remain separate work.
 
@@ -762,7 +762,7 @@ new output must be processed by the updated backend.
 
 ### No Brave dashboard usage after setup
 
-Configuration does not opt old items into search. Resume preserves original consent/context; old model-only items stay model-only. For an authorized live test, submit a new public URL with **Search additional sources with Brave** checked. If disabled, inspect `/v1/capabilities` through the authenticated app and verify the deployed backend has `BRAVE_SEARCH_API_KEY` plus positive `BRAVE_SEARCH_PRICE_PER_REQUEST_USD`. Redeploy/restart after setting variables. Primary content must also pass fetch/completeness guards before search can run. Do not use dashboard absence alone to infer a billing/telemetry failure or automatically retry paid calls.
+Configuration does not opt old items into search. Resume preserves original consent/context; old model-only items stay model-only. For an authorized live test, submit a new public URL with **Search additional sources with Brave and Jev** checked. If disabled, inspect `/v1/capabilities` through the authenticated app and verify the deployed backend has `BRAVE_SEARCH_API_KEY` plus positive `BRAVE_SEARCH_PRICE_PER_REQUEST_USD`. Redeploy/restart after setting variables. Primary content must also pass fetch/completeness guards before search can run. Do not use dashboard absence alone to infer a billing/telemetry failure or automatically retry paid calls.
 
 ## Inspecting complete analysis traces
 
@@ -1100,3 +1100,59 @@ account/post. If X returns only a preview, the expected outcome remains a clear
 paste request. Verify unreadable/unsupported media, unknown-cost recovery and
 cross-account isolation with approved test data. No live provider calls were
 made for this implementation's local verification.
+
+
+## Topic-relevant source selection (migration 000017)
+
+The source-checking pipeline now derives one query from the complete public
+article's readable title/prose rather than its X status ID. Brave discovers up to
+twenty candidates. `typesafe/jev-1.13` on OpenRouter receives a bounded article
+excerpt (6 KB), query, and candidate URL/title/snippet metadata in one Decisions
+request. Only candidates classified relevant with confidence >=0.8 proceed to
+safe page fetching. This threshold is provisional, not a measured accuracy claim.
+Contrary evidence is eligible; a matching number or reputable domain alone is not.
+Snippets help selection but are never persisted, cited, or sent to Langfuse.
+Only separately fetched readable text becomes comparison evidence.
+
+Pause submissions and stop/drain old workers before applying
+[20261018_000017_source_selection.sql](../../supabase/migrations/20261018_000017_source_selection.sql)
+after 000016. Deploy the matching backend and frontend together, then resume
+submissions. Avoid mixed old/new frontends and workers: the old checkbox does not
+disclose Jev's additional cost or data transfer. The migration disables search on
+pre-existing jobs without saved research, so their old opt-in cannot incur the
+new charge. Cached research and completed assessments remain unchanged; there
+is no automatic reassessment or paid retry.
+
+Reuse `OPENROUTER_API_KEY` and the existing Brave key/positive verified plan rate;
+no new environment variable or model change is required. `/v1/capabilities`
+returns `selection_max_usd` (currently `0.02688`) alongside `search_price_usd`.
+The unchecked opt-in discloses Brave's configured fee, the Jev maximum hold,
+actual-cost charging and article/metadata sharing. New frontend search stays
+disabled if the backend lacks the selection-price capability.
+
+Selection reserves separately under the shared owner monthly budget, with
+purpose `source_selection`: at most twenty questions, each conservatively bounded
+by 32,000 tokens at $0.042/M input, zero output/request price. The request body is
+capped at 30 KB and provider fallback is disabled. Actual returned USD cost
+settles the hold; unused reservation is released. Oversize requests are not sent.
+A timeout, missing cost or interrupted attempt retains its hold for existing
+OpenRouter generation reconciliation. Missing/invalid/low-confidence decisions,
+budget denial or uncertain cost admit no extra downloads; assessment can use the
+complete primary article. No automatic repeated search or Jev call is permitted.
+The job pointer survives recovery, and late generation IDs remain recordable
+following lease loss or item deletion. Keep billing records when deleting content.
+
+For diagnostics inspect `source.selection`, `source.selection.finished`, and
+`source.selection.decision` (candidate URL, relevant, confidence, accepted, reason),
+plus `budget.reserved` with purpose `source_selection`. Stage `selecting_sources`
+is visible in the queue. The selector's request/response metadata is not a
+Langfuse article/snippet payload. Existing enabled article/model tracing remains
+subject to its documented retention and redaction settings.
+
+Local mocked and disposable PostgreSQL evidence is in
+[source-selection evidence](../../.agent/context/changes/source-relevance/evidence.md).
+Hosted migration and any paid classification-quality test require operator
+activation. Existing saved Walmart/retail results will not rewrite themselves;
+review the next explicitly authorized analysis after rollout. The analysis-chat
+research path keeps its existing relevance gate and search policy; this change
+filters comparison pages for initial article assessments.

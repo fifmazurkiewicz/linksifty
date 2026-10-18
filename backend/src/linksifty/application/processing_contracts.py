@@ -133,6 +133,7 @@ class ProcessingJob(BaseModel):
     rubric_snapshot: RubricConfig | None = None
     web_search: bool = False
     search_reservation_id: UUID | None = None
+    selection_reservation_id: UUID | None = None
     search_context: ResearchContext | None = None
     id: UUID
     item_id: UUID
@@ -185,6 +186,10 @@ class AssessmentView(BaseModel):
 
 
 class ProcessingStore(Protocol):
+    async def reserve_selection(self, job: ProcessingJob, amount: Decimal) -> UUID | None: ...
+    async def record_selection_generation(
+        self, job: ProcessingJob, reservation_id: UUID, generation_id: str | None
+    ) -> None: ...
     async def reserve_images(self, job: ProcessingJob, amount: Decimal) -> UUID | None: ...
     async def record_image_generation(
         self, job: ProcessingJob, reservation_id: UUID, generation_id: str | None

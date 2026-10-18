@@ -20,6 +20,23 @@ from linksifty.infrastructure.supabase_repository import RepositoryUnavailable, 
 
 
 class ProcessingRepository(SupabaseRepository):
+    async def reserve_selection(self, job: ProcessingJob, amount: Decimal) -> UUID | None:
+        rows = await self._rpc(
+            "reserve_source_selection", job.user_id, **self._job_values(job), p_amount=str(amount)
+        )
+        return UUID(str(rows[0]["id"])) if rows else None
+
+    async def record_selection_generation(
+        self, job: ProcessingJob, reservation_id: UUID, generation_id: str | None
+    ) -> None:
+        await self._rpc(
+            "record_source_selection_generation",
+            job.user_id,
+            p_job_id=str(job.id),
+            p_reservation=str(reservation_id),
+            p_generation=generation_id,
+        )
+
     async def reserve_images(self, job: ProcessingJob, amount: Decimal) -> UUID | None:
         rows = await self._rpc(
             "reserve_image_reading", job.user_id, **self._job_values(job), p_amount=str(amount)
@@ -69,7 +86,7 @@ class ProcessingRepository(SupabaseRepository):
             "usage_reservations",
             params={
                 "user_id": f"eq.{user_id}",
-                "or": "(job_id.is.null,purpose.eq.image_extraction)",
+                "or": "(job_id.is.null,purpose.in.(image_extraction,source_selection))",
                 "state": "eq.reserved",
                 "generation_id": "not.is.null",
                 "select": "id,generation_id",

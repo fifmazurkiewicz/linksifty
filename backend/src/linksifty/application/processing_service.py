@@ -6,7 +6,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from contextlib import nullcontext
 from decimal import Decimal
-from urllib.parse import unquote, urlparse
+from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from linksifty.application.item_contracts import ItemRecord
@@ -24,11 +24,12 @@ from linksifty.application.processing_contracts import (
     UsageSummary,
     UserSettings,
 )
-from linksifty.application.research_contracts import SearchProvider
+from linksifty.application.research_contracts import SearchCandidate, SearchProvider, SourceSelector
 from linksifty.domain.acquisition import FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.models import AssessmentDraft, Criterion, CriterionName, HypeSignal
 from linksifty.domain.scoring import complete_assessment
+from linksifty.domain.search_query import research_query
 from linksifty.domain.x_urls import is_x_url, x_post_id
 
 _logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ class ProcessingService:
         *,
         search: SearchProvider | None = None,
         search_price: Decimal = Decimal(0),
+        selector: SourceSelector | None = None,
         telemetry: Telemetry | None = None,
         x_fetch: Callable[[str], Awaitable[FetchResult]] | None = None,
         image_reader: ImageReader | None = None,
@@ -51,6 +53,7 @@ class ProcessingService:
         self._image_reader = image_reader
         self._x_fetch = x_fetch
         self._search = search
+        self._selector = selector
         self._search_price = search_price
         self._telemetry = telemetry
         self._store = store
@@ -61,11 +64,15 @@ class ProcessingService:
 
     @property
     def search_available(self) -> bool:
-        return self._search is not None and self._search_price > 0
+        return self._search is not None and self._search_price > 0 and self._selector is not None
 
     @property
     def search_price(self) -> Decimal:
         return self._search_price
+
+    @property
+    def selection_max_price(self) -> Decimal | None:
+        return self._selector.estimate(20) if self._selector is not None else None
 
     async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
         if not self.search_available:
@@ -219,9 +226,12 @@ class ProcessingService:
             )
             return job.search_context
         context = ResearchContext(status="unavailable")
-        if job.search_reservation_id is not None:
+        query = research_query(text)
+        if job.search_reservation_id is not None or job.selection_reservation_id is not None:
             self._event("search.skipped", reason="previous_uncertain_request")
             context.status = "uncertain"  # A previous search may have been billed; never resend.
+        elif not query:
+            self._event("search.skipped", reason="no_readable_topic")
         elif self.search_available and self._search is not None:
             self._event("budget.reserving", provider="brave", amount_usd=str(self._search_price))
             reservation = await self._store.reserve_search(job, self._search_price)
@@ -232,9 +242,6 @@ class ProcessingService:
                 job.search_reservation_id = reservation.id
                 if not await self._stage(job, "searching_sources"):
                     raise RuntimeError("lease_lost")
-                slug = unquote(urlparse(job.original_url or "").path.rsplit("/", 1)[-1])
-                query = " ".join(slug.replace("-", " ").replace("_", " ").split())[:250]
-                query = query or " ".join(text.split())[:250]
                 self._event("search.request", query=query)
                 with (
                     self._telemetry.scope("brave.search", str(job.id))
@@ -252,11 +259,14 @@ class ProcessingService:
                     self._event(
                         "budget.settled", provider="brave", amount_usd=str(self._search_price)
                     )
-                    context.status = "no_sources"
+                    selected, context.status = await self._select_candidates(
+                        job, text, query, response.candidates[:20]
+                    )
                     domains = {urlparse(job.original_url or "").hostname}
                     hashes = {hashlib.sha256(" ".join(text.split()).encode()).hexdigest()}
                     attempts = 0
-                    for url in response.urls:
+                    for candidate in selected:
+                        url = candidate.url
                         try:
                             parsed = urlparse(url)
                             host = parsed.hostname
@@ -267,6 +277,8 @@ class ProcessingService:
                             host is None
                             or host in domains
                             or parsed.scheme not in {"http", "https"}
+                            or parsed.username is not None
+                            or parsed.password is not None
                         ):
                             self._event(
                                 "source.skipped",
@@ -327,6 +339,77 @@ class ProcessingService:
         self._event("research.saved", status=context.status)
         job.search_context = context
         return context
+
+    async def _select_candidates(
+        self,
+        job: ProcessingJob,
+        text: str,
+        query: str,
+        candidates: tuple[SearchCandidate, ...],
+    ) -> tuple[tuple[SearchCandidate, ...], str]:
+        selector = self._selector
+        if not candidates:
+            self._event("source.selection.skipped", reason="no_candidates")
+            return (), "no_sources"
+        if selector is None:
+            self._event("source.selection.skipped", reason="not_configured")
+            return (), "unavailable"
+        amount = selector.estimate(len(candidates))
+        reservation = await self._store.reserve_selection(job, amount)
+        self._event(
+            "budget.reserved",
+            provider="openrouter",
+            purpose="source_selection",
+            admitted=reservation is not None,
+            amount_usd=str(amount),
+        )
+        if reservation is None:
+            return (), "budget_exhausted"
+        job.selection_reservation_id = reservation
+        if not await self._stage(job, "selecting_sources"):
+            raise RuntimeError("lease_lost")
+        with (
+            self._telemetry.scope("source.selection", str(job.id))
+            if self._telemetry
+            else nullcontext()
+        ):
+            result = await selector.select(text, query, candidates)
+        await self._store.record_selection_generation(job, reservation, result.generation_id)
+        if result.cost is not None:
+            await self._store.settle(job.user_id, reservation, result.cost)
+        self._event(
+            "source.selection.finished",
+            failure=result.failure_reason or ("cost_unknown" if result.cost is None else None),
+            cost_usd=str(result.cost) if result.cost is not None else None,
+            candidates=len(candidates),
+        )
+        if result.cost is None:
+            return (), "uncertain"
+        if (
+            result.failure_reason
+            or len(result.decisions) != len(candidates)
+            or {d.candidate_id for d in result.decisions} != set(range(len(candidates)))
+        ):
+            return (), "unavailable"
+        accepted: list[SearchCandidate] = []
+        for decision in sorted(result.decisions, key=lambda d: d.candidate_id):
+            candidate = candidates[decision.candidate_id]
+            admit = decision.relevant and decision.confidence >= 0.8
+            self._event(
+                "source.selection.decision",
+                url=candidate.url,
+                relevant=decision.relevant,
+                confidence=decision.confidence,
+                accepted=admit,
+                reason="accepted"
+                if admit
+                else "low_confidence"
+                if decision.relevant
+                else "irrelevant",
+            )
+            if admit:
+                accepted.append(candidate)
+        return tuple(accepted), "no_sources"
 
     async def _fetch_primary(self, job: ProcessingJob) -> FetchResult:
         url = job.original_url or ""

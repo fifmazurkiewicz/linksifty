@@ -4,6 +4,7 @@ import type { Item } from '../../lib/api'
 const stages: Record<string, string> = {
   queued: 'Waiting for processing', fetching: 'Fetching the page', checking_content: 'Checking readable content',
   searching_sources: 'Searching additional sources with Brave', checking_sources: 'Fetching and checking additional pages',
+  selecting_sources: 'Selecting relevant sources with Jev',
   waiting_analysis: 'Checking budget before analysis', analyzing: 'Analyzing information', saving: 'Saving your assessment',
   completed: 'Ready to read', cost_unknown: 'Waiting for the provider cost to be confirmed',
   waiting_image_budget: 'Checking budget before reading images', reading_images: 'Reading attached images and diagrams',

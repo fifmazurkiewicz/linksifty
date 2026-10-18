@@ -51,7 +51,7 @@ export function AssessmentDetail({ id, item, session, onBack }: {
   }) ?? []
   const researchStatus = value?.research_status === 'ready'
     ? `${researchSources.length} ${researchSources.length === 1 ? 'page' : 'pages'} fetched`
-    : value?.research_status === 'uncertain' ? 'Search outcome uncertain'
+    : value?.research_status === 'uncertain' ? 'Research outcome uncertain'
       : value?.research_status && value.research_status !== 'not_requested' ? 'Sources not verified' : 'Primary source only'
 
   return <div className="assessment-detail">
@@ -107,7 +107,7 @@ export function AssessmentDetail({ id, item, session, onBack }: {
       <details className="assessment-panel">
         <summary><h2>Source checking</h2><span className="panel-status">{researchStatus}</span></summary>
         <div className="assessment-panel-body assessment-research">
-          <p>{value.research_status === 'ready' ? 'Additional pages were fetched; bounded excerpts were supplied for comparison. Their presence alone does not establish independence or confirm a claim.' : value.research_status === 'uncertain' ? 'The search outcome is uncertain; its charge remains reserved. Only the primary source was analyzed.' : value.research_status && value.research_status !== 'not_requested' ? 'Additional sources could not be verified. Only the primary source was analyzed.' : 'Only the submitted source was analyzed; independent sources were not searched.'}</p>
+          <p>{value.research_status === 'ready' ? 'Additional pages were fetched; bounded excerpts were supplied for comparison. Their presence alone does not establish independence or confirm a claim.' : value.research_status === 'uncertain' ? 'A research call has an uncertain outcome; its charge remains reserved. Only the primary source was analyzed.' : value.research_status && value.research_status !== 'not_requested' ? 'Additional sources could not be verified. Only the primary source was analyzed.' : 'Only the submitted source was analyzed; independent sources were not searched.'}</p>
           {researchSources.length > 0 && <ul className="research-sources">{researchSources.map(s => <li key={s.id}>
             <a href={s.url.href} target="_blank" rel="noopener noreferrer">{s.url.hostname.replace(/^www\./, '')}</a>
             <small>{s.url.pathname}</small>

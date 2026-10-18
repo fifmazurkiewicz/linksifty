@@ -5,8 +5,30 @@ from decimal import Decimal
 import httpx
 
 from linksifty.application.processing_contracts import EvidenceSource
+from linksifty.application.research_contracts import (
+    SearchCandidate,
+    SourceDecision,
+    SourceSelection,
+)
 from linksifty.infrastructure.brave_client import BraveSearch
 from linksifty.infrastructure.openrouter_client import OpenRouterClient
+
+
+class RelevantSelector:
+    def estimate(self, candidate_count: int) -> Decimal:
+        return Decimal("0.02688")
+
+    async def select(
+        self, text: str, query: str, candidates: tuple[SearchCandidate, ...]
+    ) -> SourceSelection:
+        return SourceSelection(
+            cost=Decimal("0.0001"),
+            generation_id="selection-gen",
+            decisions=[
+                SourceDecision(candidate_id=i, relevant=True, confidence=0.95)
+                for i in range(len(candidates))
+            ],
+        )
 
 
 def test_brave_uses_header_auth_and_bounds_candidates() -> None:
@@ -118,11 +140,22 @@ def test_research_checks_at_most_twenty_pages_and_never_repeats_uncertain_search
         search.search.return_value = SearchResponse(
             confirmed=True, urls=tuple(f"https://source{i}.example" for i in range(25))
         )
+        search.search.return_value = SearchResponse(
+            confirmed=True,
+            urls=search.search.return_value.urls,
+            candidates=tuple(SearchCandidate(url) for url in search.search.return_value.urls),
+        )
+        store.reserve_selection.return_value = uuid4()
         fetch = AsyncMock(
             side_effect=[FetchResult(text=(f"evidence {i} " * 100)) for i in range(20)]
         )
         service = ProcessingService(
-            store, None, fetch, search=search, search_price=Decimal("0.005")
+            store,
+            None,
+            fetch,
+            search=search,
+            search_price=Decimal("0.005"),
+            selector=RelevantSelector(),
         )
         job = ProcessingJob(
             id=uuid4(),
@@ -137,9 +170,8 @@ def test_research_checks_at_most_twenty_pages_and_never_repeats_uncertain_search
         assert len(result.sources) == 20
         assert fetch.await_count == 20
         search.search.assert_awaited_once()
-        store.settle.assert_awaited_once_with(
-            job.user_id, job.search_reservation_id, Decimal("0.005")
-        )
+        store.settle.assert_any_await(job.user_id, job.search_reservation_id, Decimal("0.005"))
+        assert store.settle.await_count == 2
         await service.research(job, "original primary " * 100)
         assert search.search.await_count == 1
         job.search_context = None
@@ -182,6 +214,12 @@ def test_research_does_not_count_reposts_or_failed_fetches() -> None:
             ),
         )
         duplicate = "identical source passage " * 20
+        search.search.return_value = SearchResponse(
+            confirmed=True,
+            urls=search.search.return_value.urls,
+            candidates=tuple(SearchCandidate(url) for url in search.search.return_value.urls),
+        )
+        store.reserve_selection.return_value = uuid4()
         fetch = AsyncMock(
             side_effect=[
                 FetchResult(text=duplicate),
@@ -190,7 +228,12 @@ def test_research_does_not_count_reposts_or_failed_fetches() -> None:
             ]
         )
         service = ProcessingService(
-            store, None, fetch, search=search, search_price=Decimal("0.005")
+            store,
+            None,
+            fetch,
+            search=search,
+            search_price=Decimal("0.005"),
+            selector=RelevantSelector(),
         )
         job = ProcessingJob(
             id=uuid4(),

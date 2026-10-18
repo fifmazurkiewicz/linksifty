@@ -225,6 +225,7 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
     from linksifty.domain.acquisition import FetchResult
     from linksifty.domain.models import CriterionName
     from linksifty.infrastructure.brave_client import BraveSearch
+    from linksifty.infrastructure.source_selector import JevSourceSelector
 
     primary = "Primary article evidence with a reproducible practical example. " * 10
     secondary = "Independent external evidence with specific supporting facts. " * 10
@@ -236,10 +237,31 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
                 json={
                     "web": {
                         "results": [
-                            {"url": "https://secondary.example/article"},
+                            {
+                                "url": "https://secondary.example/article",
+                                "title": "Relevant comparison",
+                                "description": "transient-private-snippet",
+                            },
                             {"url": "https://secondary.example/duplicate-host"},
                         ]
                     }
+                },
+            )
+        if request.url.path == "/api/alpha/decisions":
+            return httpx.Response(
+                200,
+                json={
+                    "id": "selection-gen",
+                    "usage": {"cost": "0.0001"},
+                    "answers": {
+                        f"candidate_{i}": {
+                            "type": "choice",
+                            "choice": "relevant",
+                            "confidence": 0.95,
+                            "probabilities": {"relevant": 0.95, "irrelevant": 0.05},
+                        }
+                        for i in range(2)
+                    },
                 },
             )
         messages = json.loads(request.content)["messages"]
@@ -275,6 +297,7 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
         store.reserve_search.return_value = Reservation(
             id=uuid4(), state="reserved", threshold_snapshot=Decimal(75)
         )
+        store.reserve_selection.return_value = uuid4()
         store.reserve.return_value = Reservation(
             id=uuid4(), state="reserved", threshold_snapshot=Decimal(75)
         )
@@ -294,6 +317,7 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
                 fetch,
                 search=BraveSearch("private-search-key", http, telemetry=telemetry),
                 search_price=Decimal("0.005"),
+                selector=JevSourceSelector("private-model-key", http),
                 telemetry=telemetry,
             )
             await service._execute(job)
@@ -305,12 +329,13 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
             secondary[c.start_position : c.end_position] == c.excerpt for c in saved.citations
         )
         assert all(c.excerpt == secondary for c in saved.citations)
-        assert store.settle.await_count == 2
+        assert store.settle.await_count == 3
         exported = str(client.mock_calls)
         for expected in (
             primary,
             secondary,
             "search.request",
+            "source.selection.decision",
             "brave.http_response",
             "duplicate_host",
             "citation.result",
@@ -318,6 +343,7 @@ def test_article_and_search_trace_contains_sources_citations_and_saved_result() 
             "budget.settled",
         ):
             assert expected in exported
+        assert "transient-private-snippet" not in exported
         assert "private-model-key" not in exported and "private-search-key" not in exported
         assert str(job.user_id) not in exported and str(job.lease_token) not in exported
 

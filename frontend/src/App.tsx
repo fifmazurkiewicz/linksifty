@@ -35,6 +35,7 @@ function AuthenticatedApp() {
   const [inputMode, setInputMode] = useState<'links' | 'paste'>('links')
   const [webSearch, setWebSearch] = useState(false)
   const [searchPrice, setSearchPrice] = useState<string | null>(null)
+  const [selectionPrice, setSelectionPrice] = useState<string | null>(null)
   const [live, setLive] = useState('Connecting to live progress…')
   const urls = links.split('\n').map(value => value.trim()).filter(Boolean)
   const normalizedUrls = urls.map(analysisUrl)
@@ -116,8 +117,13 @@ function AuthenticatedApp() {
   useEffect(() => {
     if (!session || !account || account.status === 'rejected') return
     const controller = new AbortController()
-    void api<{ web_search: boolean; search_price_usd: string | null }>('/v1/capabilities', session, { signal: controller.signal })
-      .then(value => { if (!controller.signal.aborted) setSearchPrice(value.web_search ? value.search_price_usd : null) })
+    void api<{ web_search: boolean; search_price_usd: string | null; selection_max_usd: string | null }>('/v1/capabilities', session, { signal: controller.signal })
+      .then(value => {
+        if (!controller.signal.aborted) {
+          setSearchPrice(value.web_search && typeof value.selection_max_usd === 'string' ? value.search_price_usd : null)
+          setSelectionPrice(value.web_search ? value.selection_max_usd : null)
+        }
+      })
       .catch(() => { if (!controller.signal.aborted) setSearchPrice(null) })
     return () => controller.abort()
   }, [session, account])
@@ -229,8 +235,8 @@ function AuthenticatedApp() {
           <p className="hint">At least 200 readable characters, up to 100 KB. One article uses one trial link.</p>
         </>}
         {inputMode === 'links' && <>
-          <label className="search-consent"><input type="checkbox" checked={webSearch && searchPrice !== null} disabled={searchPrice === null || busy} onChange={event => setWebSearch(event.target.checked)} /> Search additional sources with Brave</label>
-          <p className="hint">{searchPrice !== null ? `One search per link (${searchPrice} USD at the configured plan rate), plus AI analysis, uses your monthly budget. A short query from this public article is sent to Brave. Up to 20 additional pages are checked; bounded excerpts are used for comparison.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
+          <label className="search-consent"><input type="checkbox" checked={webSearch && searchPrice !== null} disabled={searchPrice === null || busy} onChange={event => setWebSearch(event.target.checked)} /> Search additional sources with Brave and Jev</label>
+          <p className="hint">{searchPrice !== null ? `One Brave search per link (${searchPrice} USD at the configured plan rate), Jev source selection (up to ${selectionPrice} USD reserved; actual cost charged), and AI analysis use your monthly budget. A short public-article query is sent to Brave; bounded article text and candidate URLs, titles and snippets are sent to Jev. Only confidently relevant candidates are fetched, up to 20 pages; fetched excerpts are used for comparison.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
         </>}
         <p className="hint">Submitting starts analysis and uses your monthly budget. Attached images require a separate AI reading step from the same budget. X API reads may incur separate charges.</p>
         <button className="primary" disabled={busy || duplicateLinks || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>

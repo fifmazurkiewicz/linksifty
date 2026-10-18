@@ -107,7 +107,7 @@ for database gates, activation and recovery. No hosted readiness is implied.
 
 ### Optional Brave + Langfuse
 
-The Add screen supports explicit Brave source checking for public links (one search, up to 20 additional page fetch attempts (migration 000010)), after migration `000007` and server-only key/verified plan-rate configuration. Search charges share the USD cap with actual OpenRouter costs. Metadata-only Langfuse diagnostics are opt-in and cannot block processing. No secret goes into the frontend. See [setup](docs/deployment/setup.md#brave-source-discovery-and-langfuse-tracing-migration-000007). Real provider activation remains an operator step; source deduplication is heuristic, not proof of independent fact verification.
+The Add screen supports explicit Brave + Jev source checking for public links (one topic-based search, one budgeted relevance-selection call, then up to 20 relevant page fetches; migration 000017), after migration `000007` and server-only key/verified plan-rate configuration. Search charges share the USD cap with actual OpenRouter costs. Langfuse diagnostics are opt-in and cannot block processing; enabled tracing includes bounded article/model content with documented redaction. No secret goes into the frontend. See [setup](docs/deployment/setup.md#brave-source-discovery-and-langfuse-tracing-migration-000007). Real provider activation remains an operator step; source deduplication is heuristic, not proof of independent fact verification.
 
 ### Calibrated assessment rules
 
@@ -161,3 +161,10 @@ stored; complete source text is cached. Apply migration
 `20261018_000016_rich_x_sources.sql` **before** deploying the matching backend/UI.
 See [rich-source rollout](docs/deployment/setup.md#rich-x-articles-and-images-migration-000016)
 for limits, uncertain-charge recovery and hosted acceptance.
+
+
+Jev selects comparison pages before downloads, using article and candidate
+metadata; unrelated numeric-ID search matches are rejected. The Add opt-in
+shows the separate maximum USD 0.02688 selection hold and data sharing. Apply
+[migration 000017 and coordinated rollout](docs/deployment/setup.md#topic-relevant-source-selection-migration-000017)
+before deploying the matching backend/UI. Existing saved assessments remain unchanged.
