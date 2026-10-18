@@ -29,6 +29,7 @@ from linksifty.infrastructure.chat_repository import ChatRepository
 from linksifty.infrastructure.http_fetcher import fetch_public_text
 from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 from linksifty.infrastructure.openrouter_client import OpenRouterClient
+from linksifty.infrastructure.openrouter_images import OpenRouterImageReader
 from linksifty.infrastructure.processing_repository import ProcessingRepository
 from linksifty.infrastructure.resend_client import ResendApprovalMailer
 from linksifty.infrastructure.supabase_auth import SupabaseAuthenticator
@@ -178,6 +179,11 @@ def create_app(
                     fetch_public_text,
                     x_fetch=XAdapter(configuration.x_api_bearer_token, transport=transport).fetch
                     if configuration.x_api_reads_enabled and configuration.x_api_bearer_token
+                    else None,
+                    image_reader=OpenRouterImageReader(
+                        configuration.openrouter_api_key, configuration.openrouter_model, client
+                    )
+                    if configuration.openrouter_api_key
                     else None,
                     search=BraveSearch(
                         configuration.brave_search_api_key, client, telemetry=telemetry

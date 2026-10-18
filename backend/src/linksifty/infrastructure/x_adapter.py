@@ -12,6 +12,9 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 from linksifty.domain.acquisition import FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.x_urls import x_post_id
+from linksifty.infrastructure.x_content import XContentFailure as _Failure
+from linksifty.infrastructure.x_content import XMedia, parse_article
+from linksifty.infrastructure.x_images import fetch_images, validate_media
 
 _logger = logging.getLogger(__name__)
 _MAX_POSTS = 100
@@ -54,11 +57,23 @@ class _Post(BaseModel):
 
     def content(self) -> str:
         if self.attachments:
-            raise _Failure(FetchFailure.PARTIAL, "attachments_present")
-        if self.article is not None:
-            raise _Failure(FetchFailure.PARTIAL, "article_present")
+            if self.attachments.get("poll_ids") or set(self.attachments) - {
+                "media_keys",
+                "poll_ids",
+                "media_source_tweet_id",
+            }:
+                raise _Failure(FetchFailure.X_MEDIA_UNSUPPORTED, "unsupported_attachment")
+            keys = self.attachments.get("media_keys")
+            if (
+                not isinstance(keys, list)
+                or not keys
+                or any(not isinstance(key, str) for key in keys)
+            ):
+                raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_media_keys")
         if self.withheld:
             raise _Failure(FetchFailure.PARTIAL, "withheld_content")
+        if self.article is not None:
+            return parse_article(self.article).text
         # Repost text is an RT preview; only the referenced original is source text.
         if len(self.references) == 1 and self.references[0].type == "retweeted":
             return ""
@@ -80,8 +95,35 @@ class _Post(BaseModel):
             raise _Failure(FetchFailure.PARTIAL, "unsupported_references")
         return next((ref.id for ref in self.references if ref.type == "replied_to"), None)
 
+    def context_references(self) -> list[_Reference]:
+        embedded = parse_article(self.article).post_ids if self.article is not None else ()
+        return [
+            *self.references,
+            *(_Reference(id=identifier, type="embedded") for identifier in embedded),
+        ]
+
+    def media(self, available: dict[str, XMedia]) -> list[XMedia]:
+        result: list[XMedia] = []
+        keys = (self.attachments or {}).get("media_keys", [])
+        if not isinstance(keys, list):
+            raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_media_keys")
+        for key in keys:
+            if not isinstance(key, str) or key not in available:
+                raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_expanded_media")
+            result.append(available[key])
+        if self.article is not None:
+            for media in parse_article(self.article).media:
+                resolved = available.get(media.media_key, media)
+                if media.url and resolved.url != media.url:
+                    raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "conflicting_media_versions")
+                result.append(resolved)
+        for media in result:
+            validate_media(media)
+        return result
+
 
 class _Includes(BaseModel):
+    media: list[XMedia] = Field(default_factory=list, max_length=100)
     posts: list[_Post] = Field(
         default_factory=list,
         validation_alias=AliasChoices("posts", "tweets"),
@@ -104,12 +146,6 @@ class _Search(BaseModel):
     data: list[_Post] = Field(default_factory=list, max_length=100)
     meta: _Meta
     includes: _Includes = Field(default_factory=_Includes)
-
-
-class _Failure(Exception):
-    def __init__(self, reason: FetchFailure, check: str) -> None:
-        self.reason = reason
-        self.check = check
 
 
 class XAdapter:
@@ -143,7 +179,16 @@ class XAdapter:
         async with client.stream(
             "GET",
             f"https://api.x.com/2/tweets/{path}",
-            params={"tweet.fields": _FIELDS, "expansions": "referenced_tweets.id", **params},
+            params={
+                "tweet.fields": _FIELDS,
+                "expansions": (
+                    "referenced_tweets.id,attachments.media_keys,"
+                    "referenced_tweets.id.attachments.media_keys,"
+                    "article.cover_media,article.media_entities"
+                ),
+                "media.fields": "media_key,type,url,width,height,alt_text",
+                **params,
+            },
             headers={"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
         ) as response:
             if response.status_code != 200:
@@ -179,7 +224,11 @@ class XAdapter:
             return payload
 
     async def _lookup(
-        self, client: httpx.AsyncClient, identifier: str, available: dict[str, _Post]
+        self,
+        client: httpx.AsyncClient,
+        identifier: str,
+        available: dict[str, _Post],
+        media: dict[str, XMedia],
     ) -> _Post:
         payload = await self._get(client, identifier)
         try:
@@ -189,12 +238,14 @@ class XAdapter:
         if lookup.data.id != identifier:
             raise _Failure(FetchFailure.PARTIAL, "lookup_id_mismatch")
         self._remember(available, [lookup.data, *lookup.includes.posts])
+        self._remember_media(media, lookup.includes.media)
         return lookup.data
 
     async def _thread(self, client: httpx.AsyncClient, identifier: str) -> FetchResult:
         submitted_id = identifier
         available: dict[str, _Post] = {}
-        selected = await self._lookup(client, identifier, available)
+        media: dict[str, XMedia] = {}
+        selected = await self._lookup(client, identifier, available, media)
         reposts: set[str] = set()
         while True:
             selected.parent()
@@ -215,7 +266,7 @@ class XAdapter:
         root = (
             selected
             if selected.conversation_id == identifier
-            else await self._lookup(client, selected.conversation_id, available)
+            else await self._lookup(client, selected.conversation_id, available, media)
         )
         if (
             root.conversation_id != root.id
@@ -225,7 +276,8 @@ class XAdapter:
             raise _Failure(FetchFailure.PARTIAL, "invalid_conversation_root")
         posts = {root.id: root}
         # Validate before requesting more potentially billed resources.
-        self._source_posts([root, selected], available)
+        for source in self._source_posts([root, selected], available):
+            source.media(media)
         token: str | None = None
         seen_tokens: set[str] = set()
         for _ in range(_MAX_PAGES):
@@ -245,6 +297,7 @@ class XAdapter:
             if page.meta.result_count != len(page.data):
                 raise _Failure(FetchFailure.PARTIAL, "search_count_mismatch")
             self._remember(available, [*page.data, *page.includes.posts])
+            self._remember_media(media, page.includes.media)
             for post in page.data:
                 if post.author_id != root.author_id or post.conversation_id != root.id:
                     raise _Failure(FetchFailure.PARTIAL, "search_identity_mismatch")
@@ -276,12 +329,22 @@ class XAdapter:
         sources = self._source_posts(ordered, available)
         # Labels, URLs and RT previews must not make short sources pass the minimum.
         readable_text = "\n\n".join(post.content() for post in sources)
-        if evaluate_content(readable_text, fetched=False).readiness is not ContentReadiness.READY:
+        required_media = [
+            (item, f"https://x.com/i/web/status/{post.id}")
+            for post in sources
+            for item in post.media(media)
+        ]
+        if (
+            not required_media
+            and evaluate_content(readable_text, fetched=False).readiness
+            is not ContentReadiness.READY
+        ):
             raise _Failure(FetchFailure.TOO_SHORT, "minimum_text_length")
         text = "\n\n".join(
             f"https://x.com/i/web/status/{post.id}\nauthor_id={post.author_id}\n{post.content()}"
             + "".join(
-                f"\n{ref.type}: https://x.com/i/web/status/{ref.id}" for ref in post.references
+                f"\n{ref.type}: https://x.com/i/web/status/{ref.id}"
+                for ref in post.context_references()
             )
             for post in sources
         )
@@ -289,7 +352,19 @@ class XAdapter:
             text = f"Submitted repost: https://x.com/i/web/status/{submitted_id}\n\n{text}"
         if len(text.encode("utf-8")) > _MAX_TEXT_BYTES:
             raise _Failure(FetchFailure.TOO_LARGE, "text_size_limit")
-        return FetchResult(text=text)
+        async with httpx.AsyncClient(transport=self._transport, trust_env=False) as media_client:
+            images = await fetch_images(media_client, required_media)
+        return FetchResult(text=text, images=images, readable_text=readable_text)
+
+    @staticmethod
+    def _remember_media(available: dict[str, XMedia], media: list[XMedia]) -> None:
+        for item in media:
+            key = item.media_key or item.url
+            if not key or (key in available and available[key] != item):
+                raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "conflicting_media_versions")
+            available[key] = item
+            if len(available) > 100:
+                raise _Failure(FetchFailure.TOO_LARGE, "expanded_media_limit")
 
     @staticmethod
     def _remember(available: dict[str, _Post], posts: list[_Post]) -> None:
@@ -319,7 +394,7 @@ class XAdapter:
             post.parent()
             post.content()
             active.add(post.id)
-            for ref in post.references:
+            for ref in post.context_references():
                 if ref.type == "replied_to" and post.id in thread_ids:
                     continue  # The author's thread parents are validated by _thread.
                 target = available.get(ref.id)

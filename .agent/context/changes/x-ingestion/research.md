@@ -31,3 +31,37 @@ also shows renamed `referenced_posts`, `includes.posts` and type `retweeted`.
 Use the established wire parameter from the expansion guide, accept both payload
 dialects and require complete expanded dependencies. No undocumented scraping,
 follow-up lookup of missing context or live paid experiment is needed.
+
+## Rich-source diagnosis — 2026-10-18
+
+Observations (no implementation decision or additional paid request):
+
+- Owner's latest Render log changes the failing check to `attachments_present`.
+  The X usage screenshot shows four reads and USD 0.01 total, without proving
+  that all four reads belong to this item or that the acquired source is complete.
+- Inspected the submitted post in the owner's Safari session. It contains a
+  text-bearing screenshot/diagram and quotes an X Article; the visible Article
+  card is a truncated preview. This inspection did not use the billed API.
+- `_Post.content` rejects any nonempty attachments object and any non-null
+  article object before extracting text. The current provider-independent
+  FetchResult and assessment passage pipeline carry text only; no image content
+  or OCR/vision acquisition is implemented. Source is saved before model spend
+  is reserved, so adding paid extraction requires explicit accounting design.
+- Official [data dictionary](https://docs.x.com/x-api/fundamentals/data-dictionary)
+  says the `article` field can provide Article text and entities. The
+  [lookup reference](https://docs.x.com/x-api/posts/get-post-by-id) leaves its
+  nested object schema unspecified. The exact full-body shape/completeness and
+  nested-media handling for this Article remain unverified; metadata/preview
+  alone must not be promoted to complete source.
+- Official media docs describe image URLs, type and alt text through expansions.
+  Alt text is an accessibility description and cannot be assumed to transcribe
+  the image completely. Full image/diagram ingestion is a separate missing
+  capability; external text-only or manual complete source remain alternatives.
+- The [Articles endpoints guide](https://docs.x.com/x-api/articles/introduction)
+  documents draft creation and publication, not an independently documented
+  full-body GET endpoint. This does not establish that Article text is absent
+  from post lookup; the data dictionary explicitly mentions it.
+
+Unknowns: actual article/body payload shape, media types/availability in the
+selected and quoted sources, and an approved acquisition/accounting approach
+for complete rich sources. No guard was weakened and no retry was triggered.

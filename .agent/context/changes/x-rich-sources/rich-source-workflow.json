@@ -1,0 +1,310 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Rich X Source Acquisition and Image Budget Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/x-rich-sources/rich-source-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "processing",
+      "label": "Owner-scoped processing and explicit manual recovery"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "submit",
+      "lane": "processing",
+      "col": 1,
+      "type": "frontend",
+      "label": "Submit or Retry",
+      "sublabel": "Explicit cost disclosure",
+      "width": 164,
+      "yOffset": -448
+    },
+    {
+      "id": "admit",
+      "lane": "processing",
+      "col": 1,
+      "type": "database",
+      "label": "Admit X attempt",
+      "sublabel": "Owner and lease fenced",
+      "width": 164,
+      "yOffset": -336
+    },
+    {
+      "id": "x",
+      "lane": "processing",
+      "col": 1,
+      "type": "cloud",
+      "label": "Read full source",
+      "sublabel": "Thread, Article, references",
+      "width": 164,
+      "yOffset": -224
+    },
+    {
+      "id": "cdn",
+      "lane": "processing",
+      "col": 1,
+      "type": "security",
+      "label": "Validate image bytes",
+      "sublabel": "Static X CDN images only",
+      "width": 164,
+      "yOffset": -112
+    },
+    {
+      "id": "budget",
+      "lane": "processing",
+      "col": 1,
+      "type": "database",
+      "label": "Reserve image budget",
+      "sublabel": "One batch per fetch attempt",
+      "width": 164,
+      "yOffset": 0
+    },
+    {
+      "id": "vision",
+      "lane": "processing",
+      "col": 1,
+      "type": "cloud",
+      "label": "Read every image",
+      "sublabel": "Transcription and diagrams",
+      "width": 164,
+      "yOffset": 112
+    },
+    {
+      "id": "cost",
+      "lane": "processing",
+      "col": 1,
+      "type": "database",
+      "label": "Settle actual cost",
+      "sublabel": "Keep unknown-cost hold",
+      "width": 164,
+      "yOffset": 224
+    },
+    {
+      "id": "complete",
+      "lane": "processing",
+      "col": 1,
+      "type": "security",
+      "label": "Require completeness",
+      "sublabel": "All text and images present",
+      "width": 164,
+      "yOffset": 336
+    },
+    {
+      "id": "cache",
+      "lane": "processing",
+      "col": 1,
+      "type": "database",
+      "label": "Cache full source",
+      "sublabel": "Text and image provenance",
+      "width": 164,
+      "yOffset": 448
+    },
+    {
+      "id": "analysis",
+      "lane": "processing",
+      "col": 2,
+      "type": "backend",
+      "label": "Run assessment",
+      "sublabel": "Existing budget and citations",
+      "width": 164,
+      "yOffset": 448
+    },
+    {
+      "id": "paste",
+      "lane": "processing",
+      "col": 3,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "No partial assessment",
+      "width": 164,
+      "yOffset": 112
+    },
+    {
+      "id": "hold",
+      "lane": "processing",
+      "col": 2,
+      "type": "database",
+      "label": "Retain uncertain hold",
+      "sublabel": "Reconcile generation later",
+      "width": 164,
+      "yOffset": 112
+    },
+    {
+      "id": "sourcefail",
+      "lane": "processing",
+      "col": 2,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "Full Article or context missing",
+      "width": 164,
+      "yOffset": -224
+    },
+    {
+      "id": "mediafail",
+      "lane": "processing",
+      "col": 2,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "Unavailable or invalid media",
+      "width": 164,
+      "yOffset": -112
+    },
+    {
+      "id": "budgetfail",
+      "lane": "processing",
+      "col": 2,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "Image budget unavailable",
+      "width": 164,
+      "yOffset": 0
+    },
+    {
+      "id": "readingfail",
+      "lane": "processing",
+      "col": 2,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "Incomplete image reading",
+      "width": 164,
+      "yOffset": 224
+    }
+  ],
+  "edges": [
+    {
+      "from": "submit",
+      "to": "admit",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "admit",
+      "to": "x",
+      "label": "first attempt",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "x",
+      "to": "cdn",
+      "label": "full body",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "cdn",
+      "to": "budget",
+      "label": "images ready",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "budget",
+      "to": "vision",
+      "label": "admitted",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "vision",
+      "to": "cost",
+      "label": "known cost",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "cost",
+      "to": "complete",
+      "label": "settled",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "complete",
+      "to": "cache",
+      "label": "complete",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "cache",
+      "to": "analysis",
+      "label": "reuse cache"
+    },
+    {
+      "from": "x",
+      "to": "sourcefail",
+      "label": "incomplete source",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "cdn",
+      "to": "mediafail",
+      "label": "invalid media",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "budget",
+      "to": "budgetfail",
+      "label": "no budget",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "vision",
+      "to": "hold",
+      "label": "unknown cost",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "cost",
+      "to": "readingfail",
+      "label": "incomplete reading",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "hold",
+      "to": "paste",
+      "label": "paste only",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "from": "cdn",
+      "to": "complete",
+      "label": "no images",
+      "fromSide": "left",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Bounded acquisition and cost",
+      "items": [
+        "At most 12 X API calls, 100 posts and 60 seconds; X billing remains separate.",
+        "At most four static images: 5 MB each, 10 MB total and 20 million pixels each.",
+        "Image reading reserves up to USD 0.16896 from the shared monthly budget."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Completeness and rollout",
+      "items": [
+        "Articles require full body text and every supported embedded dependency.",
+        "Image transcription and visible diagram descriptions are labeled model-extracted.",
+        "No automatic paid retry; unknown charges remain reserved until reconciliation.",
+        "Contract diagram; migration 000016 must precede the matching deployment."
+      ]
+    }
+  ]
+}

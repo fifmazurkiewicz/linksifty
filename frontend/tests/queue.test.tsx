@@ -84,3 +84,16 @@ it('offers explicit paid resume after a budget block but never for an unknown ca
   expect(resume).toHaveBeenCalledWith('cap')
   expect(screen.getByText(/paid request will not be repeated/i)).toBeInTheDocument()
 })
+
+it('explains rich X failures and never retries uncertain image reading', () => {
+  render(<Queue items={[
+    { id: 'article', title: 'Missing article body', status: 'awaiting_manual_content', failure_reason: 'x_article_incomplete', score: null, verdict: null },
+    { id: 'media', title: 'Unreadable media', status: 'awaiting_manual_content', failure_reason: 'image_reading_failed', score: null, verdict: null },
+    { id: 'uncertain-image', title: 'Unknown image cost', status: 'awaiting_manual_content', failure_reason: 'image_reading_uncertain', score: null, verdict: null },
+  ]} onOpen={vi.fn()} onPaste={vi.fn()} onResume={vi.fn()} onDelete={vi.fn()} busy={false} />)
+  expect(screen.getByText(/full X Article body was not available/i)).toBeInTheDocument()
+  expect(screen.getByText(/attached images could not be read completely/i)).toBeInTheDocument()
+  expect(screen.getByText(/image-reading charge is not confirmed/i)).toBeInTheDocument()
+  expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(2)
+  expect(screen.getAllByText(/reads attached images.*monthly budget/i)).toHaveLength(2)
+})

@@ -1,5 +1,8 @@
 # Linksifty setup: Supabase, Render, Vercel, OpenRouter and X
 
+Latest local rich-source implementation: **2026-10-18**. Apply migration 000016
+before deploying that backend; see [rich X sources](#rich-x-articles-and-images-migration-000016).
+
 Checked against repository code and official documentation on **2026-10-14**. Google OAuth is the requested login method.
 Follow the steps in order. Example names and URLs below must be replaced with
 your own. Keep actual keys in your password manager and platform environment
@@ -17,7 +20,7 @@ service. Mock tests and local UI checks do not certify RLS or provider behavior.
 | Render API | Authentication, resumable bounded runner, OpenRouter, progress SSE and recovery routes | Hosted restart/streaming and verified provider cost |
 | Vercel frontend | Google session, queue, live progress, detail/citations, paste, settings and admin limits | Rebuild with matching API, hosted two-account check |
 | OpenRouter | Actual-cost adapter and strict source-citation validation | Server key and verified model; explicitly approved paid acceptance |
-| X | Official post/thread reads implemented locally; operator opt-in required | Migration 000012, server token and full-archive search access |
+| X | Official posts, threads, full Article bodies and static image reading implemented locally | Migrations 000012 and 000016, server token, archive access and approved hosted acceptance |
 
 Setup order: **Supabase → Render → Vercel → final CORS/Auth URLs → optional
 provider credentials → staging checks → release verification after coding**.
@@ -383,8 +386,10 @@ searched second author's full thread. Missing expanded posts do not trigger extr
 HTTP requests. Expansions can increase resource-based X charges despite unchanged
 HTTP request limits; they use the same operator opt-in and explicit queue retry.
 
-Missing parents/pages, API partial errors, absent long text, images/video/polls,
+Missing parents/pages, API partial errors, absent long text, video/polls,
 missing quote/repost dependencies and X Article previews request manually pasted content.
+Full Article bodies and supported static images use the rich-source path described
+below; a preview or unavailable image is never enough for assessment.
 Only parent-connected posts by the root author form the thread; other users'
 replies are excluded unless explicitly required as expanded reference context.
 Unknown/duplicate reference types, cycles and conflicting versions also stop
@@ -424,12 +429,16 @@ request; it does not by itself prove which account setting caused it.
 adapter rejection, including completeness failures returned with HTTP 200:
 
 ```text
-x_fetch_failed reason=partial_content check=attachments_present
+x_fetch_failed reason=x_article_incomplete check=article_body_or_dependencies_missing
 ```
 
-`attachments_present`, `article_present`, `withheld_content`, `missing_long_text`
-and `empty_or_truncated_text` explain missing source material. Paste the complete
-content for these cases. `unsupported_references` identifies unknown or invalid
+`article_body_or_dependencies_missing` identifies an absent full Article body or
+unsupported Article dependency. `non_static_image` identifies video/animation;
+`media_bytes_unavailable_or_invalid` identifies missing or invalid static media.
+`withheld_content`, `missing_long_text` and `empty_or_truncated_text` explain other
+missing source material. Earlier deployments logged `attachments_present` and
+`article_present` for all media/Articles. Paste the complete content for cases
+the adapter cannot acquire. `unsupported_references` identifies unknown or invalid
 combinations of reference types; `missing_referenced_post` identifies an absent
 dependency, and `reference_cycle` identifies cyclic references.
 `disconnected_thread` identifies missing thread parents or cycles.
@@ -974,3 +983,56 @@ unsafe requests, prompt injection and greetings with relevant questions. Verify
 that rejected messages trigger neither answer generation nor Brave. Local mocked
 tests validate routing and response parsing, not Jev's real classification accuracy.
 See [progress and evidence](../../.agent/context/changes/chat-query-classification/progress.md).
+
+## Rich X Articles and images (migration 000016)
+
+Apply [20261018_000016_rich_x_sources.sql](../../supabase/migrations/20261018_000016_rich_x_sources.sql)
+**after 000015 and before deploying the matching backend/frontend**. The new
+backend queries the reservation purpose column, so deploying it first interrupts
+charge reconciliation. The migration preserves existing reservations, adds an
+image-reading purpose/pointer, updates the active-reservation index and exposes
+two service-role-only RPCs. Hosted DDL requires owner approval; local test success
+does not authorize applying it to Supabase. Keep the previous deployment until
+that migration is applied, then deploy backend and frontend together.
+
+Reuse `OPENROUTER_API_KEY`, `OPENROUTER_MODEL=openai/gpt-4o-mini` and the existing
+X server token/opt-in. No additional key, service or environment flag is needed.
+Other model IDs remain disabled until their image/context/cost bounds are
+verified. X reads still use the operator's separate X account billing.
+
+The adapter accepts full Article text/plain_text or supported validated DraftJS
+blocks, including supported embedded images and posts. Titles, previews and
+unknown or incomplete body/dependency shapes request pasted content. Existing
+X requests expand Article cover/media and post attachments. Only static PNG,
+JPEG and WebP images from HTTPS `pbs.twimg.com` are downloaded, without auth,
+cookies, redirects or proxies. Limits are four unique images, 5 MB each/10 MB
+total and 20 million pixels each. Invalid/truncated images, video, animation,
+polls and unavailable media stop acquisition before image inference.
+
+Image reading is one model batch before analysis. It transcribes visible text
+and describes visible diagram/chart relationships; each reading is explicitly
+labeled model-extracted and retains image/post URLs. Every image must be present,
+readable and reported complete. This is model interpretation and needs live
+quality acceptance. Raw image bytes remain in memory only; the complete combined
+source text is cached for later assessment/recovery. No partial reading creates
+a summary or score.
+
+Before that batch, the app reserves at most **0.16896 USD** from the user's shared
+monthly budget (128k input at the existing $1/M price cap plus 8192 output at
+$5/M). This is a conservative temporary reservation, not the expected price.
+Actual provider-reported cost settles separately before assessment admission.
+Insufficient funds requests paste. Unknown cost retains the hold, saves a known
+generation ID for reconciliation and disables Retry. Paste remains available;
+its assessment still respects all pending holds. Crashes cannot automatically
+repeat the X read/image batch. After a known terminal failure, explicit Retry
+can make a new billed fetch/batch; the UI discloses that cost.
+
+Before hosted activation, approve the migration and any paid acceptance scope.
+After deploying, retry the reported post once and verify full Article text,
+every image's transcription/provenance, the source cache and the separate image
+and assessment cost records. Official Article response schemas are only partly
+documented; mocked fixtures do not prove the full body is returned for this
+account/post. If X returns only a preview, the expected outcome remains a clear
+paste request. Verify unreadable/unsupported media, unknown-cost recovery and
+cross-account isolation with approved test data. No live provider calls were
+made for this implementation's local verification.

@@ -359,6 +359,64 @@ def concurrent_x_admission(environment: dict[str, str]) -> None:
         execute(f"delete from auth.users where id='{user}';", environment)
 
 
+def concurrent_image_reading(environment: dict[str, str]) -> None:
+    """Distinct and duplicate image slots share the serialized budget gate."""
+    for same_job in (False, True):
+        _concurrent_image_case(environment, same_job)
+
+
+def _concurrent_image_case(environment: dict[str, str], same_job: bool) -> None:
+    user = str(uuid4())
+    try:
+        execute(
+            f"""
+            insert into auth.users(id,email) values ('{user}','image-race@example.test');
+            select public.get_or_create_account_profile(
+                    '{user}','image-race@example.test',true);
+            select public.set_user_budget('{user}',0.2);
+            select public.submit_fetch_items('{user}',array['https://x.com/user/status/100','https://x.com/user/status/200']);
+            """,
+            environment,
+        )
+        jobs = [
+            json.loads(
+                execute(
+                    f"select row_to_json(j) from public.claim_processing_job('{user}') j;",
+                    environment,
+                ).strip()
+            )
+            for _ in range(2)
+        ]
+        for job in jobs:
+            execute(
+                f"select public.begin_x_fetch('{user}','{job['id']}','{job['lease_token']}');",
+                environment,
+            )
+        barrier = Barrier(2)
+
+        def reserve(index: int) -> str:
+            job = jobs[0 if same_job else index]
+            barrier.wait(timeout=10)
+            return execute(
+                f"select id from public.reserve_image_reading('{user}',"
+                f"'{job['id']}','{job['lease_token']}',0.16896);",
+                environment,
+            ).strip()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = pool.submit(reserve, 0), pool.submit(reserve, 1)
+            assert sum(bool(value) for value in (first.result(), second.result())) == 1
+        held = Decimal(
+            execute(
+                f"select reserved_usd from public.get_usage_summary('{user}');", environment
+            ).strip()
+        )
+        assert held == Decimal("0.16896")
+        print(f"PASS: concurrent image {'duplicate admission' if same_job else 'monthly budget'}")
+    finally:
+        execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -379,6 +437,7 @@ def main() -> int:
         "analysis_chat.test.sql",
         "x_ingestion.test.sql",
         "retry_fetch.test.sql",
+        "image_reading.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -389,6 +448,7 @@ def main() -> int:
     concurrent_rubric_snapshot(environment)
     concurrent_deletion(environment)
     concurrent_x_admission(environment)
+    concurrent_image_reading(environment)
     return 0
 
 

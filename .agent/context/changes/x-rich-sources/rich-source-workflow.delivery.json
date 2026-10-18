@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4d4b5c8b-8334-40c1-ab34-e1003292efcb",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+  "specification": {
+    "sha256": "364beddb3736bc03931973c80f1f426a11098d46ecdbb7e9690bbab40988a96e",
+    "bytes": 7092
+  },
+  "artifact": {
+    "sha256": "eb4568cb223886a738afcf897de40d8c4be811b388f4c78267b4010a6a091d8d",
+    "bytes": 775051
+  }
+}

@@ -197,8 +197,8 @@ The adapter uses fixed api.x.com HTTPS lookup/full-archive endpoints, at most
 12 HTTP requests, 100 thread/context posts, 1 MB response bodies, 100 KB source text
 and a 60-second deadline. All returned pages and author/conversation identities
 are checked, parents must connect to the root, and long text replaces previews.
-Source URLs stay with each post. Missing/partial, multimedia and Article content
-requests paste before model reservation. X may omit undisclosed deleted/hidden
+Source URLs stay with each post. Missing/partial or unsupported source content
+requests paste before assessment reservation. X may omit undisclosed deleted/hidden
 posts; the result represents the accessible indexed snapshot. X billing is
 operator-approved and separate from the model/Brave ledger.
 
@@ -213,6 +213,35 @@ includes collected expanded context; unrelated expanded content is not source.
 
 - [Acquisition contract HTML](../../.agent/context/changes/x-ingestion/x-workflow.html)
   · [Editable JSON](../../.agent/context/changes/x-ingestion/x-workflow.json)
+
+### Full Articles and static images — migration 000016
+
+The acquisition result can carry bounded ephemeral image bytes alongside full
+Article/thread text. The X edge parses complete Article bodies and validates
+embedded post/media dependencies; previews and unknown content blocks fail
+closed. A separate credential-free media client accepts only static PNG/JPEG/WebP
+from HTTPS `pbs.twimg.com`, without redirects or proxies. Four images, 5 MB each,
+10 MB total and 20 million pixels per image bound acquisition and decoding.
+
+Before caching or assessing, ProcessingService reserves a separate image-reading
+slot from the shared monthly ledger. One OpenRouter batch returns all image IDs,
+explicit completeness, transcription and visible diagram descriptions. Known
+actual cost settles before the final complete source is cached. Extracted text
+is labeled model-extracted with image and post provenance. Image bytes are not
+stored. Incomplete reading requests paste; unknown cost retains its reservation
+and blocks Retry. Existing generation reconciliation also handles attached image
+reservations, and late generation IDs survive lease loss or content deletion.
+
+Migration 000016 adds a reservation purpose and durable per-job extraction pointer.
+Admission checks owner, account status, current lease, expiry, X admission and
+the total shared budget. The active-reservation uniqueness key includes purpose,
+so manual pasted content can proceed separately while uncertain image charges
+remain reserved. An explicit known-terminal fetch Retry alone resets the image
+slot. Database migration must precede deployment. Mocked/local verification does
+not establish live Article payload compatibility or transcription accuracy.
+
+- [Rich-source contract HTML](../../.agent/context/changes/x-rich-sources/rich-source-workflow.html)
+  · [Editable JSON](../../.agent/context/changes/x-rich-sources/rich-source-workflow.json)
 - [Progress and activation boundaries](../../.agent/context/changes/x-ingestion/progress.md)
 
 The diagram describes the contract; it does not claim repository snapshot

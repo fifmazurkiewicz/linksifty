@@ -150,3 +150,14 @@ uses the same monthly budget and server key. Apply migration
 `20261018_000015_chat_classification.sql` before deploying the matching backend;
 `OPENROUTER_MODEL` remains the answer model. See
 [classification rollout](docs/deployment/setup.md#chat-query-classification-migration-000015).
+
+### Full X Articles and static images
+
+X ingestion now supports full Article bodies and bounded static image reading.
+Visible text and diagram descriptions are labeled model-extracted and charged
+from the same monthly budget before assessment. Preview-only Articles,
+unreadable images and unsupported media request paste. Image bytes are not
+stored; complete source text is cached. Apply migration
+`20261018_000016_rich_x_sources.sql` **before** deploying the matching backend/UI.
+See [rich-source rollout](docs/deployment/setup.md#rich-x-articles-and-images-migration-000016)
+for limits, uncertain-charge recovery and hosted acceptance.

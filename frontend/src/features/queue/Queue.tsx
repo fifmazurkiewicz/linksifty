@@ -6,6 +6,7 @@ const stages: Record<string, string> = {
   searching_sources: 'Searching additional sources with Brave', checking_sources: 'Fetching and checking additional pages',
   waiting_analysis: 'Checking budget before analysis', analyzing: 'Analyzing information', saving: 'Saving your assessment',
   completed: 'Ready to read', cost_unknown: 'Waiting for the provider cost to be confirmed',
+  waiting_image_budget: 'Checking budget before reading images', reading_images: 'Reading attached images and diagrams',
   budget_exhausted: 'Monthly budget reached', not_configured: 'Analysis is not configured',
   invalid_model_output: 'The model did not return a usable, source-backed result',
 }
@@ -20,6 +21,13 @@ const reasons: Record<string, string> = {
   x_not_found: 'X could not return this post. It may be deleted or unavailable to the API.',
   x_rate_limited: 'X has reached its API rate limit. Paste the full thread to continue.',
   x_attempt_uncertain: 'An earlier X fetch was interrupted. Paste the full thread to avoid repeating potentially billed reads.',
+  x_article_incomplete: 'The full X Article body was not available. Paste the complete article, including relevant image text.',
+  x_media_unsupported: 'This source includes video, animation, a poll or another unsupported attachment. Paste its complete readable content.',
+  x_media_unavailable: 'A required image could not be downloaded or validated. Paste the complete source, including image text.',
+  image_reading_failed: 'The attached images could not be read completely. Paste the source text and all relevant image or diagram content.',
+  image_reading_uncertain: 'An earlier image-reading charge is not confirmed. Funds remain reserved; paste complete content to continue without repeating that call.',
+  image_reading_not_configured: 'Image reading is not configured for the selected model. Paste the source and relevant image text.',
+  image_budget_exhausted: 'Your monthly budget cannot cover image reading. Increase the budget or paste complete readable content.',
 }
 const modelReasons: Record<string, string> = {
   input_too_large: 'The source and assessment rules exceed the safe analysis size limit.',
@@ -77,7 +85,8 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
       const stage = item.processing_stage === 'queued' && item.status !== 'queued' ? item.status : item.processing_stage || item.status
       const stageLabel = stages[stage] || (item.status === 'awaiting_manual_content' ? 'Paste readable content to continue' : stage.replaceAll('_', ' '))
       const paused = item.status === 'processing' && item.worker_active === false
-      const canRetryFetch = item.status === 'awaiting_manual_content' && item.failure_reason !== 'x_attempt_uncertain' && stage !== 'x_attempt_uncertain'
+      const uncertainFetch = ['x_attempt_uncertain', 'image_reading_uncertain'].includes(item.failure_reason || '') || ['x_attempt_uncertain', 'image_reading_uncertain'].includes(stage)
+      const canRetryFetch = item.status === 'awaiting_manual_content' && !uncertainFetch
       let host = ''
       try { host = new URL(item.original_url || item.title).hostname } catch { /* Pasted content has no URL. */ }
       return <article key={item.id} className="queue-item">
@@ -89,7 +98,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
           <p role={item.status === 'processing' ? 'status' : item.status === 'failed' ? 'alert' : undefined} aria-atomic="true">{paused ? 'Processing paused; waiting to resume' : stageLabel}{!paused && stage === 'fetching' && host ? ` from ${host}` : ''}.</p>
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
-          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source again and starts analysis using your monthly budget. X reads may incur separate charges.</p>}
+          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source again, reads attached images and starts analysis using your monthly budget. X reads may incur separate charges.</p>}
           {item.updated_at && <p className="hint">Updated {new Date(item.updated_at).toLocaleTimeString()}</p>}
           {stage === 'invalid_model_output' && item.failure_reason && modelReasons[item.failure_reason] && <p>{modelReasons[item.failure_reason]}</p>}
           {stage === 'cost_unknown' && <p>The amount remains reserved. This paid request will not be repeated.</p>}

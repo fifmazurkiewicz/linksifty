@@ -38,7 +38,7 @@ def test_long_post_uses_complete_text_and_fixed_official_endpoint() -> None:
         assert "note_tweet" in request.url.params["tweet.fields"]
         assert "referenced_tweets" in request.url.params["tweet.fields"]
         assert "author_id" in request.url.params["tweet.fields"]
-        assert request.url.params["expansions"] == "referenced_tweets.id"
+        assert "referenced_tweets.id" in request.url.params["expansions"].split(",")
         if request.url.path == "/2/tweets/100":
             return httpx.Response(
                 200, json={"data": post(text="preview…", note_post={"text": TEXT})}
@@ -356,8 +356,8 @@ def test_transport_and_decode_errors_log_type_without_exception_details(
 @pytest.mark.parametrize(
     "extra,check",
     [
-        ({"attachments": {"media_keys": ["private-media"]}}, "attachments_present"),
-        ({"article": {"title": "private-article"}}, "article_present"),
+        ({"attachments": {"media_keys": ["private-media"]}}, "missing_expanded_media"),
+        ({"article": {"title": "private-article"}}, "article_body_or_dependencies_missing"),
         ({"withheld": {"country_codes": ["private-country"]}}, "withheld_content"),
         ({"note_post": None}, "missing_long_text"),
         ({"text": "private-truncated-text…"}, "empty_or_truncated_text"),
@@ -377,9 +377,16 @@ def test_content_rejection_logs_the_specific_check_without_source_data(
     result = acquire(respond)
 
     assert result.text is None
-    assert result.failure == "partial_content"
+    expected = (
+        "x_media_unavailable"
+        if "attachments" in extra
+        else "x_article_incomplete"
+        if "article" in extra
+        else "partial_content"
+    )
+    assert result.failure == expected
     assert len(calls) == 1
-    assert f"x_fetch_failed reason=partial_content check={check}" in caplog.text
+    assert f"x_fetch_failed reason={expected} check={check}" in caplog.text
     for private in (
         "private-media",
         "private-article",
@@ -431,7 +438,7 @@ def test_quote_includes_complete_referenced_text_and_provenance(wire_name: str) 
 
     def respond(request: httpx.Request) -> httpx.Response:
         calls.append(request.url.path)
-        assert request.url.params["expansions"] == "referenced_tweets.id"
+        assert "referenced_tweets.id" in request.url.params["expansions"].split(",")
         if request.url.path == "/2/tweets/100":
             return httpx.Response(
                 200,
@@ -565,7 +572,14 @@ def test_incomplete_or_cyclic_quote_never_returns_outer_post(extra: dict[str, ob
 
     result = acquire(respond)
     assert result.text is None
-    assert result.failure == "partial_content"
+    expected = (
+        "x_media_unavailable"
+        if "attachments" in extra
+        else "x_article_incomplete"
+        if "article" in extra
+        else "partial_content"
+    )
+    assert result.failure == expected
     assert len(calls) == 1
 
 
