@@ -66,13 +66,22 @@ def main() -> int:
 
         admitted = simultaneous(
             [
-                f"select count(*) from public.reserve_chat_call('{owner}','{turn}','decision',0.6);"
+                f"select count(*) from public.reserve_chat_call("
+                f"'{owner}','{turn}','classification',0.6);"
                 for turn in turns[:2]
             ]
         )
         assert sorted(admitted) == ["0", "1"]
         print("PASS: concurrent chat calls share one budget lock")
         turn = turns[admitted.index("1")]
+        assert (
+            execute(
+                f"select count(*) from public.reserve_chat_call("
+                f"'{owner}','{turn}','decision',0.1);",
+                environment,
+            ).strip()
+            == "1"
+        )
         searches = simultaneous(
             [f"select count(*) from public.reserve_chat_call('{owner}','{turn}','search',0.1);"] * 2
         )
@@ -87,6 +96,15 @@ def main() -> int:
         )
         assert sorted(claimed) == ["f", "t"]
         print("PASS: concurrent duplicate questions claim one executor")
+        classifiers = simultaneous(
+            [
+                f"select count(*) from public.reserve_chat_call("
+                f"'{owner}','{turns[2]}','classification',0.01);"
+            ]
+            * 2
+        )
+        assert sorted(classifiers) == ["0", "1"]
+        print("PASS: concurrent requests reserve exactly one classification slot")
         simultaneous(
             [
                 f"select public.delete_items('{owner}',array['{items[2]}'::uuid],true);",

@@ -141,3 +141,12 @@ chat content while preserving charge reconciliation.
 Requires `20261018_000013_analysis_chat.sql` and matching backend/frontend.
 Existing OpenRouter and optional Brave configuration is reused; chat works
 with saved material when Brave is unavailable. See [rollout and recovery](docs/deployment/setup.md#analysis-and-topic-chat-migration-000013).
+
+New questions first pass a `typesafe/jev-1.13` relevance/safety gate through
+OpenRouter. Relevant questions continue to the answer model; unrelated or unsafe
+requests receive an uncited Polish/English refusal without research or answer
+generation. Invalid or uncertain classification stops the request. Classification
+uses the same monthly budget and server key. Apply migration
+`20261018_000015_chat_classification.sql` before deploying the matching backend;
+`OPENROUTER_MODEL` remains the answer model. See
+[classification rollout](docs/deployment/setup.md#chat-query-classification-migration-000015).

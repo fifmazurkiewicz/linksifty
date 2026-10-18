@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "workflow",
+  "quality": "showcase",
+  "startedAt": "2026-10-18T11:24:36.445Z",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.json",
+    "sha256": "588170db0de0d64685c73dc8995208408efd1a5bb095de03fb1e92eeb5b3abd4",
+    "bytes": 6070
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.html"
+  },
+  "stages": {
+    "validate": {
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": null,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.json",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "deliver",
+        "receiptId": "1b62c456-c903-4234-854f-da3efb9835b4",
+        "stage": "render",
+        "type": "workflow",
+        "input": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.json",
+        "output": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.html",
+        "error": "Workflow edge \"guard->stop\" cannot satisfy route preset \"straight\" under readable-v2 constraints (minimum 8px endpoint stubs, 16px interior turns, and 28px direct clearance).",
+        "diagnostics": [
+          {
+            "code": "workflow/route-preset-conflict",
+            "severity": "error",
+            "message": "Workflow edge \"guard->stop\" cannot satisfy route preset \"straight\" under readable-v2 constraints (minimum 8px endpoint stubs, 16px interior turns, and 28px direct clearance).",
+            "subject": {
+              "diagramType": "workflow",
+              "edge": null,
+              "from": "guard",
+              "to": "stop",
+              "route": "straight"
+            },
+            "evidence": {
+              "attemptedCandidateFamily": "straight",
+              "points": [
+                [
+                  211,
+                  280
+                ],
+                [
+                  211,
+                  464
+                ]
+              ],
+              "fromSide": "bottom",
+              "toSide": "top",
+              "requiredEndpointStubPx": 8,
+              "requiredInteriorSegmentPx": 16,
+              "requiredDirectClearancePx": 28
+            },
+            "supportedFixes": []
+          }
+        ],
+        "provenance": "absent",
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      },
+      "execution": "embedded-in-deliver"
+    },
+    "deliver": {
+      "status": "not-run",
+      "execution": "blocked-by-validate"
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "workflow/route-preset-conflict",
+      "severity": "error",
+      "message": "Workflow edge \"guard->stop\" cannot satisfy route preset \"straight\" under readable-v2 constraints (minimum 8px endpoint stubs, 16px interior turns, and 28px direct clearance).",
+      "subject": {
+        "diagramType": "workflow",
+        "edge": null,
+        "from": "guard",
+        "to": "stop",
+        "route": "straight"
+      },
+      "evidence": {
+        "attemptedCandidateFamily": "straight",
+        "points": [
+          [
+            211,
+            280
+          ],
+          [
+            211,
+            464
+          ]
+        ],
+        "fromSide": "bottom",
+        "toSide": "top",
+        "requiredEndpointStubPx": 8,
+        "requiredInteriorSegmentPx": 16,
+        "requiredDirectClearancePx": 28
+      },
+      "supportedFixes": []
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "validate",
+  "finishedAt": "2026-10-18T11:24:36.726Z",
+  "durationMs": 280,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  }
+}

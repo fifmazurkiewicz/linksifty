@@ -41,6 +41,18 @@ class ChatModelResult(BaseModel):
     failure_reason: str | None = None
 
 
+class ChatClassification(BaseModel):
+    category: Literal["relevant", "off_topic", "unsafe"]
+    language: Literal["pl", "en"]
+
+
+class ChatClassificationResult(BaseModel):
+    classification: ChatClassification | None = None
+    cost: Decimal | None = Field(default=None, ge=0, allow_inf_nan=False)
+    generation_id: str | None = None
+    failure_reason: str | None = None
+
+
 class ChatTurn(BaseModel):
     id: UUID
     item_id: UUID
@@ -82,7 +94,7 @@ class ChatError(Exception):
     """Stable application failure translated by HTTP at the edge."""
 
 
-CallSlot = Literal["decision", "search", "answer"]
+CallSlot = Literal["classification", "decision", "search", "answer"]
 
 
 class ChatStore(Protocol):
@@ -114,4 +126,6 @@ class ChatStore(Protocol):
 
 class ChatProvider(Protocol):
     def estimate(self, text: str) -> Decimal: ...
+    def classification_estimate(self) -> Decimal: ...
+    async def classify(self, context: ChatInput) -> ChatClassificationResult: ...
     async def reply(self, context: ChatInput, *, allow_search: bool) -> ChatModelResult: ...

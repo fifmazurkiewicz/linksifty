@@ -246,3 +246,23 @@ after five minutes on a later read; paid calls are never automatically retried.
 
 Archify source/artifact checks pass. Browser QA is skipped because Chrome/Chromium
 is unavailable; no perceptual review or hosted acceptance is claimed.
+
+### Chat query gate — migration 000015
+
+Before answer generation or research, ChatService reserves the unique
+`classification` slot and asks OpenRouter Decisions model `typesafe/jev-1.13`
+about the latest message. It receives bounded original/analysis excerpts and
+recent conversation; saved research does not expand the original topic's scope.
+The provider returns scope and refusal language, never generated refusal text.
+Only a valid, sufficiently confident relevant classification reaches the existing
+answer/search flow. Off-topic/unsafe messages use fixed Polish or English replies
+with no citations or further provider/search calls. English is the fallback for
+other languages; malformed, low-confidence and failed classifications stop.
+
+The existing OpenRouter adapter owns HTTP and validation; application orchestration
+and owner-scoped persistence remain in their established layers. Classification
+shares the monthly USD ledger, unique-call fences, cost settlement, generation-ID
+recovery and deletion behavior. No new dependency, key or worker is introduced.
+See the [editable workflow](../../.agent/context/changes/chat-query-classification/chat-workflow.json),
+[workflow HTML](../../.agent/context/changes/chat-query-classification/chat-workflow.html)
+and [verification record](../../.agent/context/changes/chat-query-classification/evidence.md).

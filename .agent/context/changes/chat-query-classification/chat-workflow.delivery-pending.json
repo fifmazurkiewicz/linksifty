@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "command": "deliver",
+  "status": "pending",
+  "receiptId": "1b62c456-c903-4234-854f-da3efb9835b4",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-query-classification/chat-workflow.html"
+}

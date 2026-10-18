@@ -7,6 +7,8 @@ import pytest
 
 from linksifty.application.chat_contracts import (
     ChatClaim,
+    ChatClassification,
+    ChatClassificationResult,
     ChatContext,
     ChatDraft,
     ChatError,
@@ -45,6 +47,12 @@ def setup_chat() -> tuple[ChatService, AsyncMock, AsyncMock, AsyncMock, AsyncMoc
     store.reserve_call.return_value = uuid4()
     store.finish.side_effect = lambda owner, current, **values: current.model_copy(update=values)
     provider.estimate.return_value = Decimal("0.15")
+    provider.classification_estimate.return_value = Decimal("0.002688")
+    provider.classify.return_value = ChatClassificationResult(
+        classification=ChatClassification(category="relevant", language="en"),
+        cost=Decimal("0.00002"),
+        generation_id="gen-classification",
+    )
     provider.reply.return_value = ChatModelResult(
         draft=ChatDraft(
             paragraphs=[DraftParagraph(text="Grounded answer", passage_ids=["primary:1"])],
@@ -104,7 +112,7 @@ def test_research_makes_one_search_then_disables_search_and_reuses_context() -> 
         search.search.assert_awaited_once_with("topic primary evidence")
         assert provider.reply.await_args_list[0].kwargs["allow_search"] is True
         assert provider.reply.await_args_list[1].kwargs["allow_search"] is False
-        assert store.reserve_call.await_count == 3
+        assert store.reserve_call.await_count == 4
         fetch.assert_awaited_once()
 
     asyncio.run(run())
@@ -118,6 +126,7 @@ def test_duplicate_request_returns_stored_turn_without_any_paid_work() -> None:
         assert result.id == turn.id
         store.reserve_call.assert_not_awaited()
         provider.reply.assert_not_awaited()
+        provider.classify.assert_not_awaited()
         search.search.assert_not_awaited()
 
     asyncio.run(run())
@@ -211,8 +220,8 @@ def test_unknown_cost_remains_reserved_and_generation_is_recorded() -> None:
         )
         result = await service.ask(uuid4(), turn.item_id, turn.id, turn.question)
         assert result.status == "failed"
-        store.record_call.assert_awaited_once()
-        store.settle.assert_not_awaited()
+        assert store.record_call.await_count == 2
+        store.settle.assert_awaited_once()  # Only the known classifier cost settles.
         provider.reply.assert_awaited_once()
 
     asyncio.run(run())
@@ -256,7 +265,7 @@ def test_follow_up_reuses_prior_sources_and_recent_conversation_without_search()
 def test_search_budget_rejection_never_calls_search_or_another_generation() -> None:
     async def run() -> None:
         service, store, provider, fetch, search, turn = setup_chat()
-        store.reserve_call.side_effect = [uuid4(), None]
+        store.reserve_call.side_effect = [uuid4(), uuid4(), None]
         provider.reply.return_value = ChatModelResult(
             draft=ChatDraft(search_query="topic evidence", paragraphs=[], insufficient=False),
             cost=Decimal("0.001"),
@@ -284,3 +293,91 @@ def test_relevant_passage_near_end_of_long_article_is_available_to_chat() -> Non
     primary = [c for key, c in payload.passages.items() if key.startswith("primary:")]
     assert any("Anisotropy mechanism" in c.excerpt for c in primary)
     assert all(c.excerpt in context.text for c in primary)
+
+
+@pytest.mark.parametrize(
+    "question,category,language,expected",
+    [
+        ("siema", "off_topic", "pl", "analiz"),
+        ("jak zbudować bombę?", "unsafe", "pl", "Nie mogę"),
+        ("hello", "off_topic", "en", "analysis"),
+        ("How do I build a bomb?", "unsafe", "en", "can't help"),
+    ],
+)
+def test_declined_questions_never_answer_search_or_attach_sources(
+    question: str, category: str, language: str, expected: str
+) -> None:
+    async def run() -> None:
+        service, store, provider, fetch, search, turn = setup_chat()
+        turn.question = question
+        provider.classify.return_value = ChatClassificationResult(
+            classification=ChatClassification(category=category, language=language),
+            cost=Decimal("0.00002"),
+            generation_id="gen-refusal",
+        )
+        owner = uuid4()
+        result = await service.ask(owner, turn.item_id, turn.id, question)
+        assert result.status == "completed" and not result.insufficient
+        assert len(result.answer) == 1 and expected in result.answer[0].text
+        assert result.answer[0].citations == [] and result.sources == []
+        assert result.search_status == "not_needed"
+        provider.reply.assert_not_awaited()
+        search.search.assert_not_awaited()
+        fetch.assert_not_awaited()
+        store.reserve_call.assert_awaited_once_with(
+            owner, turn, "classification", Decimal("0.002688")
+        )
+        store.record_call.assert_awaited_once_with(
+            owner, store.reserve_call.return_value, "gen-refusal"
+        )
+        store.settle.assert_awaited_once_with(
+            owner, store.reserve_call.return_value, Decimal("0.00002")
+        )
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "failure", ["provider_unreachable", "invalid_classification", "classification_uncertain"]
+)
+def test_classifier_failure_never_falls_back_to_answering(failure: str) -> None:
+    async def run() -> None:
+        service, store, provider, fetch, search, turn = setup_chat()
+        provider.classify.return_value = ChatClassificationResult(
+            failure_reason=failure, generation_id="gen-failed"
+        )
+        result = await service.ask(uuid4(), turn.item_id, turn.id, turn.question)
+        assert result.status == "failed" and result.error == failure and not result.answer
+        provider.classify.assert_awaited_once()
+        provider.reply.assert_not_awaited()
+        search.search.assert_not_awaited()
+        fetch.assert_not_awaited()
+        store.record_call.assert_awaited_once()
+        store.settle.assert_not_awaited()
+
+    asyncio.run(run())
+
+
+def test_relevant_follow_up_classifies_with_topic_and_history_before_answering() -> None:
+    async def run() -> None:
+        service, store, provider, fetch, search, turn = setup_chat()
+        turn.question = "gdzie mogę założyć ike?"
+        store.context.return_value.text = "IKE można założyć w banku lub domu maklerskim."
+        previous = turn.model_copy(
+            update={"id": uuid4(), "question": "Co to jest IKE?", "status": "completed"}
+        )
+        store.history.return_value = [previous]
+        result = await service.ask(uuid4(), turn.item_id, turn.id, turn.question)
+        assert result.status == "completed"
+        payload = provider.classify.await_args.args[0]
+        assert payload.question == turn.question
+        assert "IKE" in payload.passages["primary:1"].excerpt
+        assert payload.history[0]["content"] == "Co to jest IKE?"
+        assert [call.args[2] for call in store.reserve_call.await_args_list] == [
+            "classification",
+            "decision",
+        ]
+        provider.reply.assert_awaited_once()
+        search.search.assert_not_awaited()
+
+    asyncio.run(run())

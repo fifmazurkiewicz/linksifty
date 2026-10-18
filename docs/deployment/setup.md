@@ -846,7 +846,8 @@ and legacy `chat_messages` remain compatible; new conversations use turn records
 
 Reuse server-only `OPENROUTER_API_KEY` and the already supported `OPENROUTER_MODEL`.
 Optional Brave research reuses `BRAVE_SEARCH_API_KEY` and the existing positive,
-operator-verified search price. No new model, agent framework or worker is required.
+operator-verified search price. The query gate added by migration 000015 uses
+the separate pinned Jev model described below; no new key or worker is required.
 The UI discloses model/search spending before Send; sending consents to the bounded
 question operation. Without Brave configuration chat answers from saved material.
 
@@ -882,3 +883,37 @@ accounts' isolation, one saved-context answer, one necessary search with support
 passages, a failed/duplicate submission, budget exhaustion and deletion while a
 question is pending. Paid model quality and the decision to research need live
 evaluation under an explicitly approved budget. Local tests never call paid APIs.
+
+## Chat query classification (migration 000015)
+
+Apply `supabase/migrations/20261018_000015_chat_classification.sql` after 000014,
+then deploy the matching backend. Coordinate this short rollout: once the new
+reservation rule is applied, an older backend cannot reserve its answer decision
+without classification and will fail closed. Existing conversations stay readable;
+the migration does not rewrite previous answers. The existing frontend can display
+the fixed uncited refusal paragraphs without a contract change.
+
+No new credentials or environment variables are needed. Keep `OPENROUTER_MODEL`
+as the verified answer model (`openai/gpt-4o-mini`); the classifier is separately
+pinned to `typesafe/jev-1.13`, using the server-only `OPENROUTER_API_KEY` and
+`POST /api/alpha/decisions`. It makes one request with scope and language choices.
+Requests are bounded below 32K UTF-8 bytes, with provider price ceilings of
+$0.042/M input, zero output/request charges and no fallback. The conservative
+reservation is $0.002688 (two full 32K contexts); reported actual cost settles into
+the existing monthly ledger. Price changes above these ceilings cause rejection.
+
+Only a valid relevant/safe result with scope confidence >= 0.8 continues to the
+answer model and optional one-search flow. Off-topic/unsafe messages receive a
+fixed Polish/English reply with no citations or research. English is the fallback
+for other languages. Low confidence or classifier failure stops the turn; there
+is no bypass or automatic retry. Unknown costs stay reserved. Generation IDs are
+retained for existing reconciliation; verify Decisions generation lookup during
+hosted acceptance, and retain the reservation if lookup is unavailable.
+
+The confidence cutoff is a provisional conservative policy, not a measured model
+quality guarantee. Under a separately approved live-test budget, check IKE/analysis
+questions, typo/contextual follow-ups, standalone `siema`, unrelated questions,
+unsafe requests, prompt injection and greetings with relevant questions. Verify
+that rejected messages trigger neither answer generation nor Brave. Local mocked
+tests validate routing and response parsing, not Jev's real classification accuracy.
+See [progress and evidence](../../.agent/context/changes/chat-query-classification/progress.md).

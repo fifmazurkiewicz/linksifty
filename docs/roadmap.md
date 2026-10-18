@@ -21,7 +21,7 @@ Canonical product roadmap · updated 2026-10-17. [Derived Kanban](roadmap-kanban
 - A failed/partial source requests pasted content and creates no assessment.
 - Threshold changes affect future results only; every completed assessment stores its threshold.
 - 30-day deletion requires cleanup execution; an expiry timestamp alone is not deletion.
-- The approved M8/M9 scope supersedes the earlier personal-only exclusion of public signup and account administration. Admins still cannot access another user's content. Jev/System One remains excluded.
+- The approved M8/M9 scope supersedes the earlier personal-only exclusion of public signup and account administration. Admins still cannot access another user's content. On 2026-10-18 the owner approved Jev only for the analysis-chat relevance/safety gate; assessment scoring remains deterministic.
 - “Done” distinguishes local code evidence from live service validation. No production readiness is currently claimed.
 
 ## Sequence and blockers
@@ -74,6 +74,12 @@ migration 000013 and coordinated backend/frontend deployment. Local evidence:
 concurrency checks, plus the existing SQL/regression gates. Toolkit/browser QA
 and hosted paid acceptance remain separate; no production readiness is inferred.
 [Canonical progress](../.agent/context/changes/analysis-chat/progress.md).
+
+The owner additionally approved `typesafe/jev-1.13` query classification through
+OpenRouter. M6/M9 now gate answering/research on relevance and safety, with polite
+uncited refusals and shared-budget classification reservations. Migration 000015
+must precede the matching backend. Local verification and rollout limits are in
+[classification progress](../.agent/context/changes/chat-query-classification/progress.md).
 
 ## Official X posts and threads — local delivery
 

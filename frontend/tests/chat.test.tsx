@@ -85,3 +85,18 @@ it('keeps the draft when a persisted provider failure returns', async () => {
   expect(await screen.findByText(/monthly budget/i)).toBeVisible()
   expect(input).toHaveValue('Explain the evidence')
 })
+
+it('renders and restores a polite refusal without source or research badges', async () => {
+  const refusal = 'Chętnie pomogę z pytaniem dotyczącym tej analizy lub jej tematu.'
+  const turn = { ...completed, question: 'siema', search_status: 'not_needed',
+    answer: [{ text: refusal, citations: [] }] }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...empty, turns: [turn] })))
+  render(<AnalysisChat id="item" session={session} />)
+  expect(await screen.findByText(refusal)).toBeVisible()
+  expect(screen.getByText('siema')).toBeVisible()
+  expect(screen.queryByText(/Original source|Research source|One web search|not enough verified/)).not.toBeInTheDocument()
+  const input = screen.getByRole('textbox', { name: 'Your question' })
+  expect(input).toBeEnabled()
+  fireEvent.change(input, { target: { value: 'Why this verdict?' } })
+  expect(screen.getByRole('button', { name: 'Send question' })).toBeEnabled()
+})

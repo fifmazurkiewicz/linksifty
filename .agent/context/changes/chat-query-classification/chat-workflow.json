@@ -1,0 +1,277 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Analysis Chat Query Classification",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/chat-query-classification/chat-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "reader",
+      "label": "Reader"
+    },
+    {
+      "id": "application",
+      "label": "Private conversation"
+    },
+    {
+      "id": "research",
+      "label": "Conditional public research"
+    },
+    {
+      "id": "recovery",
+      "label": "Safety and recovery",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "question",
+    "guard",
+    "classify",
+    "decide",
+    "final",
+    "save",
+    "response"
+  ],
+  "nodes": [
+    {
+      "id": "question",
+      "lane": "reader",
+      "col": 0,
+      "type": "frontend",
+      "label": "Ask a question",
+      "sublabel": "Analysis or its topic",
+      "width": 160
+    },
+    {
+      "id": "response",
+      "lane": "reader",
+      "col": 5,
+      "type": "frontend",
+      "label": "Read the answer",
+      "sublabel": "Answer or polite refusal",
+      "width": 160
+    },
+    {
+      "id": "guard",
+      "lane": "application",
+      "col": 0,
+      "type": "security",
+      "label": "Owner and request",
+      "sublabel": "Completed, unexpired item",
+      "tag": "Claim once",
+      "width": 160
+    },
+    {
+      "id": "decide",
+      "lane": "application",
+      "col": 2,
+      "type": "backend",
+      "label": "Answer or research",
+      "sublabel": "Saved relevant evidence",
+      "tag": "Reserve model cost",
+      "width": 160
+    },
+    {
+      "id": "final",
+      "lane": "application",
+      "col": 4,
+      "type": "backend",
+      "label": "Validate the answer",
+      "sublabel": "Known passage IDs",
+      "tag": "Fail closed",
+      "width": 160
+    },
+    {
+      "id": "save",
+      "lane": "application",
+      "col": 5,
+      "type": "database",
+      "label": "Save the turn",
+      "sublabel": "Deletion fences late writes",
+      "width": 160
+    },
+    {
+      "id": "search",
+      "lane": "research",
+      "col": 2,
+      "type": "cloud",
+      "label": "One web search",
+      "sublabel": "Targeted public query",
+      "tag": "Unique reserved slot",
+      "width": 160
+    },
+    {
+      "id": "fetch",
+      "lane": "research",
+      "col": 3,
+      "type": "backend",
+      "label": "Fetch and answer",
+      "sublabel": "Safe bounded evidence",
+      "tag": "Search disabled",
+      "width": 160
+    },
+    {
+      "id": "stop",
+      "lane": "recovery",
+      "col": 0,
+      "type": "security",
+      "label": "Stop safely",
+      "sublabel": "Access, budget or failure",
+      "tag": "No paid retry",
+      "width": 160
+    },
+    {
+      "id": "classify",
+      "lane": "application",
+      "col": 1,
+      "type": "security",
+      "label": "Jev 1.13 gate",
+      "sublabel": "Topic and safety",
+      "tag": "Reserve once",
+      "width": 160
+    },
+    {
+      "id": "refuse",
+      "lane": "recovery",
+      "col": 1,
+      "type": "backend",
+      "label": "Politely decline",
+      "sublabel": "Polish or English",
+      "tag": "No research or citations",
+      "width": 160
+    }
+  ],
+  "edges": [
+    {
+      "from": "question",
+      "to": "guard",
+      "label": "Request UUID",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "from": "guard",
+      "to": "classify",
+      "label": "New request",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "from": "guard",
+      "to": "response",
+      "label": "Duplicate: saved state",
+      "role": "branch",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          20,
+          246
+        ],
+        [
+          20,
+          50
+        ],
+        [
+          1264.2,
+          50
+        ]
+      ]
+    },
+    {
+      "from": "decide",
+      "to": "final",
+      "label": "Evidence sufficient",
+      "role": "main"
+    },
+    {
+      "from": "decide",
+      "to": "search",
+      "label": "New evidence needed",
+      "role": "branch"
+    },
+    {
+      "from": "search",
+      "to": "fetch"
+    },
+    {
+      "from": "fetch",
+      "to": "final",
+      "label": "Final generation"
+    },
+    {
+      "from": "final",
+      "to": "save",
+      "label": "Validated answer"
+    },
+    {
+      "from": "save",
+      "to": "response",
+      "fromSide": "right",
+      "toSide": "right",
+      "route": "outside-right"
+    },
+    {
+      "from": "guard",
+      "to": "stop",
+      "label": "Denied or uncertain",
+      "role": "error",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "from": "classify",
+      "to": "decide",
+      "label": "Relevant and safe"
+    },
+    {
+      "from": "classify",
+      "to": "refuse",
+      "label": "Off-topic or unsafe",
+      "role": "branch"
+    },
+    {
+      "from": "refuse",
+      "to": "save",
+      "label": "Fixed reply",
+      "role": "branch",
+      "route": "bottom-channel"
+    },
+    {
+      "from": "classify",
+      "to": "stop",
+      "label": "Failed or uncertain",
+      "role": "error",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Agreed behavior",
+      "items": [
+        "Classify the latest message against the analysis, original topic and recent history.",
+        "Only relevant and safe questions reach answer generation or the single optional search.",
+        "This is the agreed behavior contract; local tests and hosted verification are separate."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Spending and privacy",
+      "items": [
+        "Jev classification has a unique reservation in the shared monthly USD budget.",
+        "Failures stop the request; uncertain costs stay reserved and calls are never retried.",
+        "Refusals use fixed text, with no invented evidence or additional generation."
+      ]
+    }
+  ]
+}

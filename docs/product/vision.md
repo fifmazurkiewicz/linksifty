@@ -111,4 +111,9 @@ approval/budget semantics.
 - Public signup, pending-user trials, account approval, admin views, and social sharing.
 - Bookmark import, Telegram, topic categorization, manual verdict override, automatic reassessment, and bring-your-own-key.
 - Automatic fetching for video, podcasts, PDFs, newsletters, Reddit, or any blocked/unsupported page.
-- Full-text inbox search, a dedicated analytics platform, a paid background worker, and System One/Jev classification.
+- Full-text inbox search, a dedicated analytics platform, and a paid background worker.
+
+On 2026-10-18 the owner approved a narrow exception to the original System One/Jev
+exclusion: `typesafe/jev-1.13` classifies analysis-chat questions before answering
+or researching. It rejects off-topic/unsafe requests and shares the user's model
+budget. Assessment scoring remains deterministic and does not use Jev.

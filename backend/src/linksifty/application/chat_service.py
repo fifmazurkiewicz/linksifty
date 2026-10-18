@@ -12,6 +12,7 @@ from uuid import UUID
 from linksifty.application.chat_contracts import (
     CallSlot,
     ChatCitation,
+    ChatClassification,
     ChatContext,
     ChatDraft,
     ChatError,
@@ -26,6 +27,26 @@ from linksifty.application.processing_contracts import EvidenceSource
 from linksifty.application.research_contracts import SearchProvider
 from linksifty.domain.acquisition import FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
+
+
+def _refusal(classification: ChatClassification) -> ChatParagraph:
+    if classification.category == "unsafe":
+        text = (
+            "Nie mogę pomóc w działaniach, które mogłyby kogoś skrzywdzić. "
+            "Mogę pomóc z bezpiecznym pytaniem dotyczącym tej analizy lub jej tematu."
+            if classification.language == "pl"
+            else "I can't help with actions that could harm someone. "
+            "I can help with a safe question about this analysis or its topic."
+        )
+    else:
+        text = (
+            "Chętnie pomogę z pytaniem dotyczącym tej analizy lub jej tematu. "
+            "Zadaj proszę pytanie w tym zakresie."
+            if classification.language == "pl"
+            else "I'm happy to help with questions about this analysis or its topic. "
+            "Please ask a question within that scope."
+        )
+    return ChatParagraph(text=text, citations=[])
 
 
 def _url_key(url: str) -> str:
@@ -162,35 +183,48 @@ class ChatService:
         try:
             turns = await self._store.history(user_id, item_id)
             payload = _input(context, turns, question)
-            draft = await self._generate(user_id, turn, "decision", payload, self.search_available)
-            if draft.search_query is not None:
-                if not self.search_available or not draft.search_query.strip() or draft.paragraphs:
-                    raise ChatError("invalid_answer")
-                sources, search_status = await self._research(
-                    user_id, turn, draft.search_query, context, turns
+            classification = await self._classify(user_id, turn, payload)
+            if classification.category != "relevant":
+                answer = [_refusal(classification)]
+            else:
+                draft = await self._generate(
+                    user_id, turn, "decision", payload, self.search_available
                 )
-                if search_status == "budget_exhausted":
-                    draft = ChatDraft(search_query=None, paragraphs=[], insufficient=True)
-                else:
-                    context.sources.extend(sources)
-                    payload = _input(context, turns, question)
-                    draft = await self._generate(user_id, turn, "answer", payload, False)
-            if draft.search_query is not None or (not draft.paragraphs and not draft.insufficient):
-                raise ChatError("invalid_answer")
-            for paragraph in draft.paragraphs:
-                if not paragraph.text.strip() or any(
-                    pid not in payload.passages for pid in paragraph.passage_ids
-                ):
-                    raise ChatError("invalid_evidence")
-                answer.append(
-                    ChatParagraph(
-                        text=paragraph.text,
-                        citations=[
-                            payload.passages[pid] for pid in dict.fromkeys(paragraph.passage_ids)
-                        ],
+                if draft.search_query is not None:
+                    if (
+                        not self.search_available
+                        or not draft.search_query.strip()
+                        or draft.paragraphs
+                    ):
+                        raise ChatError("invalid_answer")
+                    sources, search_status = await self._research(
+                        user_id, turn, draft.search_query, context, turns
                     )
-                )
-            insufficient = draft.insufficient
+                    if search_status == "budget_exhausted":
+                        draft = ChatDraft(search_query=None, paragraphs=[], insufficient=True)
+                    else:
+                        context.sources.extend(sources)
+                        payload = _input(context, turns, question)
+                        draft = await self._generate(user_id, turn, "answer", payload, False)
+                if draft.search_query is not None or (
+                    not draft.paragraphs and not draft.insufficient
+                ):
+                    raise ChatError("invalid_answer")
+                for paragraph in draft.paragraphs:
+                    if not paragraph.text.strip() or any(
+                        pid not in payload.passages for pid in paragraph.passage_ids
+                    ):
+                        raise ChatError("invalid_evidence")
+                    answer.append(
+                        ChatParagraph(
+                            text=paragraph.text,
+                            citations=[
+                                payload.passages[pid]
+                                for pid in dict.fromkeys(paragraph.passage_ids)
+                            ],
+                        )
+                    )
+                insufficient = draft.insufficient
             status = "completed"
         except ChatError as failure:
             error = str(failure)
@@ -230,6 +264,24 @@ class ChatService:
         if result.draft is None or result.failure_reason:
             raise ChatError(result.failure_reason or "invalid_answer")
         return result.draft
+
+    async def _classify(
+        self, user_id: UUID, turn: ChatTurn, payload: ChatInput
+    ) -> ChatClassification:
+        if self._provider is None:
+            raise ChatError("unavailable")
+        reservation = await self._store.reserve_call(
+            user_id, turn, "classification", self._provider.classification_estimate()
+        )
+        if reservation is None:
+            raise ChatError("budget_exhausted")
+        result = await self._provider.classify(payload)
+        await self._store.record_call(user_id, reservation, result.generation_id)
+        if result.cost is not None:
+            await self._store.settle(user_id, reservation, result.cost)
+        if result.classification is None or result.failure_reason:
+            raise ChatError(result.failure_reason or "invalid_classification")
+        return result.classification
 
     async def _research(
         self, user_id: UUID, turn: ChatTurn, query: str, context: ChatContext, turns: list[ChatTurn]
