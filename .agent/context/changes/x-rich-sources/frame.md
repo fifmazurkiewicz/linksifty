@@ -16,3 +16,16 @@ credential isolation and interrupted-call fencing. Mock all paid integrations.
 No video/audio ingestion, browser-session scraping or new external service.
 Exact hosted Article body shape remains unverified; absent body is a manual
 fallback rather than an invented or title-only source.
+
+
+## Captured Article compatibility follow-up
+
+Owner-supplied logs at 2026-10-18 20:11:52 UTC show a successful post lookup,
+followed by article_entities_invalid. The quoted Article has 6,831 characters
+of plain_text and three entities.code snippets absent from that text, ten Article
+media references with no matching includes.media (only the outer post image).
+Current download and vision schemas both cap images at four. Success requires
+retaining code, resolving quoted Article media, and processing eleven total
+images without omitting sources, bypassing budgets or adding automatic retries.
+The owner approved the bounded design, including a dedicated image model and
+up to twelve images, then asked whether assessment needs a stronger LLM.

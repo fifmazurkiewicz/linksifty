@@ -62,3 +62,39 @@ an untyped object; it does not establish the failing post's exact media value.
 This compatibility fix is tested with synthetic references, not a retained real
 payload. If the real rejection is a different media shape, further diagnosis is
 still required. No second retry, scraping or private API was used.
+
+
+## Captured Article compatibility — verified 2026-10-18
+
+Graft remains unavailable; focused source reads used. The user supplied logs,
+not a credential or authorization for another live X request. Reassembling four
+untruncated response chunks reproduced article_entities_invalid locally.
+entities.code contains three code/content/language objects; all snippets are
+absent from plain_text. Ten Article media keys are missing from includes.media.
+Only the outer post photo is expanded. No fetched fixture content will be
+committed; synthetic fixtures preserve the shapes and dependencies.
+
+Repository: parse_article forbids entities.code; _Post.media validates unresolved
+keys as unavailable. XAdapter has a 60-second deadline and ten search pages but
+no explicit aggregate request counter. OpenRouterImageReader has four-image
+input/output guards, one generation/reservation, 8192 output tokens and 128K
+conservative input reservation at provider price ceilings $1/$5 per million.
+Existing migration 000016 accepts the reservation amount and needs no change.
+
+Official sources read on 2026-10-18:
+- https://docs.x.com/x-api/posts/get-post-by-id lists article.cover_media and
+  article.media_entities for direct post lookups. Nested Article media expansion
+  is not promised for quoted posts. Direct lookup is bounded completion, not a
+  retry of a failed request; hosted expansion success remains unverified.
+- https://developers.openai.com/api/docs/guides/images-vision documents
+  gpt-4.1-mini high-detail patch sizing with a 6144-patch budget and 1.62 multiplier.
+  Twelve images need at most 119448 image tokens under that conservative budget;
+  fixed system/ID text fits the existing 128K input reservation. gpt-4o-mini uses
+  far more tokens per tile, so simply raising its image count is insufficient.
+- https://openrouter.ai/openai/gpt-4.1-mini lists image input, structured output,
+  1M context and $0.40/$1.60 per million, within existing enforced $1/$5 ceilings.
+
+Alternative multi-call batches would require durable per-batch accounting and
+recovery changes. One dedicated image call preserves the existing ledger and
+uncertain-outcome fencing. No evidence currently warrants a stronger text
+assessment model; the observed failure happens before inference.

@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+MAX_SOURCE_IMAGES = 12
+
 
 class FetchFailure(StrEnum):
     UNSAFE_URL = "unsafe_url"

@@ -319,7 +319,7 @@ def test_image_decode_and_count_bounds_require_manual_content(kind: str) -> None
         data = buffer.getvalue()
     else:
         data = png()
-    media_count = 5 if kind == "count" else 1
+    media_count = 13 if kind == "count" else 1
     media_calls: list[str] = []
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -431,3 +431,248 @@ def test_article_media_key_references_require_expanded_valid_image(
         assert result.text is None and not result.images
         assert result.failure == "x_media_unavailable"
         assert not image_requests
+
+
+def test_quoted_article_hydrates_media_and_preserves_eleven_images_and_code() -> None:
+    calls: list[str] = []
+    snippets = ["print('exact code')", "def agent():\n    return 42", "git clone example"]
+    article = {
+        "title": "Captured schema, synthetic content",
+        "plain_text": TEXT,
+        "cover_media": "article0",
+        "media_entities": [f"article{i}" for i in range(1, 10)],
+        "entities": {
+            "code": [
+                {"code": code, "content": f"```python\n{code}\n```", "language": "python"}
+                for code in snippets
+            ],
+            "mentions": [],
+            "urls": [],
+        },
+    }
+    quoted = post(id="90", conversation_id="90", text="Article preview…", article=article)
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url.copy_with(query=None)))
+        if request.url.host == "pbs.twimg.com":
+            assert "authorization" not in request.headers and "cookie" not in request.headers
+            return httpx.Response(200, content=png(), headers={"content-type": "image/png"})
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(
+                        attachments={"media_keys": ["outer"]},
+                        referenced_tweets=[{"type": "quoted", "id": "90"}],
+                    ),
+                    "includes": {
+                        "tweets": [quoted],
+                        "media": [
+                            {"media_key": "outer", "type": "photo", "url": f"{IMAGE_URL}?outer"}
+                        ],
+                    },
+                },
+            )
+        if request.url.path == "/2/tweets/90":
+            assert "article.media_entities" in request.url.params["expansions"]
+            return httpx.Response(
+                200,
+                json={
+                    "data": quoted,
+                    "includes": {
+                        "media": [
+                            {
+                                "media_key": f"article{i}",
+                                "type": "photo",
+                                "url": f"{IMAGE_URL}?article={i}",
+                            }
+                            for i in range(10)
+                        ]
+                    },
+                },
+            )
+        assert request.url.path == "/2/tweets/search/all"
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond)
+    assert result.failure is None
+    assert len(result.images) == 11
+    assert sum(image.source_url.endswith("/90") for image in result.images) == 10
+    assert "position unspecified" in (result.text or "")
+    for code in snippets:
+        assert code in (result.text or "")
+    assert calls.count("https://api.x.com/2/tweets/90") == 1
+    assert sum("api.x.com" in call for call in calls) == 3
+
+
+@pytest.mark.parametrize("outcome", ["missing", "denied", "changed"])
+def test_quoted_article_lookup_failure_never_retries_or_returns_partial_source(
+    outcome: str,
+) -> None:
+    calls: list[str] = []
+    quoted = post(
+        id="90",
+        conversation_id="90",
+        article={
+            "title": "Article",
+            "plain_text": TEXT,
+            "cover_media": "missing",
+        },
+    )
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_tweets=[{"id": "90", "type": "quoted"}]),
+                    "includes": {"tweets": [quoted]},
+                },
+            )
+        assert request.url.path == "/2/tweets/90"
+        return httpx.Response(
+            403 if outcome == "denied" else 200,
+            json={
+                "data": {**quoted, "text": "changed"} if outcome == "changed" else quoted,
+            },
+        )
+
+    result = acquire(respond)
+    assert result.text is None and not result.images
+    assert (
+        result.failure
+        == {
+            "missing": "x_media_unavailable",
+            "denied": "x_access_denied",
+            "changed": "partial_content",
+        }[outcome]
+    )
+    assert calls == ["/2/tweets/100", "/2/tweets/90"]
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        None,
+        "not a list",
+        [{}],
+        [{"code": 5}],
+        [{"code": ""}],
+        [{"code": "bad\x00code"}],
+        [{"code": "print(1)", "content": "contradictory"}],
+    ],
+)
+def test_malformed_article_code_is_explicitly_rejected(code: object) -> None:
+    from linksifty.infrastructure.x_content import XContentFailure, parse_article
+
+    with pytest.raises(XContentFailure) as failure:
+        parse_article({"title": "Article", "plain_text": TEXT, "entities": {"code": code}})
+    assert failure.value.reason == "x_article_incomplete"
+    assert failure.value.check == "article_code_invalid"
+
+
+def test_article_code_already_present_in_body_is_not_duplicated() -> None:
+    from linksifty.infrastructure.x_content import parse_article
+
+    result = parse_article(
+        {
+            "title": "Article",
+            "plain_text": TEXT + "\nprint(42)",
+            "entities": {"code": [{"code": "print(42)", "language": "python"}]},
+        }
+    )
+    assert result.text.count("print(42)") == 1
+
+
+def test_quoted_article_hydration_and_search_share_twelve_request_cap(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    calls: list[str] = []
+    quotes = [
+        post(
+            id=identifier,
+            conversation_id=identifier,
+            referenced_tweets=[{"type": "quoted", "id": "80"}] if identifier == "90" else [],
+            article={"title": "Article", "plain_text": TEXT, "cover_media": identifier},
+        )
+        for identifier in ("90", "80")
+    ]
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_tweets=[{"type": "quoted", "id": "90"}]),
+                    "includes": {"tweets": quotes},
+                },
+            )
+        if request.url.path in {"/2/tweets/90", "/2/tweets/80"}:
+            identifier = request.url.path.rsplit("/", 1)[1]
+            return httpx.Response(
+                200,
+                json={
+                    "data": next(quote for quote in quotes if quote["id"] == identifier),
+                    "includes": {
+                        "media": [
+                            {
+                                "media_key": identifier,
+                                "type": "photo",
+                                "url": f"{IMAGE_URL}?id={identifier}",
+                            }
+                        ]
+                    },
+                },
+            )
+        assert request.url.path == "/2/tweets/search/all"
+        return httpx.Response(
+            200, json={"meta": {"result_count": 0, "next_token": str(len(calls))}}
+        )
+
+    result = acquire(respond)
+    assert result.failure == "partial_content"
+    assert len(calls) == 12
+    assert "check=request_limit" in caplog.text
+
+
+def test_unsafe_known_media_stops_before_billable_quoted_article_lookup() -> None:
+    calls: list[str] = []
+    quoted = post(
+        id="90",
+        conversation_id="90",
+        article={
+            "title": "Article",
+            "plain_text": TEXT,
+            "cover_media": "missing",
+        },
+    )
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(
+                        attachments={"media_keys": ["unsafe"]},
+                        referenced_tweets=[{"id": "90", "type": "quoted"}],
+                    ),
+                    "includes": {
+                        "tweets": [quoted],
+                        "media": [
+                            {
+                                "media_key": "unsafe",
+                                "type": "photo",
+                                "url": "https://evil.test/image",
+                            }
+                        ],
+                    },
+                },
+            )
+        return httpx.Response(200, json={"data": quoted})
+
+    result = acquire(respond)
+    assert result.failure == "x_media_unavailable" and result.text is None
+    assert calls == ["/2/tweets/100"]

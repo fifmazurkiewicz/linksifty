@@ -76,3 +76,30 @@ reads replace its orientation. Existing board states match canonical T1–T3 loc
 completion and pending hosted acceptance, so no board regeneration is needed.
 No Skip decisions, archive or production success claim. No live paid request or
 hosted environment mutation was performed. Operator activation remains separate.
+
+
+## Captured Article compatibility implementation review
+
+Outcome: approve T4 for the authorized ongoing main publication. No actionable
+findings by severity; no Skip dispositions or new review-decision entries.
+
+Plan/design coverage: validated entities.code, once-only quoted media resolution,
+twelve-image single generation, separate default image model and truthful UI copy
+are implemented. Invalid known media are checked before direct lookup; one local
+request counter bounds lookup/search together. Source identity, version, graph,
+completeness, URL, size, decoding and provider-output guards remain. Existing
+reservation/settlement/unknown-charge fencing are unchanged, with tests for
+all-image coverage and runtime settlement before source caching. Configuration is
+server-only, wired at main, with no new dependency, schema or scoring change.
+
+Evidence: 444 Python tests, 66 frontend tests, strict mypy, Ruff, oxlint and build
+pass. Mutation catches omitted code. Actual captured payload is replayed offline,
+with synthetic expansion/images explicitly separated from observed evidence.
+No live credential read, paid request, deployment environment edit or migration.
+
+Documentation/boards: canonical plan and progress mark T1–T4 complete locally;
+change and roadmap boards mirror these states while hosted acceptance stays
+pending. English editable workflow and rendered HTML reflect the lookup/model/
+image limits. Static specification and artifact validation pass. Browser checks
+are unavailable (Chrome absent), as is agent-toolkit; these are disclosed rather
+than counted as success. No archive or claim of hosted inference quality.

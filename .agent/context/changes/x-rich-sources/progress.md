@@ -65,3 +65,36 @@ Existing T1–T3 local completion and pending hosted acceptance board statuses
 remain accurate; no new milestone or architecture change. No live paid request
 or hosted environment change was made. Activation requires X_API_DEBUG=true
 on Render and a new separately authorized Retry. Publishing to main is authorized.
+
+
+## Approved compatibility execution
+
+T4 in progress: the owner approved code-block support, bounded direct quoted-post
+media resolution, twelve images and a dedicated gpt-4.1-mini image reader. The
+assessment model stays unchanged. The in-chat bounded design is the approval
+artifact; this amendment reuses the active change rather than starting a second
+plan store. Research/decisions/plan updated before derived board changes.
+
+
+### T4 complete locally
+
+Code entities are validated/preserved with original-position limits disclosed.
+Quoted Article media are completed by one direct lookup when necessary; known
+invalid media are validated first. A local per-fetch hook caps all X calls at
+12. Download/reader support is aligned at twelve images for the independently
+configured default gpt-4.1-mini. One generation, USD 0.16896 reservation, existing
+price/output limits, settlement and complete-source cache are retained. Legacy
+four-image gpt-4o-mini is explicit; unknown image models make no paid request.
+The assessment model remains gpt-4o-mini. Article fallback wording is corrected.
+
+Offline replay of the actual captured response succeeds with mocked missing
+expansions and image bytes: eleven images and all three real code snippets.
+No live X/OpenRouter request was made; actual media expansion and vision quality
+still require separately authorized hosted acceptance. No new migration.
+
+Final checks: 444 backend tests, 66 frontend tests, strict mypy (45 files), Ruff
+lint/format, oxlint and TypeScript/Vite build pass. Deliberate removal of retained
+code makes the regression fail and was restored. Diagram specification, delivery
+and strict artifact checks pass; browser-check is skipped (Chrome unavailable).
+agent-toolkit check was attempted and is unavailable (exit 127). No archive or
+hosted-success claim. T1–T4 complete locally; hosted acceptance remains planned.

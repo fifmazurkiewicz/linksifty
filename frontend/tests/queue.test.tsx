@@ -91,7 +91,7 @@ it('explains rich X failures and never retries uncertain image reading', () => {
     { id: 'media', title: 'Unreadable media', status: 'awaiting_manual_content', failure_reason: 'image_reading_failed', score: null, verdict: null },
     { id: 'uncertain-image', title: 'Unknown image cost', status: 'awaiting_manual_content', failure_reason: 'image_reading_uncertain', score: null, verdict: null },
   ]} onOpen={vi.fn()} onPaste={vi.fn()} onResume={vi.fn()} onDelete={vi.fn()} busy={false} />)
-  expect(screen.getByText(/full X Article body was not available/i)).toBeInTheDocument()
+  expect(screen.getByText(/X Article could not be read completely.*missing or unsupported content/i)).toBeInTheDocument()
   expect(screen.getByText(/attached images could not be read completely/i)).toBeInTheDocument()
   expect(screen.getByText(/image-reading charge is not confirmed/i)).toBeInTheDocument()
   expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(2)

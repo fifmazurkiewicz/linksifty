@@ -47,6 +47,7 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
     media: list[XMedia] = []
     posts: list[str] = []
     links: list[str] = []
+    code_blocks: list[tuple[str, str]] = []
 
     def add_media(value: object) -> None:
         if isinstance(value, str):
@@ -69,6 +70,7 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
             "symbols",
             "media",
             "posts",
+            "code",
         }:
             raise _invalid("article_entities_invalid")
         for key in ("media", "posts"):
@@ -80,6 +82,33 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
                     add_media(entity)
                 else:
                     posts.append(_post_id(entity.get("id") if isinstance(entity, dict) else entity))
+        snippets = value.get("code", [])
+        if not isinstance(snippets, list):
+            raise _invalid("article_code_invalid")
+        for snippet in snippets:
+            if not isinstance(snippet, dict):
+                raise _invalid("article_code_invalid")
+            code = snippet.get("code")
+            language = snippet.get("language", "")
+            content = snippet.get("content", code)
+            if (
+                not isinstance(code, str)
+                or not code.strip()
+                or "\x00" in code
+                or not isinstance(language, str)
+                or re.fullmatch(r"[A-Za-z0-9_+.#-]{0,40}", language) is None
+                or not isinstance(content, str)
+                or "\x00" in content
+                or code not in content
+            ):
+                raise _invalid("article_code_invalid")
+            code_blocks.append(
+                (
+                    code,
+                    f"Article code block ({language or 'unspecified language'}; "
+                    f"position unspecified):\n{content}",
+                )
+            )
 
     if article.get("cover_media") is not None:
         add_media(article["cover_media"])
@@ -171,4 +200,8 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
         raise _invalid("article_body_truncated")
     if body == article.get("preview_text"):
         raise _invalid("article_body_preview")
-    return ArticleContent("\n\n".join([title.strip(), body, *links]), tuple(media), tuple(posts))
+    # X supplies no insertion offsets for these snippets; never invent their location.
+    extra_code = [content for code, content in code_blocks if code not in body]
+    return ArticleContent(
+        "\n\n".join([title.strip(), body, *extra_code, *links]), tuple(media), tuple(posts)
+    )

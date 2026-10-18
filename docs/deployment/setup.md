@@ -194,6 +194,7 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `RESEND_FROM_EMAIL` | Sender identity on a domain verified in Resend, e.g. `Linksifty <noreply@example.com>` | Yes for approval email |
 | `OPENROUTER_API_KEY` | Server-only OpenRouter inference key | Required for assessment; missing key yields an explicit not-configured state |
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
+| `OPENROUTER_IMAGE_MODEL` | `openai/gpt-4.1-mini` | Independent image-reading model; defaults to this value; legacy `openai/gpt-4o-mini` accepts at most four images |
 | `X_API_BEARER_TOKEN` | Official X app-only bearer token | Server-only; post lookup and full-archive search access required |
 | `X_API_READS_ENABLED` | Explicit operator approval for potentially billed X reads | Defaults false; token alone does not enable reads |
 | `X_API_DEBUG` | Redacted X request/response diagnostics in Render logs | Defaults false; includes source content; disable after diagnosis |
@@ -508,6 +509,7 @@ SUPABASE_ANON_KEY=<sb_publishable-key-or-legacy-anon-JWT>
 SUPABASE_SERVICE_ROLE_KEY=<sb_secret-key-or-legacy-service-role-JWT>
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_IMAGE_MODEL=openai/gpt-4.1-mini
 X_API_BEARER_TOKEN=
 X_API_READS_ENABLED=false
 LINKSIFTY_DEMO_MODE=false
@@ -1031,23 +1033,37 @@ two service-role-only RPCs. Hosted DDL requires owner approval; local test succe
 does not authorize applying it to Supabase. Keep the previous deployment until
 that migration is applied, then deploy backend and frontend together.
 
-Reuse `OPENROUTER_API_KEY`, `OPENROUTER_MODEL=openai/gpt-4o-mini` and the existing
-X server token/opt-in. No additional key, service or environment flag is needed.
-Other model IDs remain disabled until their image/context/cost bounds are
-verified. X reads still use the operator's separate X account billing.
+Reuse `OPENROUTER_API_KEY` and the existing X server token/opt-in. Assessment uses
+`OPENROUTER_MODEL=openai/gpt-4o-mini`; image reading independently defaults to
+`OPENROUTER_IMAGE_MODEL=openai/gpt-4.1-mini`. No additional key or service is needed.
+The image reader also accepts explicitly selected `openai/gpt-4o-mini`, limited to
+four images. Other image-model IDs fail closed before inference. X reads still
+use the operator's separate X account billing.
 
 The adapter accepts full Article text/plain_text or supported validated DraftJS
 blocks, including supported embedded images and posts. Titles, previews and
 unknown or incomplete body/dependency shapes request pasted content. Existing
 X requests expand Article cover/media and post attachments. Only static PNG,
 JPEG and WebP images from HTTPS `pbs.twimg.com` are downloaded, without auth,
-cookies, redirects or proxies. Limits are four unique images, 5 MB each/10 MB
+cookies, redirects or proxies. Limits are twelve unique images, 5 MB each/10 MB
 total and 20 million pixels each. Invalid/truncated images, video, animation,
 polls and unavailable media stop acquisition before image inference.
 
-Article cover/media entries may also be media-key references. These are resolved
-only against the existing response's expanded media; a key is never treated as
-a URL or used to trigger another API lookup. Missing expansions still request paste.
+Article `entities.code` snippets are validated and retained alongside the full
+body. Snippets absent from the body are appended with a language label and
+`position unspecified`, because X provides no insertion offsets. Malformed code
+uses `article_code_invalid`; unknown entity kinds still fail closed. The queue
+now describes missing or unsupported Article content without claiming that every
+failure means the body was absent.
+
+Article cover/media keys resolve against expanded media. If a quoted Article is
+missing those URLs, its post is looked up directly once with Article expansions.
+No already-looked-up post or failed request is retried, and keys never become
+guessed URLs. Known invalid media stop before further potentially billed lookups.
+All lookup/search calls share a twelve-request cap and the 60-second acquisition
+deadline. Missing expansions after the direct lookup, changed source versions,
+unsupported media or exhausted caps still request paste. The added lookup can
+incur X charges under the existing explicit X read approval.
 
 Image reading is one model batch before analysis. It transcribes visible text
 and describes visible diagram/chart relationships; each reading is explicitly
@@ -1056,6 +1072,14 @@ readable and reported complete. This is model interpretation and needs live
 quality acceptance. Raw image bytes remain in memory only; the complete combined
 source text is cached for later assessment/recovery. No partial reading creates
 a summary or score.
+
+The twelve-image default uses gpt-4.1-mini's bounded patch-based image input,
+within the existing conservative 128K input reservation. Raising the old model's
+image count alone would not establish the same context bound. Current official
+[image sizing/token rules](https://developers.openai.com/api/docs/guides/images-vision)
+and the [OpenRouter model contract](https://openrouter.ai/openai/gpt-4.1-mini) were
+checked on 2026-10-18. Output is still capped at 8192 tokens; truncated or incomplete
+readings are rejected. No new database migration is needed for this follow-up.
 
 Before that batch, the app reserves at most **0.16896 USD** from the user's shared
 monthly budget (128k input at the existing $1/M price cap plus 8192 output at

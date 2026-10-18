@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "workflow",
+  "quality": "showcase",
+  "startedAt": "2026-10-18T20:24:38.303Z",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.json",
+    "sha256": "bc2b338285b0e43127145d8bf1564b156b2622039e5cf7fc0dae0d80fae42966",
+    "bytes": 7195
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+    "sha256": "a1695a9c9dc831187ada84759c6aca7b6d1024a3405abb8d3b7a8ae2f19d2c87",
+    "bytes": 775132
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.json",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "bc2b338285b0e43127145d8bf1564b156b2622039e5cf7fc0dae0d80fae42966",
+          "bytes": 7195
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 551,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.json",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "628b9097-85e1-43ab-854f-85f2f13412e6",
+        "ok": true,
+        "command": "deliver",
+        "type": "workflow",
+        "input": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.json",
+        "output": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+        "specification": {
+          "sha256": "bc2b338285b0e43127145d8bf1564b156b2622039e5cf7fc0dae0d80fae42966",
+          "bytes": 7195
+        },
+        "artifact": {
+          "sha256": "a1695a9c9dc831187ada84759c6aca7b6d1024a3405abb8d3b7a8ae2f19d2c87",
+          "bytes": 775132
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 232,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+        "artifact": {
+          "sha256": "a1695a9c9dc831187ada84759c6aca7b6d1024a3405abb8d3b7a8ae2f19d2c87",
+          "bytes": 775132
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 66.6,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.088379705400982,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 2.372,
+            "routesOverSuggestedStretch": 1,
+            "minSegmentPx": 60,
+            "minInteriorSegmentPx": 448,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": [
+              {
+                "relationship": {
+                  "from": "cdn",
+                  "to": "complete",
+                  "label": "no images",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "bends": 2,
+                "stretch": 2.372,
+                "directCorridorBlockers": [
+                  {
+                    "id": "budget",
+                    "label": "Reserve image budget",
+                    "box": [
+                      327.40000000000003,
+                      534,
+                      164,
+                      52
+                    ]
+                  },
+                  {
+                    "id": "cost",
+                    "label": "Settle actual cost",
+                    "box": [
+                      327.40000000000003,
+                      758,
+                      164,
+                      52
+                    ]
+                  },
+                  {
+                    "id": "vision",
+                    "label": "Read every image",
+                    "box": [
+                      327.40000000000003,
+                      646,
+                      164,
+                      52
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": false,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "legacy-930",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "limit": "legacy",
+            "requestedTargetPx": null,
+            "requestedTargetMet": null,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "admit"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 6.088379705400982,
+            "semanticTextCount": 47
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "628b9097-85e1-43ab-854f-85f2f13412e6"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 17,
+      "command": [
+        "/opt/homebrew/Cellar/node@22/22.23.2_2/bin/node",
+        "/Users/Filip/dev/linksifty/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+        "--json",
+        "--require-provenance",
+        "--out-dir",
+        "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/compatibility-diagram-check"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "628b9097-85e1-43ab-854f-85f2f13412e6",
+        "artifact": {
+          "path": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
+          "sha256": "a1695a9c9dc831187ada84759c6aca7b6d1024a3405abb8d3b7a8ae2f19d2c87",
+          "bytes": 775132
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "directory": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/compatibility-diagram-check",
+          "receipt": "rich-source-workflow.browser-check.json",
+          "files": []
+        },
+        "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/compatibility-diagram-check/rich-source-workflow.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/compatibility-diagram-check/rich-source-workflow.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/compatibility-diagram-check/rich-source-workflow.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-18T20:24:39.260Z",
+  "durationMs": 956,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  }
+}

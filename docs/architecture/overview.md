@@ -207,7 +207,8 @@ is separate from quote/repost dependencies, so a quoting reply remains connected
 to its author's thread. A submitted repost resolves to its expanded original's
 author/conversation; its RT preview is excluded. Complete recursive dependencies
 are deduplicated and attributed by URL/author ID. Missing references, cycles or
-conflicting versions request paste, with no extra lookup or implicit retry.
+conflicting versions request paste, with no implicit retry. The Article follow-up
+below permits one direct lookup for missing quoted Article media expansions.
 Expanded resource charges remain in the operator's X account. The 100-post bound
 includes collected expanded context; unrelated expanded content is not source.
 
@@ -220,7 +221,7 @@ The acquisition result can carry bounded ephemeral image bytes alongside full
 Article/thread text. The X edge parses complete Article bodies and validates
 embedded post/media dependencies; previews and unknown content blocks fail
 closed. A separate credential-free media client accepts only static PNG/JPEG/WebP
-from HTTPS `pbs.twimg.com`, without redirects or proxies. Four images, 5 MB each,
+from HTTPS `pbs.twimg.com`, without redirects or proxies. Twelve images, 5 MB each,
 10 MB total and 20 million pixels per image bound acquisition and decoding.
 
 Before caching or assessing, ProcessingService reserves a separate image-reading
@@ -231,6 +232,19 @@ is labeled model-extracted with image and post provenance. Image bytes are not
 stored. Incomplete reading requests paste; unknown cost retains its reservation
 and blocks Retry. Existing generation reconciliation also handles attached image
 reservations, and late generation IDs survive lease loss or content deletion.
+
+Article code entities are validated and preserved; where offsets are absent,
+additional code is explicitly labeled as having an unspecified position. Missing
+quoted Article media URLs permit one direct post lookup with existing expansions;
+known-invalid sources and already-read posts are never retried. The lookup and
+thread search share a hard twelve-request cap inside the 60-second deadline.
+Missing expansions or conflicting versions still stop before inference.
+
+Image reading defaults independently to `openai/gpt-4.1-mini` through
+`OPENROUTER_IMAGE_MODEL`. One call handles up to twelve images under the existing
+0.16896 USD conservative reservation and provider price/output ceilings.
+Explicit legacy `openai/gpt-4o-mini` image configuration retains a four-image cap.
+The text assessment model and durable generation/settlement contract are unchanged.
 
 Migration 000016 adds a reservation purpose and durable per-job extraction pointer.
 Admission checks owner, account status, current lease, expiry, X admission and

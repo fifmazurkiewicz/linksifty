@@ -150,3 +150,76 @@ def test_transport_failure_never_retries() -> None:
         assert len(calls) == 1
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("count,complete", [(11, True), (12, True), (12, False), (13, True)])
+def test_dedicated_image_model_supports_complete_twelve_image_batch(
+    count: int, complete: bool
+) -> None:
+    calls: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        body = json.loads(request.content)
+        assert body["model"] == "openai/gpt-4.1-mini"
+        assert (
+            body["response_format"]["json_schema"]["schema"]["properties"]["images"]["maxItems"]
+            == 12
+        )
+        return httpx.Response(
+            200,
+            json={
+                "id": "image-generation",
+                "usage": {"cost": "0.007"},
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "images": [
+                                        dict(
+                                            READING,
+                                            image_id=f"image{i}",
+                                            complete=complete or i != count,
+                                        )
+                                        for i in range(1, count + 1)
+                                    ]
+                                }
+                            )
+                        },
+                    }
+                ],
+            },
+        )
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            reader = OpenRouterImageReader("key", "openai/gpt-4.1-mini", client)
+            assert reader.estimate() == Decimal("0.16896")
+            result = await reader.extract((IMAGE,) * count)
+        if count > 12:
+            assert not calls and result.text is None and result.cost == 0
+        elif not complete:
+            assert len(calls) == 1 and result.text is None and result.cost == Decimal("0.007")
+        else:
+            assert len(calls) == 1 and result.failure_reason is None
+            assert (result.text or "").count("Model-extracted image transcription:") == count
+
+    asyncio.run(run())
+
+
+def test_unknown_image_model_never_sends_a_paid_request() -> None:
+    calls: list[httpx.Request] = []
+
+    async def run() -> None:
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda request: calls.append(request) or httpx.Response(500)
+            )
+        ) as client:
+            with pytest.raises(ValueError, match="no verified context/cost bound"):
+                await OpenRouterImageReader("key", "unverified/model", client).extract((IMAGE,))
+        assert not calls
+
+    asyncio.run(run())

@@ -9,7 +9,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from linksifty.application.media_contracts import MediaResult
-from linksifty.domain.acquisition import SourceImage
+from linksifty.domain.acquisition import MAX_SOURCE_IMAGES, SourceImage
 from linksifty.infrastructure.openrouter_client import (
     _COMPLETION_PRICE_CAP,
     _PROMPT_PRICE_CAP,
@@ -40,7 +40,7 @@ class _Reading(BaseModel):
 
 class _Readings(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    images: list[_Reading] = Field(min_length=1, max_length=4)
+    images: list[_Reading] = Field(min_length=1, max_length=MAX_SOURCE_IMAGES)
 
 
 class OpenRouterImageReader:
@@ -50,7 +50,7 @@ class OpenRouterImageReader:
         self._client = client
 
     def estimate(self) -> Decimal:
-        if self._model != "openai/gpt-4o-mini":
+        if self._model not in {"openai/gpt-4o-mini", "openai/gpt-4.1-mini"}:
             raise ValueError("Image model has no verified context/cost bound")
         return Decimal(128000 * _PROMPT_PRICE_CAP + _MAX_OUTPUT * _COMPLETION_PRICE_CAP) / Decimal(
             1000000
@@ -59,7 +59,9 @@ class OpenRouterImageReader:
     async def extract(self, images: tuple[SourceImage, ...]) -> MediaResult:
         self.estimate()
         if (
-            not 1 <= len(images) <= 4
+            not 1
+            <= len(images)
+            <= (4 if self._model == "openai/gpt-4o-mini" else MAX_SOURCE_IMAGES)
             or sum(len(image.data) for image in images) > 10_000_000
             or any(
                 not image.data

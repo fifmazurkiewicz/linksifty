@@ -119,8 +119,14 @@ class _Post(BaseModel):
                 if media.url and resolved.url != media.url:
                     raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "conflicting_media_versions")
                 result.append(resolved)
+        missing = False
         for media in result:
-            validate_media(media)
+            if not media.url and media.media_key:
+                missing = True
+            else:
+                validate_media(media)
+        if missing:
+            raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_article_media_expansion")
         return result
 
 
@@ -208,10 +214,22 @@ class XAdapter:
         identifier = x_post_id(url)
         if identifier is None:
             return FetchResult(failure=FetchFailure.UNSAFE_URL)
+        request_count = 0
+
+        async def count_request(request: httpx.Request) -> None:
+            nonlocal request_count
+            if request_count >= 12:
+                raise _Failure(FetchFailure.PARTIAL, "request_limit")
+            request_count += 1
+
         try:
             async with asyncio.timeout(60):
                 async with httpx.AsyncClient(
-                    transport=self._transport, trust_env=False, follow_redirects=False, timeout=10
+                    transport=self._transport,
+                    trust_env=False,
+                    follow_redirects=False,
+                    timeout=10,
+                    event_hooks={"request": [count_request]},
                 ) as client:
                     return await self._thread(client, identifier)
         except _Failure as failure:
@@ -320,6 +338,7 @@ class XAdapter:
         available: dict[str, _Post] = {}
         media: dict[str, XMedia] = {}
         selected = await self._lookup(client, identifier, available, media)
+        looked_up = {identifier}
         reposts: set[str] = set()
         while True:
             selected.parent()
@@ -342,6 +361,8 @@ class XAdapter:
             if selected.conversation_id == identifier
             else await self._lookup(client, selected.conversation_id, available, media)
         )
+        if root is not selected:
+            looked_up.add(root.id)
         if (
             root.conversation_id != root.id
             or root.author_id != selected.author_id
@@ -350,8 +371,7 @@ class XAdapter:
             raise _Failure(FetchFailure.PARTIAL, "invalid_conversation_root")
         posts = {root.id: root}
         # Validate before requesting more potentially billed resources.
-        for source in self._source_posts([root, selected], available):
-            source.media(media)
+        await self._resolve_sources(client, [root, selected], available, media, looked_up)
         token: str | None = None
         seen_tokens: set[str] = set()
         for _ in range(_MAX_PAGES):
@@ -400,7 +420,7 @@ class XAdapter:
                 ordered.append(post)
                 visited.add(post.id)
                 del remaining[post.id]
-        sources = self._source_posts(ordered, available)
+        sources = await self._resolve_sources(client, ordered, available, media, looked_up)
         # Labels, URLs and RT previews must not make short sources pass the minimum.
         readable_text = "\n\n".join(post.content() for post in sources)
         required_media = [
@@ -429,6 +449,30 @@ class XAdapter:
         async with httpx.AsyncClient(transport=self._transport, trust_env=False) as media_client:
             images = await fetch_images(media_client, required_media)
         return FetchResult(text=text, images=images, readable_text=readable_text)
+
+    async def _resolve_sources(
+        self,
+        client: httpx.AsyncClient,
+        ordered: list[_Post],
+        available: dict[str, _Post],
+        media: dict[str, XMedia],
+        looked_up: set[str],
+    ) -> list[_Post]:
+        while True:
+            sources = self._source_posts(ordered, available)
+            target = None
+            for source in sources:
+                try:
+                    source.media(media)
+                except _Failure as failure:
+                    if failure.check != "missing_article_media_expansion" or source.id in looked_up:
+                        raise
+                    target = target or source
+            if target is None:
+                return sources
+            # Complete a quoted Article's expansions once; never repeat an already-read post.
+            looked_up.add(target.id)
+            await self._lookup(client, target.id, available, media)
 
     @staticmethod
     def _remember_media(available: dict[str, XMedia], media: list[XMedia]) -> None:

@@ -16,6 +16,7 @@ class Settings:
     supabase_service_role_key: str | None = field(default=None, repr=False)
     openrouter_api_key: str | None = field(default=None, repr=False)
     openrouter_model: str = "openai/gpt-4o-mini"
+    openrouter_image_model: str = "openai/gpt-4.1-mini"
     brave_search_api_key: str | None = field(default=None, repr=False)
     brave_search_price: Decimal = Decimal(0)
     langfuse_enabled: bool = False
@@ -64,6 +65,7 @@ class Settings:
             supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
             openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
+            openrouter_image_model=os.getenv("OPENROUTER_IMAGE_MODEL", "openai/gpt-4.1-mini"),
             resend_api_key=os.getenv("RESEND_API_KEY"),
             resend_from_email=os.getenv("RESEND_FROM_EMAIL"),
             x_api_bearer_token=os.getenv("X_API_BEARER_TOKEN"),

@@ -104,5 +104,9 @@ bodies/dependencies, acquires bounded static images and reads text/diagrams in o
 budgeted model batch before caching and assessment. Unsupported/incomplete
 sources still request paste. Migration 000016 must precede backend/frontend;
 paid hosted schema/quality acceptance remains separate.
+The approved captured-payload follow-up preserves Article code entities, resolves
+missing quoted Article media in one bounded direct lookup and handles up to twelve
+images in one dedicated gpt-4.1-mini call. Existing budgets and completeness guards
+remain; no additional migration is needed. Live quality acceptance remains pending.
 [Canonical rich-source progress](../.agent/context/changes/x-rich-sources/progress.md)
 · [Verification evidence](../.agent/context/changes/x-rich-sources/evidence.md).

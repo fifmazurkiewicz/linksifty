@@ -8,10 +8,9 @@ from urllib.parse import urlsplit
 import httpx
 from PIL import Image
 
-from linksifty.domain.acquisition import FetchFailure, SourceImage
+from linksifty.domain.acquisition import MAX_SOURCE_IMAGES, FetchFailure, SourceImage
 from linksifty.infrastructure.x_content import XContentFailure, XMedia
 
-MAX_IMAGES = 4
 _MAX_BYTES = 5_000_000
 _MAX_TOTAL_BYTES = 10_000_000
 _FORMATS = {"image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WEBP"}
@@ -74,7 +73,7 @@ async def fetch_images(
     for item, source_url in media:
         url = validate_media(item)
         unique.setdefault(url, source_url)
-    if len(unique) > MAX_IMAGES:
+    if len(unique) > MAX_SOURCE_IMAGES:
         raise XContentFailure(FetchFailure.TOO_LARGE, "image_count_limit")
     images: list[SourceImage] = []
     total = 0

@@ -187,7 +187,9 @@ def create_app(
                     if configuration.x_api_reads_enabled and configuration.x_api_bearer_token
                     else None,
                     image_reader=OpenRouterImageReader(
-                        configuration.openrouter_api_key, configuration.openrouter_model, client
+                        configuration.openrouter_api_key,
+                        configuration.openrouter_image_model,
+                        client,
                     )
                     if configuration.openrouter_api_key
                     else None,

@@ -21,7 +21,7 @@ const reasons: Record<string, string> = {
   x_not_found: 'X could not return this post. It may be deleted or unavailable to the API.',
   x_rate_limited: 'X has reached its API rate limit. Paste the full thread to continue.',
   x_attempt_uncertain: 'An earlier X fetch was interrupted. Paste the full thread to avoid repeating potentially billed reads.',
-  x_article_incomplete: 'The full X Article body was not available. Paste the complete article, including relevant image text.',
+  x_article_incomplete: 'The X Article could not be read completely because of missing or unsupported content. Paste the complete article, including code and relevant image text.',
   x_media_unsupported: 'This source includes video, animation, a poll or another unsupported attachment. Paste its complete readable content.',
   x_media_unavailable: 'A required image could not be downloaded or validated. Paste the complete source, including image text.',
   image_reading_failed: 'The attached images could not be read completely. Paste the source text and all relevant image or diagram content.',

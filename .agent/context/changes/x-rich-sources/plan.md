@@ -42,3 +42,17 @@ behavioral tests in its owning task below. No live paid verification is assumed.
   Record mutation evidence, diagram validation/artifact/browser status and local
   implementation review before committing/pushing main. Report hosted migration,
   live schema and image-quality acceptance separately.
+
+
+## Approved bounded compatibility follow-up
+
+- [x] T4 Captured Article compatibility: synthetic code-entity preservation and
+  rejection cases; quoted missing-media lookup, no repeated lookup, conflict and
+  aggregate-request-limit cases; eleven-image acquisition; shared twelve-image
+  bound and dedicated image-model/schema/coverage/cost tests. Implement in
+  x_content.py, x_adapter.py, x_images.py, domain/acquisition.py,
+  openrouter_images.py, config.py and main.py. Update fallback copy, .env.example,
+  setup/architecture/roadmap and the editable English X workflow. Verify full
+  backend tests, strict mypy, Ruff lint/format, frontend tests/lint/build and
+  agent-toolkit check. Record mutation and offline captured-payload reproduction.
+  No hosted fetch, environment change, database migration or new dependency.

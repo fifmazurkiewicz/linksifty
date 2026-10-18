@@ -118,3 +118,39 @@ applies. Hosted success after this fix is not claimed.
 - Setup documentation and .env.example describe activation, content visibility,
   chunk reconstruction and disabling afterward. No credentials were read, no
   actual X request was made, and Render's environment was not modified.
+
+
+## Captured Article compatibility verification
+
+Initial red: 18 failures, 53 passes across acquisition/image/config suites. The
+frontend fallback test was red (1 failed, 14 passed). Green implementation handles
+validated code entities, once-only quoted Article lookup, malformed/missing/
+denied/changed responses, thirteen-image rejection and aggregate API request cap.
+A further red/green security case proves a known unsafe media URL stops before
+another potentially billed quoted-post lookup.
+
+- Focused acquisition/provider/config/service regression: 172 passed; later
+  expanded runtime test covers one and eleven image inputs under gpt-4.1-mini.
+- Offline captured-response replay: all three actual supplied code snippets
+  retained; eleven image artifacts; three mocked X calls; quoted expansions and
+  valid PNG bytes were explicitly synthetic. No network and no retained raw
+  article/fixture content. This does not prove real missing expansions are available.
+- Deliberately removing *extra_code from final Article text makes the targeted
+  eleven-image/code test fail (1 failed, 53 deselected); restored before final run.
+- Final backend: UV_CACHE_DIR=/private/tmp/linksifty-uv-cache uv run --package
+  linksifty pytest backend/tests -q --tb=short -> 444 passed. Existing Starlette/
+  httpx TestClient deprecation warning remains.
+- mypy --strict backend/src -> 45 source files pass; ruff check . passes;
+  ruff format --check . -> 117 files already formatted.
+- frontend/: npm test -- --run -> 66 passed; npm run lint -> pass;
+  npm run build -> TypeScript/Vite pass. No dependency or lockfile changes.
+- agent-toolkit check attempted -> exit 127, unavailable. Graft unavailable.
+- Archify finalize -> exit 2 because Chrome is absent: validate/deliver/check
+  pass, browser-check skipped. Receipts are in compatibility-diagram-check/.
+  No screenshot or perceptual-review claim. Editable JSON and rendered HTML kept.
+- Change Kanban passes diagram-design self_check.py. Boards are derived after
+  canonical plan/progress updates; roadmap milestone statuses are unchanged.
+- New limits retain 60 seconds, twelve total X calls, 100 collected posts,
+  5MB/image, 10MB total, static decoded images, 20MP/image, 8192 output tokens,
+  USD 0.16896 reservation and provider price caps. No accounting/schema change.
+  All incomplete/uncertain responses remain ineligible for analysis.

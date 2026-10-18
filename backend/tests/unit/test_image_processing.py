@@ -89,7 +89,10 @@ def test_image_reading_is_budgeted_and_complete_before_assessment(outcome: str) 
     asyncio.run(run())
 
 
-def test_runtime_composes_article_images_reading_accounting_and_source_cache() -> None:
+@pytest.mark.parametrize("image_count", [1, 11])
+def test_runtime_composes_article_images_reading_accounting_and_source_cache(
+    image_count: int,
+) -> None:
     import io
     import json
     from dataclasses import replace
@@ -119,15 +122,18 @@ def test_runtime_composes_article_images_reading_accounting_and_source_cache() -
                             "conversation_id": "100",
                             "text": "Preview…",
                             "article": {"title": "Complete article", "text": TEXT},
-                            "attachments": {"media_keys": ["image"]},
+                            "attachments": {
+                                "media_keys": [f"image{i}" for i in range(image_count)]
+                            },
                         },
                         "includes": {
                             "media": [
                                 {
-                                    "media_key": "image",
+                                    "media_key": f"image{i}",
                                     "type": "photo",
-                                    "url": "https://pbs.twimg.com/media/source.png",
+                                    "url": f"https://pbs.twimg.com/media/source{i}.png",
                                 }
+                                for i in range(image_count)
                             ]
                         },
                     },
@@ -140,7 +146,10 @@ def test_runtime_composes_article_images_reading_accounting_and_source_cache() -
             )
         if host == "openrouter.ai":
             events.append("inference")
-            assert json.loads(request.content)["max_tokens"] == 8192
+            sent = json.loads(request.content)
+            assert sent["max_tokens"] == 8192
+            assert sent["model"] == "openai/gpt-4.1-mini"
+            assert len(sent["messages"][1]["content"]) == 2 * image_count
             return httpx.Response(
                 200,
                 json={
@@ -154,11 +163,12 @@ def test_runtime_composes_article_images_reading_accounting_and_source_cache() -
                                     {
                                         "images": [
                                             {
-                                                "image_id": "image1",
+                                                "image_id": f"image{i}",
                                                 "complete": True,
                                                 "transcription": TEXT,
                                                 "description": "Input points to output.",
                                             }
+                                            for i in range(1, image_count + 1)
                                         ]
                                     }
                                 )

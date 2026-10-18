@@ -40,7 +40,7 @@
       "col": 1,
       "type": "cloud",
       "label": "Read full source",
-      "sublabel": "Thread, Article, references",
+      "sublabel": "Code and quoted media",
       "width": 164,
       "yOffset": -224
     },
@@ -70,7 +70,7 @@
       "col": 1,
       "type": "cloud",
       "label": "Read every image",
-      "sublabel": "Transcription and diagrams",
+      "sublabel": "One gpt-4.1-mini batch",
       "width": 164,
       "yOffset": 112
     },
@@ -292,7 +292,7 @@
       "title": "Bounded acquisition and cost",
       "items": [
         "At most 12 X API calls, 100 posts and 60 seconds; X billing remains separate.",
-        "At most four static images: 5 MB each, 10 MB total and 20 million pixels each.",
+        "At most twelve static images: 5 MB each, 10 MB total and 20 million pixels each.",
         "Image reading reserves up to USD 0.16896 from the shared monthly budget."
       ]
     },
@@ -300,7 +300,8 @@
       "dot": "slate",
       "title": "Completeness and rollout",
       "items": [
-        "Articles require full body text and every supported embedded dependency.",
+        "Articles require full body, preserved code and every supported embedded dependency.",
+        "Missing quoted Article media permits one direct post lookup, within the twelve-call cap.",
         "Image transcription and visible diagram descriptions are labeled model-extracted.",
         "No automatic paid retry; unknown charges remain reserved until reconciliation.",
         "Contract diagram; migration 000016 must precede the matching deployment."
