@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import Callable
 
 import httpx
@@ -293,3 +294,60 @@ def test_timeout_is_explicit_and_is_not_retried() -> None:
     result = acquire(respond)
     assert result.text is None
     assert result.failure == "unavailable"
+
+
+@pytest.mark.parametrize("status", [400, 401, 402, 403, 404, 429, 500])
+@pytest.mark.parametrize("endpoint", ["post_lookup", "full_archive_search"])
+def test_rejected_request_logs_status_and_endpoint_without_private_data(
+    caplog: pytest.LogCaptureFixture, status: int, endpoint: str
+) -> None:
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if endpoint == "full_archive_search" and request.url.path == "/2/tweets/100":
+            return httpx.Response(200, json={"data": post()})
+        return httpx.Response(
+            status,
+            json={"detail": "private-provider-detail", "data": post()},
+            headers={"x-request-id": "private-request-id"},
+        )
+
+    with caplog.at_level(logging.WARNING):
+        result = acquire(respond, "https://x.com/private_user/status/100?s=private-query")
+
+    assert result.text is None
+    assert len(calls) == (2 if endpoint == "full_archive_search" else 1)
+    assert f"x_api_request_failed endpoint={endpoint} status={status}" in caplog.text
+    for private in (
+        "test-x-token",
+        "private-provider-detail",
+        "private-request-id",
+        "private_user",
+        "private-query",
+        TEXT,
+        "conversation_id:100",
+        "/2/tweets/100",
+    ):
+        assert private not in caplog.text
+
+
+@pytest.mark.parametrize("invalid_json", [False, True])
+def test_transport_and_decode_errors_log_type_without_exception_details(
+    caplog: pytest.LogCaptureFixture, invalid_json: bool
+) -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if invalid_json:
+            return httpx.Response(
+                200, content=b"private-invalid-body", headers={"content-type": "application/json"}
+            )
+        raise httpx.ReadTimeout("private-exception-detail", request=request)
+
+    with caplog.at_level(logging.WARNING):
+        result = acquire(respond)
+
+    assert result.text is None
+    assert "x_fetch_failed" in caplog.text
+    assert f"error_type={'JSONDecodeError' if invalid_json else 'ReadTimeout'}" in caplog.text
+    for private in ("private-invalid-body", "private-exception-detail", "test-x-token"):
+        assert private not in caplog.text

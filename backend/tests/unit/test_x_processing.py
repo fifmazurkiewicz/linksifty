@@ -24,7 +24,9 @@ from linksifty.main import create_app
 @pytest.mark.parametrize(
     "admitted,reason", [(False, "x_attempt_uncertain"), (True, "x_access_denied")]
 )
-def test_x_failure_or_prior_attempt_never_calls_model(admitted: bool, reason: str) -> None:
+def test_x_failure_or_prior_attempt_never_calls_model(
+    admitted: bool, reason: str, caplog: pytest.LogCaptureFixture
+) -> None:
     async def run() -> None:
         store = create_autospec(ProcessingStore, instance=True)
         store.stage.return_value = True
@@ -53,6 +55,8 @@ def test_x_failure_or_prior_attempt_never_calls_model(admitted: bool, reason: st
         store.save_source.assert_not_awaited()
         store.reserve.assert_not_awaited()
         provider.assess.assert_not_awaited()
+        assert f"source_fetch_failed job_id={job.id} provider=x reason={reason}" in caplog.text
+        assert job.original_url not in caplog.text
 
     asyncio.run(run())
 

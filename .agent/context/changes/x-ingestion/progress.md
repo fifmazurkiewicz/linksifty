@@ -1,5 +1,17 @@
 # X ingestion
 
+## Render diagnostics follow-up — 2026-10-18
+
+Owner reports deployed X ingestion still fails with no visible Render error and
+requests logs. Bounded maintenance: use existing warning-level Python logging,
+without dependencies, configuration flags, database/UI changes or new provider
+requests. Log fixed endpoint labels and HTTP status at the adapter, exception
+types without messages, and job ID/provider/failure reason at the acquisition
+outcome. Keep credentials, URLs, source text and raw provider data out of logs.
+Document Render filters and explicit retry/billing implications. Local regression
+verification is recorded in evidence.md; deployment and live diagnosis remain
+outstanding.
+
 2026-10-18 — Local implementation complete. Owner requested implementation and explicitly selected
 individual posts plus full threads. Graft is unavailable; focused repository
 reads and official X documentation establish the integration contract.

@@ -387,6 +387,34 @@ they request paste. Successfully cached text is reused for later analysis.
 research never uses the X adapter or incurs X reads. No live X acceptance has
 been performed by the local mock tests.
 
+### Diagnose X failures in Render
+
+After deploying the backend, open the backend service's **Logs** in Render and
+filter for `x_api_request_failed`, `x_fetch_failed` or `source_fetch_failed`.
+These are warning-level Python logs written to stderr; no debug logging flag or
+Langfuse configuration is required. Existing queue failures do not generate logs
+retroactively. After checking X billing, use the queue's explicit **Retry** action
+to make a new attempt; X reads may incur separate charges.
+
+For example, a rejected thread search produces:
+
+```text
+x_api_request_failed endpoint=full_archive_search status=403
+source_fetch_failed job_id=<job UUID> provider=x reason=x_access_denied
+```
+
+`endpoint=post_lookup` identifies the initial post or conversation-root lookup;
+`endpoint=full_archive_search` identifies the thread search. Check the HTTP status
+against the [official X error reference](https://developer.x.com/en/support/twitter-api/error-troubleshooting)
+and the app's access/billing in the X console. The status identifies the rejected
+request; it does not by itself prove which account setting caused it.
+`x_fetch_failed` reports transport/decoding/validation exception types without
+their messages. `source_fetch_failed` also covers disabled X fetching, uncertain
+prior attempts, partial content and ordinary web fetch failures. It includes the
+job UUID so operators can identify the failed job. Tokens, headers, post IDs,
+request URLs/queries, source text and raw provider payloads are excluded from
+these diagnostic messages. No failed request is automatically repeated.
+
 Links already awaiting manual content stay there after rollout. Paste the full
 thread, or explicitly delete and re-add the link after enabling the integration.
 

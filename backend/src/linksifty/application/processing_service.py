@@ -356,6 +356,12 @@ class ProcessingService:
                 "source.fetched", url=job.original_url, text=fetched.text, failure=fetched.failure
             )
             if fetched.text is None:
+                _logger.warning(
+                    "source_fetch_failed job_id=%s provider=%s reason=%s",
+                    job.id,
+                    "x" if is_x_url(job.original_url or "") else "web",
+                    fetched.failure or "unavailable",
+                )
                 await self._stage(
                     job, str(fetched.failure or "unavailable"), "awaiting_manual_content"
                 )

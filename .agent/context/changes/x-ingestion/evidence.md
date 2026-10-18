@@ -43,3 +43,26 @@ Commands use UV_CACHE_DIR=/private/tmp/linksifty-uv-cache and uv run --no-sync
 --package linksifty against the existing environment; no dependency changes.
 Database gate: backend/tests/integration/check_processing_database.py with the
 explicit disposable LINKSIFTY_TEST_DATABASE_URL. Frontend checks run in frontend/.
+# Render diagnostics follow-up — 2026-10-18
+
+- Red: 18 focused cases failed on missing diagnostic records before implementation
+  (14 status/endpoint cases, two exception cases, two existing processing cases
+  extended with job-level log assertions). An initially invalid fixture username
+  was corrected before confirming failures at the logging assertions.
+- Green: 69 focused X adapter/processing cases pass. Tests cover both endpoint
+  labels, HTTP 400/401/402/403/404/429/500, transport/JSON exception types,
+  job correlation, no automatic repeat, no model assessment on failed reads and
+  exclusion of fixture credentials, source text, headers, payloads and URLs.
+- Deliberate break: temporarily changed the HTTP rejection warning to debug;
+  all 14 endpoint/status cases failed. Restored warning level before final checks.
+- Full backend suite: 325 pass, with an existing Starlette/httpx deprecation warning.
+- Strict mypy: 40 source files pass. Repository Ruff lint and format checks pass
+  (108 files). `git diff --check` passes.
+- Default-logging smoke check: a mocked 403 emits
+  `x_api_request_failed endpoint=post_lookup status=403` to terminal output with
+  no logging setup, demonstrating warning visibility without a debug flag.
+- `agent-toolkit check`: unavailable (exit 127, command not found). Graft MCP
+  unavailable; used focused repository reads. No tools installed.
+- No frontend, migration, paid request, deployment or hosted validation performed.
+  Render diagnosis requires backend deployment and a new explicitly requested
+  attempt; prior failures cannot produce logs retroactively.

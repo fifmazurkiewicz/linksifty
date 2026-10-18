@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import re
 from typing import Annotated
 
@@ -12,6 +13,7 @@ from linksifty.domain.acquisition import FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.x_urls import x_post_id
 
+_logger = logging.getLogger(__name__)
 _MAX_POSTS = 100
 _MAX_PAGES = 10
 _MAX_BODY_BYTES = 1_000_000
@@ -104,9 +106,13 @@ class XAdapter:
                     return await self._thread(client, identifier)
         except _Failure as failure:
             return FetchResult(failure=failure.reason)
-        except (ValidationError, ValueError, UnicodeError):
+        except (ValidationError, ValueError, UnicodeError) as error:
+            _logger.warning(
+                "x_fetch_failed reason=partial_content error_type=%s", type(error).__name__
+            )
             return FetchResult(failure=FetchFailure.PARTIAL)
-        except (httpx.HTTPError, TimeoutError):
+        except (httpx.HTTPError, TimeoutError) as error:
+            _logger.warning("x_fetch_failed reason=unavailable error_type=%s", type(error).__name__)
             return FetchResult(failure=FetchFailure.UNAVAILABLE)
 
     async def _get(self, client: httpx.AsyncClient, path: str, **params: str) -> dict[str, object]:
@@ -116,6 +122,13 @@ class XAdapter:
             params={"tweet.fields": _FIELDS, **params},
             headers={"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
         ) as response:
+            if response.status_code != 200:
+                # Fixed endpoint labels only: no post IDs, queries, headers or provider bodies.
+                _logger.warning(
+                    "x_api_request_failed endpoint=%s status=%s",
+                    "full_archive_search" if path == "search/all" else "post_lookup",
+                    response.status_code,
+                )
             failure = {
                 401: FetchFailure.X_ACCESS_DENIED,
                 402: FetchFailure.X_ACCESS_DENIED,
