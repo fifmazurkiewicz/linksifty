@@ -186,7 +186,12 @@ X_API_READS_ENABLED and the server token are configured. Ordinary pages and
 additional research sources use the existing safe fetcher. Migration 000012
 adds a private atomic begin_x_fetch RPC: verified owner, current lease, account
 access and item expiry must hold, and each job may admit only one X attempt.
-A recovered attempt requests paste; cached complete text is reused.
+A recovered attempt requests paste; cached complete text is reused. Migration
+000014 extends the existing explicit resume operation to fetch failures. The queue's
+Retry action requeues the same job and resets X admission only after a terminal
+fetch failure; an uncertain X attempt or unresolved charge remains blocked.
+Owner, expiry, account-access and duplicate guards apply. The UI discloses analysis
+budget use and separate X charges. Automatic recovery never resets X admission.
 
 The adapter uses fixed api.x.com HTTPS lookup/full-archive endpoints, at most
 12 HTTP requests, 100 author posts, 1 MB response bodies, 100 KB source text

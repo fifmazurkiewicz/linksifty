@@ -77,6 +77,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
       const stage = item.processing_stage === 'queued' && item.status !== 'queued' ? item.status : item.processing_stage || item.status
       const stageLabel = stages[stage] || (item.status === 'awaiting_manual_content' ? 'Paste readable content to continue' : stage.replaceAll('_', ' '))
       const paused = item.status === 'processing' && item.worker_active === false
+      const canRetryFetch = item.status === 'awaiting_manual_content' && item.failure_reason !== 'x_attempt_uncertain' && stage !== 'x_attempt_uncertain'
       let host = ''
       try { host = new URL(item.original_url || item.title).hostname } catch { /* Pasted content has no URL. */ }
       return <article key={item.id} className="queue-item">
@@ -88,6 +89,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
           <p role={item.status === 'processing' ? 'status' : item.status === 'failed' ? 'alert' : undefined} aria-atomic="true">{paused ? 'Processing paused; waiting to resume' : stageLabel}{!paused && stage === 'fetching' && host ? ` from ${host}` : ''}.</p>
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
+          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source again and starts analysis using your monthly budget. X reads may incur separate charges.</p>}
           {item.updated_at && <p className="hint">Updated {new Date(item.updated_at).toLocaleTimeString()}</p>}
           {stage === 'invalid_model_output' && item.failure_reason && modelReasons[item.failure_reason] && <p>{modelReasons[item.failure_reason]}</p>}
           {stage === 'cost_unknown' && <p>The amount remains reserved. This paid request will not be repeated.</p>}
@@ -95,6 +97,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
         </div>
         <div className="item-actions">
           {item.status === 'completed' && <><strong>{item.score === null ? 'Not scored' : `${item.score}%`}</strong><small>{item.verdict?.replaceAll('_', ' ')}</small><button className="secondary" onClick={() => onOpen(item.id)}>Read assessment</button></>}
+          {canRetryFetch && <button className="secondary" disabled={busy} aria-describedby={`retry-cost-${item.id}`} onClick={() => onResume(item.id)}>Retry</button>}
           {item.status === 'awaiting_manual_content' && <button className="secondary" disabled={busy} onClick={() => onPaste(item.id)}>Paste content</button>}
           {item.status === 'failed' && retryable.has(stage) && <button className="secondary" disabled={busy} onClick={() => onResume(item.id)}>Resume analysis</button>}
           {item.status === 'failed' && retryable.has(stage) && <small>Uses your monthly budget.</small>}

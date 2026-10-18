@@ -1,0 +1,41 @@
+begin;
+select plan(15);
+insert into auth.users(id,email) values
+ ('11111111-1111-4111-8111-111111111111','retry@example.test'),
+ ('22222222-2222-4222-8222-222222222222','other-retry@example.test');
+select public.get_or_create_account_profile('11111111-1111-4111-8111-111111111111','retry@example.test',false);
+select public.get_or_create_account_profile('22222222-2222-4222-8222-222222222222','other-retry@example.test',true);
+select public.submit_fetch_items('11111111-1111-4111-8111-111111111111',array['https://x.com/user/status/100']);
+create temporary table target as select id, user_id from public.items where user_id='11111111-1111-4111-8111-111111111111';
+update public.items set status='awaiting_manual_content',processing_stage='x_not_configured',failure_reason='x_not_configured' where id in(select id from target);
+update public.jobs set status='awaiting_manual_content',processing_stage='x_not_configured' where item_id in(select id from target);
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item('22222222-2222-4222-8222-222222222222',t.id)),0,'other owner cannot retry');
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),1,'manual-content item can explicitly retry');
+select is((select status::text from public.jobs where item_id in(select id from target)),'queued','existing job is requeued');
+select is((select failure_reason from public.items where id in(select id from target)),null::text,'old failure is cleared');
+select is((select trial_links_used from public.account_profiles where user_id='11111111-1111-4111-8111-111111111111'),1,'retry consumes no new trial link');
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),0,'repeated click cannot requeue an active item');
+update public.items set status='awaiting_manual_content',processing_stage='x_access_denied' where id in(select id from target);
+update public.jobs set status='awaiting_manual_content',processing_stage='x_access_denied',x_fetch_started=true where item_id in(select id from target);
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),1,'explicit retry permits another completed X fetch attempt');
+select is((select x_fetch_started from public.jobs where item_id in(select id from target)),false,'explicit fetch retry resets X admission');
+update public.items set status='awaiting_manual_content',processing_stage='x_attempt_uncertain' where id in(select id from target);
+update public.jobs set status='awaiting_manual_content',processing_stage='x_attempt_uncertain',x_fetch_started=true where item_id in(select id from target);
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),0,'uncertain X attempt cannot retry');
+select ok((select x_fetch_started from public.jobs where item_id in(select id from target)),'uncertain X marker is retained');
+update public.items set processing_stage='unavailable',expires_at=now()-interval '1 second' where id in(select id from target);
+update public.jobs set processing_stage='unavailable' where item_id in(select id from target);
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),0,'expired item cannot retry');
+select is((select status::text from public.jobs where item_id in(select id from target)),'awaiting_manual_content','rejected retry leaves job unchanged');
+update public.items set expires_at=now()+interval '1 day' where id in(select id from target);
+insert into public.usage_reservations(user_id,job_id,month,amount_usd)
+ select user_id,id,date_trunc('month',now())::date,0.1 from public.jobs where item_id in(select id from target);
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),0,'unresolved charges prevent retry even without a reservation pointer');
+delete from public.usage_reservations where job_id in(select id from public.jobs where item_id in(select id from target));
+update public.account_profiles set status='rejected' where user_id='11111111-1111-4111-8111-111111111111';
+select is((select count(*)::int from target t cross join lateral public.resume_processing_item(t.user_id,t.id)),0,'rejected account cannot retry');
+set local role authenticated;
+select throws_ok($$select public.resume_processing_item('11111111-1111-4111-8111-111111111111',gen_random_uuid())$$,'42501',null,'retry remains server-only');
+reset role;
+select * from finish();
+rollback;

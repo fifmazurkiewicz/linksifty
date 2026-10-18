@@ -378,6 +378,7 @@ def main() -> int:
         "delete_items.test.sql",
         "analysis_chat.test.sql",
         "x_ingestion.test.sql",
+        "retry_fetch.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:

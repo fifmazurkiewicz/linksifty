@@ -4,6 +4,30 @@ import { Queue } from '../src/features/queue/Queue'
 
 afterEach(cleanup)
 
+it.each(['x_not_configured', 'unsupported', 'unavailable', 'x_access_denied'])('retries %s only on request and disables retry while busy', (reason) => {
+  const resume = vi.fn()
+  const props = { items: [{ id: 'retry-me', title: 'Unread source', status: 'awaiting_manual_content',
+    score: null, verdict: null, failure_reason: reason }], onOpen: vi.fn(), onPaste: vi.fn(),
+    onResume: resume, onDelete: vi.fn().mockResolvedValue(true) }
+  const { rerender } = render(<Queue {...props} busy={false} />)
+  expect(resume).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: 'Paste content' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(resume).toHaveBeenCalledExactlyOnceWith('retry-me')
+  rerender(<Queue {...props} busy />)
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(resume).toHaveBeenCalledTimes(1)
+})
+
+it('does not offer retry for an uncertain X attempt', () => {
+  render(<Queue items={[{ id: 'uncertain', title: 'Interrupted X read', status: 'awaiting_manual_content',
+    score: null, verdict: null, failure_reason: 'x_attempt_uncertain' }]} onOpen={vi.fn()} onPaste={vi.fn()}
+    onResume={vi.fn()} onDelete={vi.fn()} busy={false} />)
+  expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Paste content' })).toBeEnabled()
+})
+
 it('shows truthful waiting copy and no ready assessment for a queued link', () => {
   render(<Queue items={[{ id: 'one', title: 'https://example.com/article', status: 'queued',
     score: null, verdict: null, processing_stage: 'queued' }]} onOpen={vi.fn()} onPaste={vi.fn()} onResume={vi.fn()} onDelete={vi.fn().mockResolvedValue(true)} busy={false} />)

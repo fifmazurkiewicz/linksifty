@@ -26,6 +26,35 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+it.each([true, false])('retries a fetch through the existing endpoint and handles success=%s', async (success) => {
+  const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
+  let resumed = false
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'reader', status: 'approved', role: 'user' }))
+    if (url.endsWith('/resume')) {
+      expect(init?.method).toBe('POST')
+      resumed = success
+      return new Response(JSON.stringify(success ? {} : { detail: 'Retry is unavailable.' }), { status: success ? 202 : 409 })
+    }
+    if (url.endsWith('/v1/activity')) return new Response(new ReadableStream())
+    return new Response(JSON.stringify({ items: [{ id: 'manual', title: 'Failed fetch', status: resumed ? 'queued' : 'awaiting_manual_content',
+      score: null, verdict: null, failure_reason: resumed ? null : 'x_not_configured' }] }))
+  })
+  renderApp(session)
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+  if (success) {
+    expect(await screen.findByText('Waiting for processing.')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+  } else {
+    expect(await screen.findByRole('alert')).toHaveTextContent('Retry is unavailable.')
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled()
+  }
+  expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/v1/items/manual/resume'), expect.objectContaining({
+    method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+  }))
+})
+
 it('opens an assessment using its saved article title and source from the queue', async () => {
   const session = { access_token: 'test-token', user: { id: 'reader' } } as Session
   vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {

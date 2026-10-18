@@ -80,6 +80,13 @@ MVP limitations. The frontend remains a separate Vercel build.
 The queue now shows persisted live stages, source-backed results, manual-content
 recovery and actual OpenRouter USD spend/reservations. Settings saves the future
 valuable threshold; administrators can edit per-user monthly caps, including zero.
+
+Links awaiting pasted content also offer **Retry**, which fetches the source again
+and starts analysis on the same item. It uses the monthly analysis budget; X reads
+may incur separate charges. **Paste content** remains available. Uncertain X
+attempts and unresolved charges cannot be retried. Deploy migration
+`20261018_000014_retry_fetch.sql` before the matching frontend; no new API is required.
+
 Settings also shows the eight assessment criteria. Each account can edit descriptions and integer weights (1–10), saved together with its valuable threshold. New model analyses capture those rules; completed and interrupted analyses keep their original rubric, visible in detail. Requires migration `20261016_000009_assessment_rubric.sql` and matching backend/frontend.
 
 New analyses select numbered source passages. The backend supplies each saved
