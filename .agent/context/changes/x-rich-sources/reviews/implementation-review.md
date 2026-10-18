@@ -43,3 +43,10 @@ new cases check expected branch and privacy; deliberate diagnostic mutation is
 caught. Full follow-up gate passes 407 tests, mypy and Ruff; toolkit unavailable.
 No actionable security or acceptance-regression finding in the local diff.
 Hosted failure root cause still requires a new explicitly authorized attempt.
+
+Media-key compatibility review: normalize scalar Article media keys into the
+existing bounded reference model; existing expansion and URL/type/byte validation
+still applies. No new request, provider, persisted data or schema is introduced.
+Four new cases cover both Article locations and both expansion outcomes. The
+observed hosted media error does not alone prove this is its exact payload shape;
+post-deploy live verification remains pending. One authorized Retry was consumed.

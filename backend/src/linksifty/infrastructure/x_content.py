@@ -49,6 +49,8 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
     links: list[str] = []
 
     def add_media(value: object) -> None:
+        if isinstance(value, str):
+            value = {"media_key": value}
         if not isinstance(value, dict):
             raise _invalid("article_media_invalid")
         try:

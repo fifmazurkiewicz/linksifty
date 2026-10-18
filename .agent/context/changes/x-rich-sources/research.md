@@ -44,3 +44,21 @@ Official data dictionary still describes Article text/entities, while the lookup
 reference does not specify the complete nested body shape. No parser broadening
 is justified by the current evidence. Replace the combined diagnostic with fixed
 branch names; never log source values, arbitrary field names or credentials.
+
+## Authorized retry and media compatibility — 2026-10-18
+
+User explicitly authorized a retry with “u can run”; the agent clicked Retry
+exactly once on the reported Akshay post. Render at 20:48:49 local time returned
+`x_article_incomplete / article_media_invalid`, matching the user's earlier
+20:48:06 failure. This occurs while parsing Article media, before body completion
+or image inference. The earlier UI wording did not prove the body was absent.
+
+The parser rejected every scalar media entry before expansion resolution. A
+bounded media-key string can safely normalize to the existing XMedia reference:
+only the already returned includes.media can supply its URL/type. No additional
+lookup is introduced. The official https://docs.x.com/openapi.json lists the
+article.cover_media and article.media_entities expansions but leaves Post.article
+an untyped object; it does not establish the failing post's exact media value.
+This compatibility fix is tested with synthetic references, not a retained real
+payload. If the real rejection is a different media shape, further diagnosis is
+still required. No second retry, scraping or private API was used.

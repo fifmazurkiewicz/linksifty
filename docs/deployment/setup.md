@@ -1017,6 +1017,10 @@ cookies, redirects or proxies. Limits are four unique images, 5 MB each/10 MB
 total and 20 million pixels each. Invalid/truncated images, video, animation,
 polls and unavailable media stop acquisition before image inference.
 
+Article cover/media entries may also be media-key references. These are resolved
+only against the existing response's expanded media; a key is never treated as
+a URL or used to trigger another API lookup. Missing expansions still request paste.
+
 Image reading is one model batch before analysis. It transcribes visible text
 and describes visible diagram/chart relationships; each reading is explicitly
 labeled model-extracted and retains image/post URLs. Every image must be present,

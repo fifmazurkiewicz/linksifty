@@ -32,3 +32,15 @@ checks. Nine new privacy/diagnostic cases fail before the change, pass afterward
 reverting the body diagnostic deliberately makes the protected test fail.
 No additional hosted Retry or paid request was made. Exact Article payload/body
 availability still needs one explicitly authorized hosted fetch.
+
+## Authorized retry and media-reference fix
+
+The owner authorized one retry. It was run once and failed with
+`article_media_invalid` at 20:48:49, before image/assessment inference. The parser
+also has a reproducible compatibility gap: scalar media-key references are
+rejected rather than resolved from includes.media. Normalize bounded string
+references through existing validation/resolution; missing expansions still fail
+closed and do not trigger extra API calls. Four new cases fail before the fix
+and pass afterward, including both cover/body media and missing expansion paths.
+Deliberately removing normalization makes all four fail again. No further live
+retry is included in the one-attempt authorization or local verification.

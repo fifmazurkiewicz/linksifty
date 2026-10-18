@@ -73,3 +73,21 @@ Final follow-up gate: 407 backend tests, strict mypy (44 source files), Ruff lin
 and format all pass. Existing Starlette/httpx deprecation warning remains.
 `agent-toolkit check` again exits 127 (unavailable). Frontend/SQL were not changed;
 their prior evidence remains applicable. No live retry was made.
+
+## Authorized hosted retry / media-key compatibility
+
+One authorized Retry was clicked for the reported Akshay post. Existing Render
+logs show its terminal result at 20:48:49: article_media_invalid. No second Retry
+was clicked. Acquisition stops before model extraction/assessment. X account
+invoice cost was not inspected or inferred. The exact returned media value is
+not retained, so the observed check cannot prove which media branch failed.
+
+Four reference-expansion cases first failed with article_media_invalid. After
+two-line normalization, 132 focused X acquisition tests pass. Missing expansions
+remain unavailable, with no media request; supported expanded references acquire
+validated bytes. Removing normalization deliberately makes all four cases fail;
+it was restored. No extra API lookups, URL acceptance or completeness relaxation.
+Final media-reference gate: all 411 backend tests pass, strict mypy (44 files),
+Ruff lint and format pass. Existing Starlette/httpx warning remains. Toolkit is
+still unavailable (attempted, exit 127). Frontend/SQL unchanged; prior evidence
+applies. Hosted success after this fix is not claimed.

@@ -389,3 +389,45 @@ def test_article_failure_logs_exact_check_without_content(
     assert f"check={check}" in caplog.text
     for private in ("private-title", "private-body", "private-key", "secret", "private-kind", TEXT):
         assert private not in caplog.text
+
+
+@pytest.mark.parametrize("field", ["cover_media", "media_entities"])
+@pytest.mark.parametrize("expanded", [True, False])
+def test_article_media_key_references_require_expanded_valid_image(
+    field: str, expanded: bool
+) -> None:
+    media_key = "3_400"
+    article = {
+        "title": "Article",
+        "text": TEXT,
+        field: media_key if field == "cover_media" else [media_key],
+    }
+    image_requests: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "pbs.twimg.com":
+            image_requests.append(str(request.url))
+            return httpx.Response(200, content=png(), headers={"content-type": "image/png"})
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(article=article),
+                    "includes": {
+                        "media": [{"media_key": media_key, "type": "photo", "url": IMAGE_URL}]
+                        if expanded
+                        else []
+                    },
+                },
+            )
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond)
+    if expanded:
+        assert result.failure is None and TEXT in (result.text or "")
+        assert len(result.images) == 1 and result.images[0].data == png()
+        assert image_requests == [IMAGE_URL]
+    else:
+        assert result.text is None and not result.images
+        assert result.failure == "x_media_unavailable"
+        assert not image_requests
