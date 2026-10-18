@@ -30,3 +30,17 @@ Alternatives: unbudgeted OCR violates accounting; omitting images violates the
 source contract; local OCR alone cannot read diagram relationships; scraping
 private browser endpoints changes the credential/deployment model. Exact API
 Article shape and live vision accuracy remain hosted acceptance questions.
+
+## Hosted follow-up — 2026-10-18
+
+Owner confirms migration 000016 applied. Read-only Safari inspection shows the
+Supabase migration query reports success, Render lists dd52ffd as deployed, and
+existing Render failures at 19:47:09, 19:47:52 and 19:48:07 local time are
+`x_article_incomplete / article_body_or_dependencies_missing`. This confirms
+Article parsing stops acquisition before image inference. It does not identify
+which branch failed or prove X returned only a preview. No new Retry was made.
+
+Official data dictionary still describes Article text/entities, while the lookup
+reference does not specify the complete nested body shape. No parser broadening
+is justified by the current evidence. Replace the combined diagnostic with fixed
+branch names; never log source values, arbitrary field names or credentials.

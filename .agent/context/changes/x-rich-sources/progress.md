@@ -17,6 +17,18 @@ unavailable; focused repository reads used.
 
 See evidence.md for exact commands/results and acceptance limits. No live paid
 request, credentials or hosted mutation was made. Do not archive as hosted
-complete. External activation requires owner approval for migration 000016,
-then backend/frontend publication and approved real-post schema/quality checks.
-Existing main-push authorization is retained; rollout waits for the schema.
+complete. Migration 000016 is now owner-confirmed applied and dd52ffd is published/deployed.
+Approved real-post schema/quality acceptance remains pending. Existing main-push
+authorization is retained for this ongoing diagnostic fix.
+
+## Hosted diagnosis follow-up
+
+Owner confirms migration 000016 is applied; main was published and Render shows
+successful dd52ffd deployment. Existing hosted retries fail at the Article body/
+dependency check, before image reading. The old combined check is insufficient
+for root-cause diagnosis. A small diagnostics follow-up preserves every rejection
+and separates missing/invalid/preview/truncated body, title, block and dependency
+checks. Nine new privacy/diagnostic cases fail before the change, pass afterward;
+reverting the body diagnostic deliberately makes the protected test fail.
+No additional hosted Retry or paid request was made. Exact Article payload/body
+availability still needs one explicitly authorized hosted fetch.

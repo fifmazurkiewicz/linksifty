@@ -429,11 +429,19 @@ request; it does not by itself prove which account setting caused it.
 adapter rejection, including completeness failures returned with HTTP 200:
 
 ```text
-x_fetch_failed reason=x_article_incomplete check=article_body_or_dependencies_missing
+x_fetch_failed reason=x_article_incomplete check=article_body_missing
 ```
 
-`article_body_or_dependencies_missing` identifies an absent full Article body or
-unsupported Article dependency. `non_static_image` identifies video/animation;
+Article checks now distinguish `article_body_missing`, `article_body_empty`,
+`article_body_invalid`, `article_body_truncated` and `article_body_preview`.
+Missing means no supported full body was present; it does not prove the provider
+never exposes that body under another schema. `article_title_missing` identifies
+an absent/invalid title. `article_body_disagrees_with_blocks` identifies conflicting
+body representations. `article_media_invalid`, `article_block_type_unsupported`,
+`article_entity_type_unsupported` and other fixed entity/structure checks identify
+invalid or unsupported dependencies without logging their content. Older builds
+used the combined `article_body_or_dependencies_missing` check, which cannot
+distinguish these causes. `non_static_image` identifies video/animation;
 `media_bytes_unavailable_or_invalid` identifies missing or invalid static media.
 `withheld_content`, `missing_long_text` and `empty_or_truncated_text` explain other
 missing source material. Earlier deployments logged `attachments_present` and

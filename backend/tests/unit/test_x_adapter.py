@@ -357,7 +357,7 @@ def test_transport_and_decode_errors_log_type_without_exception_details(
     "extra,check",
     [
         ({"attachments": {"media_keys": ["private-media"]}}, "missing_expanded_media"),
-        ({"article": {"title": "private-article"}}, "article_body_or_dependencies_missing"),
+        ({"article": {"title": "private-article"}}, "article_body_missing"),
         ({"withheld": {"country_codes": ["private-country"]}}, "withheld_content"),
         ({"note_post": None}, "missing_long_text"),
         ({"text": "private-truncated-text…"}, "empty_or_truncated_text"),

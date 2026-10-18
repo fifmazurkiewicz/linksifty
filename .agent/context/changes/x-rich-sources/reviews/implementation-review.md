@@ -36,3 +36,10 @@ full-body access and image-reading quality need hosted acceptance. Graft,
 agent-toolkit and diagram browser QA unavailable are disclosed rather than waived.
 Editable workflow has passing specification/artifact checks; no visual QA claim.
 No archive until the separate activation work is resolved.
+
+Diagnostic follow-up review: fixed branch labels replace the combined Article
+check without changing accepted sources or performing additional requests. Nine
+new cases check expected branch and privacy; deliberate diagnostic mutation is
+caught. Full follow-up gate passes 407 tests, mypy and Ruff; toolkit unavailable.
+No actionable security or acceptance-regression finding in the local diff.
+Hosted failure root cause still requires a new explicitly authorized attempt.

@@ -56,3 +56,20 @@ The exact official Article response schema and full-body availability for the
 reported post remain unverified live. Supported bodies/dependencies fail closed;
 preview-only output still requires paste. Model transcription/diagram accuracy
 needs explicit hosted paid acceptance. No production success is inferred.
+
+## Precise Article diagnostic follow-up
+
+Read-only Render inspection identified the current Article parser failure, not
+an access-token denial or image inference error. Migration 000016 application is
+owner-confirmed; deployment dd52ffd is shown successful. No paid read was repeated.
+Nine new cases first failed because distinct malformed/missing source shapes all
+logged the combined check. After fixed branch diagnostics, all 128 X adapter/rich
+source tests pass. Replacing `article_body_missing` with the former combined label
+caused the targeted test to fail; restoring it preserves the source rejection.
+Privacy assertions ensure source text, title, arbitrary metadata and secret-like
+fixture values never enter logs. No acquisition acceptance rules, API requests,
+budget behavior, schema or frontend changes are part of this follow-up.
+Final follow-up gate: 407 backend tests, strict mypy (44 source files), Ruff lint
+and format all pass. Existing Starlette/httpx deprecation warning remains.
+`agent-toolkit check` again exits 127 (unavailable). Frontend/SQL were not changed;
+their prior evidence remains applicable. No live retry was made.

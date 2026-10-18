@@ -346,3 +346,46 @@ def test_image_decode_and_count_bounds_require_manual_content(kind: str) -> None
     assert result.failure == ("too_large" if kind == "count" else "x_media_unavailable")
     if kind == "count":
         assert not media_calls
+
+
+@pytest.mark.parametrize(
+    "article,check",
+    [
+        ({"title": "private-title"}, "article_body_missing"),
+        ({"text": TEXT}, "article_title_missing"),
+        ({"title": "private-title", "text": ""}, "article_body_empty"),
+        ({"title": "private-title", "text": "private-body…"}, "article_body_truncated"),
+        (
+            {"title": "private-title", "text": TEXT, "preview_text": TEXT},
+            "article_body_preview",
+        ),
+        (
+            {"title": "private-title", "text": TEXT, "cover_media": {"private-key": "secret"}},
+            "article_media_invalid",
+        ),
+        (
+            {
+                "title": "private-title",
+                "content_state": {"blocks": [{"type": "private-kind", "text": TEXT}]},
+            },
+            "article_block_type_unsupported",
+        ),
+        (
+            {"title": "private-title", "text": TEXT, "content_state": {"blocks": []}},
+            "article_body_disagrees_with_blocks",
+        ),
+        (
+            {"title": "private-title", "text": TEXT, "entities": {"posts": ["private-post"]}},
+            "article_post_id_invalid",
+        ),
+    ],
+)
+def test_article_failure_logs_exact_check_without_content(
+    caplog: pytest.LogCaptureFixture, article: dict[str, object], check: str
+) -> None:
+    result = acquire(lambda _: httpx.Response(200, json={"data": post(article=article)}))
+    assert result.text is None and not result.images
+    assert result.failure == "x_article_incomplete"
+    assert f"check={check}" in caplog.text
+    for private in ("private-title", "private-body", "private-key", "secret", "private-kind", TEXT):
+        assert private not in caplog.text
