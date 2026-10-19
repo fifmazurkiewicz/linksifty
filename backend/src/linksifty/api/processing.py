@@ -18,6 +18,7 @@ from linksifty.application.item_contracts import ItemRecord
 from linksifty.application.processing_contracts import (
     AssessmentView,
     RubricConfig,
+    TitleGenerationError,
     UsageSummary,
     UserSettings,
 )
@@ -40,6 +41,22 @@ class BudgetUpdate(BaseModel):
     limit_usd: Decimal = Field(
         ge=0, le=1000000, max_digits=15, decimal_places=8, allow_inf_nan=False
     )
+
+
+class TitleInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    confirmed: bool = Field(strict=True)
+
+    @field_validator("confirmed")
+    @classmethod
+    def require_confirmation(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Confirm monthly AI budget use")
+        return value
+
+
+class TitleResponse(BaseModel):
+    title: str
 
 
 class ContentInput(BaseModel):
@@ -139,6 +156,16 @@ async def get_assessment(item_id: UUID, request: Request, user_id: CurrentUser) 
     if assessment is None:
         raise HTTPException(404, "Assessment not available")
     return assessment
+
+
+@router.post("/v1/items/{item_id}/title")
+async def generate_title(
+    item_id: UUID, content: TitleInput, request: Request, user_id: CurrentUser
+) -> TitleResponse:
+    try:
+        return TitleResponse(title=await _service(request).generate_title(user_id, item_id))
+    except TitleGenerationError as error:
+        raise HTTPException(409, str(error)) from error
 
 
 @router.get("/v1/activity")

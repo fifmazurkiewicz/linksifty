@@ -124,7 +124,29 @@ class SourceAssessment(BaseModel):
     hype_signals: list[SourceHypeSignal] = Field(default_factory=list, max_length=3)
 
 
+class TitleDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1, max_length=160)
+
+    @field_validator("title")
+    @classmethod
+    def readable_title(cls, value: str) -> str:
+        if not value.strip() or any(ord(char) < 32 or ord(char) == 127 for char in value):
+            raise ValueError("Title must be a readable single line")
+        return value.strip()
+
+
+class TitleReservation(BaseModel):
+    id: UUID
+    text: str
+
+
+class TitleGenerationError(Exception):
+    """A title could not be generated safely; the existing analysis is unchanged."""
+
+
 class ModelResult(BaseModel):
+    title: str | None = Field(default=None, max_length=160)
     failure_reason: str | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
@@ -191,6 +213,12 @@ class AssessmentView(BaseModel):
 
 
 class ProcessingStore(Protocol):
+    async def reserve_title(
+        self, user_id: UUID, item_id: UUID, amount: Decimal
+    ) -> TitleReservation | None: ...
+    async def record_title(
+        self, user_id: UUID, item_id: UUID, reservation_id: UUID, result: ModelResult
+    ) -> bool: ...
     async def reserve_selection(self, job: ProcessingJob, amount: Decimal) -> UUID | None: ...
     async def record_selection_generation(
         self, job: ProcessingJob, reservation_id: UUID, generation_id: str | None
@@ -231,6 +259,7 @@ class ProcessingStore(Protocol):
 
 class AssessmentProvider(Protocol):
     def estimate(self, text: str) -> Decimal: ...
+    async def title(self, text: str) -> ModelResult: ...
     async def assess(
         self,
         text: str,

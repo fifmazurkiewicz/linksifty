@@ -146,3 +146,6 @@ summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; bo
   .criterion-heading h3 { font-size: 16px; }
   .assessment-detail blockquote { padding: 14px; }
 }
+.queue-source { color: inherit; overflow-wrap: anywhere; text-underline-offset: 0.2em; }
+.queue-source.hint { display: inline-block; max-width: 100%; margin-bottom: 0.5rem; }
+.queue-source:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }

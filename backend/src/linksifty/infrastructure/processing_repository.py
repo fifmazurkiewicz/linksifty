@@ -13,6 +13,7 @@ from linksifty.application.processing_contracts import (
     ResearchContext,
     Reservation,
     RubricConfig,
+    TitleReservation,
     UsageSummary,
     UserSettings,
 )
@@ -21,6 +22,28 @@ from linksifty.infrastructure.supabase_repository import RepositoryUnavailable, 
 
 
 class ProcessingRepository(SupabaseRepository):
+    async def reserve_title(
+        self, user_id: UUID, item_id: UUID, amount: Decimal
+    ) -> TitleReservation | None:
+        rows = await self._rpc(
+            "reserve_item_title", user_id, p_item_id=str(item_id), p_amount=str(amount)
+        )
+        return TitleReservation.model_validate(rows[0]) if rows else None
+
+    async def record_title(
+        self, user_id: UUID, item_id: UUID, reservation_id: UUID, result: ModelResult
+    ) -> bool:
+        return bool(
+            await self._rpc(
+                "record_item_title",
+                user_id,
+                p_item_id=str(item_id),
+                p_reservation=str(reservation_id),
+                p_title=result.title,
+                p_generation=result.generation_id,
+            )
+        )
+
     async def reserve_selection(self, job: ProcessingJob, amount: Decimal) -> UUID | None:
         rows = await self._rpc(
             "reserve_source_selection", job.user_id, **self._job_values(job), p_amount=str(amount)

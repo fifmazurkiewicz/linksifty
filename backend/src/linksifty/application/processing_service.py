@@ -22,6 +22,7 @@ from linksifty.application.processing_contracts import (
     ResearchSourceView,
     RubricConfig,
     Telemetry,
+    TitleGenerationError,
     UsageSummary,
     UserSettings,
 )
@@ -115,6 +116,32 @@ class ProcessingService:
     async def assessment(self, user_id: UUID, item_id: UUID) -> AssessmentView | None:
         await self._store.cleanup(user_id)
         return await self._store.assessment(user_id, item_id)
+
+    async def generate_title(self, user_id: UUID, item_id: UUID) -> str:
+        provider = self._provider
+        if provider is None:
+            raise TitleGenerationError("AI title generation is not configured.")
+        try:
+            amount = provider.estimate("")
+        except ValueError as error:
+            raise TitleGenerationError("AI title generation is not configured.") from error
+        reservation = await self._store.reserve_title(user_id, item_id, amount)
+        if reservation is None:
+            raise TitleGenerationError(
+                "Title generation is unavailable. The link needs saved complete text, no existing "
+                "title or active processing, enough monthly budget and no unresolved title call. "
+                "Paste complete content if the source could not be fetched."
+            )
+        result = await provider.title(reservation.text)
+        saved = await self._store.record_title(user_id, item_id, reservation.id, result)
+        if result.cost is not None:
+            await self._store.settle(user_id, reservation.id, result.cost)
+        if not saved or result.title is None:
+            raise TitleGenerationError(
+                "A usable title could not be saved. Your assessment is unchanged. "
+                "Unconfirmed charges remain reserved; this call will not be automatically retried."
+            )
+        return result.title
 
     def wake(self, user_id: UUID) -> None:
         task = self._tasks.get(user_id)

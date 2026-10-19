@@ -2,17 +2,9 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { api, mediaLabel, type Assessment, type Item } from '../../lib/api'
 import { isRubric, criterionLabel } from '../../lib/rubric'
+import { sourceLink } from '../../lib/urls'
 import { AnalysisChat } from './AnalysisChat'
 import { ReaderComments } from './ReaderComments'
-
-function sourceLink(value: string | null | undefined): URL | null {
-  try {
-    const url = new URL(value ?? '')
-    return ['http:', 'https:'].includes(url.protocol) ? url : null
-  } catch {
-    return null
-  }
-}
 
 function Evidence({ ids, citations, label = 'Source passage' }: {
   ids: string[]; citations: Assessment['citations']; label?: string

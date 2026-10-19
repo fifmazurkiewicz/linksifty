@@ -506,6 +506,53 @@ def concurrent_discussions(environment: dict[str, str]) -> None:
         execute(f"delete from auth.users where id='{user}';", environment)
 
 
+def title_concurrency(environment: dict[str, str]) -> None:
+    user = str(uuid4())
+    try:
+        execute(
+            f"""insert into auth.users(id,email) values ('{user}','title-race@example.test');
+            select public.get_or_create_account_profile('{user}','title-race@example.test',true);
+            select public.paste_item_content('{user}',repeat('Complete source text. ',30));
+            select public.paste_item_content('{user}',repeat('Another complete source. ',30));
+            update public.items set status='completed' where user_id='{user}';""",
+            environment,
+        )
+        items = execute(
+            f"select id from public.items where user_id='{user}' order by id;", environment
+        ).splitlines()
+        for same_item in (True, False):
+            execute(
+                f"select public.set_user_budget('{user}',{10 if same_item else 1});", environment
+            )
+            barrier = Barrier(2)
+
+            def admit(item_id: str, gate: Barrier = barrier) -> str:
+                gate.wait(timeout=10)
+                return execute(
+                    f"select count(*) from public.reserve_item_title('{user}','{item_id}',0.6);",
+                    environment,
+                ).strip()
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [
+                    pool.submit(admit, items[0]),
+                    pool.submit(admit, items[0 if same_item else 1]),
+                ]
+                outcomes = sorted(future.result(timeout=20) for future in futures)
+            assert outcomes == ["0", "1"]
+            execute(
+                f"select public.settle_analysis('{user}',id,0) from public.usage_reservations "
+                f"where user_id='{user}' and state='reserved';",
+                environment,
+            )
+            print(
+                "PASS: concurrent title "
+                + ("duplicate admission" if same_item else "monthly budget")
+            )
+    finally:
+        execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -513,6 +560,7 @@ def main() -> int:
             "UNAVAILABLE: local psql and LINKSIFTY_TEST_DATABASE_URL are required; no checks passed"
         )
         return 77
+    title_concurrency(environment)
     for name in (
         "account_approval.test.sql",
         "processing_usage.test.sql",
@@ -530,6 +578,7 @@ def main() -> int:
         "source_selection.test.sql",
         "reader_discussions.test.sql",
         "text_only_sources.test.sql",
+        "ai_titles.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:

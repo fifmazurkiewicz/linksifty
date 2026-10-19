@@ -1257,3 +1257,33 @@ Local mocked/runtime/SQL/browser evidence is in
 The English [workflow](../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
 and [editable contract](../../.agent/context/changes/x-rich-sources/text-only-workflow.json)
 show the active scope. No hosted migration or paid quality test is implied.
+## AI topic titles (migration 000020)
+
+Apply `supabase/migrations/20261019_000020_ai_titles.sql` after 000019, then deploy
+the matching backend and frontend together. Existing OpenRouter configuration
+is reused; no new key or paid service is needed.
+
+New assessments request a short title in the same budgeted model call. A valid
+title is saved under the processing lease even when assessment validation fails.
+Existing meaningful titles and original URLs remain intact. Title creation does
+not mark an assessment ready or bypass source/citation checks.
+
+Existing untitled ready/failed items offer **Generate title**. Confirmation sends
+`POST /v1/items/{id}/title` with `{"confirmed":true}`. The server checks ownership,
+account access, expiry, inactive processing, complete saved primary text and the
+monthly USD cap before admitting one title-only call. It conservatively reserves
+the existing model maximum (USD 0.14848), limits output to 128 tokens and settles
+actual provider cost. It never fetches a source or reruns an assessment. Partial
+or unavailable text requires the existing manual-paste path.
+
+Uncertain title calls remain reserved and block duplicate admission. A generation
+ID can be reconciled on subsequent authenticated queue visits; no-ID outcomes
+require the existing operator reconciliation process. Known failed calls can be
+explicitly requested again, with another confirmation and reservation. Deleting
+an item removes its title and detaches content from billing records; a late
+generation ID can still settle the original reservation. No automatic backfill,
+provider retry, historical assessment rewrite or live paid activation is included.
+
+Run the mocked backend/frontend suites and the local PostgreSQL gate, which
+includes `supabase/tests/ai_titles.test.sql` and concurrent title admission tests.
+Local synthetic auth tests do not certify hosted authentication or deployment.

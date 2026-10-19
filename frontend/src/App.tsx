@@ -29,6 +29,7 @@ function AuthenticatedApp() {
   const [view, setView] = useState<View>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busy, setBusy] = useState(false)
+  const [generatingTitleId, setGeneratingTitleId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [links, setLinks] = useState('')
   const [text, setText] = useState('')
@@ -184,6 +185,21 @@ function AuthenticatedApp() {
     } catch (error) { setMessage(report(error)); return false }
     finally { setBusy(false) }
   }
+  const generateTitle = async (id: string) => {
+    if (busy) return
+    setBusy(true); setGeneratingTitleId(id); setMessage(null)
+    try {
+      const result = await api<{ title: string }>(`/v1/items/${id}/title`, session, {
+        method: 'POST', body: JSON.stringify({ confirmed: true }),
+      })
+      setItems(current => current.map(item => item.id === id ? { ...item, title: result.title } : item))
+    } catch (error) { setMessage(report(error)) }
+    finally {
+      try { setUsage(await api<Usage>('/v1/usage', session)); setUsageError(null) }
+      catch (error) { setUsageError(report(error)) }
+      setBusy(false); setGeneratingTitleId(null)
+    }
+  }
 
   return <main className="app">
     <aside>
@@ -218,7 +234,8 @@ function AuthenticatedApp() {
         {state === 'loading' && <p role="status">Loading your queue…</p>}
         {state === 'error' && <button className="secondary" onClick={() => void loadItems()}>Retry loading queue</button>}
         {state === 'ready' && <Queue items={items} onOpen={id => setView({ kind: 'detail', id })}
-          onPaste={id => { setText(''); setView({ kind: 'paste', id }) }} onResume={id => void resume(id)} onDelete={deleteItems} busy={busy} />}
+          onPaste={id => { setText(''); setView({ kind: 'paste', id }) }} onResume={id => void resume(id)} onDelete={deleteItems}
+          onGenerateTitle={id => void generateTitle(id)} generatingTitleId={generatingTitleId} busy={busy} />}
       </>}
       {screen === 'Add' && <form onSubmit={event => void submit(event)}>
         <p className="eyebrow">NEW ASSESSMENT</p><h1>{maxLinks > 0 ? `Add up to ${maxLinks} ${maxLinks === 1 ? 'link' : 'links'}.` : 'Your trial links are used.'}</h1>

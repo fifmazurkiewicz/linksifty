@@ -77,6 +77,14 @@ MVP limitations. The frontend remains a separate Vercel build.
 
 ## Processing and usage
 
+Queue entries use concise AI topic titles in All, Needs action and Ready, with
+clickable original URLs. New analyses generate titles in the same model call;
+titles survive assessment validation failures. Existing untitled ready/failed
+items offer **Generate title**, with confirmation before using the monthly AI
+budget. This uses complete saved source text and leaves assessments unchanged.
+Apply migration `20261019_000020_ai_titles.sql` before the matching backend/UI.
+See [title rollout](docs/deployment/setup.md#ai-topic-titles-migration-000020).
+
 The queue now shows persisted live stages, source-backed results, manual-content
 recovery and actual OpenRouter USD spend/reservations. Settings saves the future
 valuable threshold; administrators can edit per-user monthly caps, including zero.

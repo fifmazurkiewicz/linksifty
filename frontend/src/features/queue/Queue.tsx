@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Item } from '../../lib/api'
+import { sourceLink } from '../../lib/urls'
 
 const stages: Record<string, string> = {
   queued: 'Waiting for processing', fetching: 'Fetching the page', checking_content: 'Checking readable content',
@@ -40,9 +41,10 @@ const modelReasons: Record<string, string> = {
 }
 const retryable = new Set(['budget_exhausted', 'not_configured', 'invalid_model_output', 'provider_rejected'])
 
-export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
+export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTitle, generatingTitleId, busy }: {
   items: Item[]; onOpen: (id: string) => void; onPaste: (id: string) => void;
   onResume: (id: string) => void; onDelete: (ids: string[]) => Promise<boolean>; busy: boolean;
+  onGenerateTitle?: (id: string) => void; generatingTitleId?: string | null;
 }) {
   const [filter, setFilter] = useState('All')
   const [verdict, setVerdict] = useState('all')
@@ -88,6 +90,9 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
       const paused = item.status === 'processing' && item.worker_active === false
       const uncertainFetch = ['x_attempt_uncertain', 'image_reading_uncertain'].includes(item.failure_reason || '') || ['x_attempt_uncertain', 'image_reading_uncertain'].includes(stage)
       const canRetryFetch = item.status === 'awaiting_manual_content' && !uncertainFetch
+      const source = sourceLink(item.original_url || item.title)
+      const missingTitle = !item.title || item.title === item.original_url || item.title === source?.href || item.title === 'Pasted content'
+      const canGenerateTitle = missingTitle && ['completed', 'failed'].includes(item.status) && onGenerateTitle
       let host = ''
       try { host = new URL(item.original_url || item.title).hostname } catch { /* Pasted content has no URL. */ }
       return <article key={item.id} className="queue-item">
@@ -95,7 +100,10 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
           <label className="item-selection"><input type="checkbox" aria-label={`Select ${item.title}`}
             checked={selectedIds.includes(item.id)} disabled={busy}
             onChange={event => setSelected(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))} /> Select</label>
-          <p className="meta">{group(item)}</p><h2>{item.title}</h2>
+          <p className="meta">{group(item)}</p><h2>{missingTitle && source
+            ? <a className="queue-source" href={source.href} target="_blank" rel="noopener noreferrer">{item.title}</a>
+            : item.title}</h2>
+          {source && !missingTitle && <a className="queue-source hint" href={source.href} target="_blank" rel="noopener noreferrer">{item.original_url || source.href} ↗</a>}
           <p role={item.status === 'processing' ? 'status' : item.status === 'failed' ? 'alert' : undefined} aria-atomic="true">{paused ? 'Processing paused; waiting to resume' : stageLabel}{!paused && stage === 'fetching' && host ? ` from ${host}` : ''}.</p>
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
@@ -106,6 +114,11 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
           {stage === 'budget_exhausted' && <p>Ask an administrator to raise your limit, or resume after the monthly reset.</p>}
         </div>
         <div className="item-actions">
+          {canGenerateTitle && <><button className="secondary" disabled={busy}
+            aria-describedby={`title-cost-${item.id}`} onClick={() => {
+              if (!busy && window.confirm('Generate an AI topic title from the saved source text? This uses your monthly AI budget. Your assessment will stay unchanged.')) onGenerateTitle(item.id)
+            }}>{generatingTitleId === item.id ? 'Generating title…' : 'Generate title'}</button>
+            <small id={`title-cost-${item.id}`}>Uses your monthly AI budget.</small></>}
           {item.status === 'completed' && <><strong>{item.score === null ? 'Not scored' : `${item.score}%`}</strong><small>{item.verdict?.replaceAll('_', ' ')}</small><button className="secondary" onClick={() => onOpen(item.id)}>Read assessment</button></>}
           {canRetryFetch && <button className="secondary" disabled={busy} aria-describedby={`retry-cost-${item.id}`} onClick={() => onResume(item.id)}>Retry</button>}
           {item.status === 'awaiting_manual_content' && <button className="secondary" disabled={busy} onClick={() => onPaste(item.id)}>Paste content</button>}

@@ -421,3 +421,18 @@ source notes; historical analyses are not relabeled. No new service/dependency.
 This is the owner's behavior contract, not a frozen repository snapshot. Static
 Archify checks pass; its browser check is skipped (Chrome unavailable). Native
 product QA with synthetic desktop/mobile fixtures is recorded separately.
+## AI topic titles — migration 000020
+
+The assessment provider returns a separately validated topic title in its normal
+response. `record_model_result` writes it to the existing owner-scoped item under
+the active lease, preserving meaningful titles and retaining it through later
+assessment failures. Ready state still requires a valid settled assessment.
+
+The queue also exposes confirmed title-only generation for existing untitled
+ready/failed items. `ProcessingService` orchestrates `reserve_item_title`, a
+bounded call to the existing OpenRouter adapter, `record_item_title` and existing
+settlement. The database checks owner/account/expiry, complete cached source,
+inactive processing and shared monthly capacity. A per-item unresolved ledger
+reservation prevents duplicate paid execution; content deletion detaches that
+reservation while preserving late-generation reconciliation. No source fetching,
+new worker, new service or assessment rerun is introduced.
