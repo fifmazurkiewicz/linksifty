@@ -1,0 +1,305 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Chat Evidence-Gap Research",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/chat-research/workflow.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "1306e644a25f386e2f7a81c0f46f7347c55d682c",
+      "provider": "github"
+    }
+  },
+  "lanes": [
+    {
+      "id": "request",
+      "label": "Reader and consent"
+    },
+    {
+      "id": "model",
+      "label": "Private evidence and answer"
+    },
+    {
+      "id": "research",
+      "label": "Conditional public research"
+    },
+    {
+      "id": "failure",
+      "label": "Failure and recovery",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "intake",
+    "classify",
+    "decision",
+    "initial",
+    "reassess",
+    "refined",
+    "final",
+    "validate",
+    "save"
+  ],
+  "nodes": [
+    {
+      "id": "intake",
+      "lane": "request",
+      "col": 0,
+      "type": "backend",
+      "label": "Ask a question",
+      "sublabel": "Owner + request UUID",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 187
+        }
+      ],
+      "tag": "One or two searches"
+    },
+    {
+      "id": "classify",
+      "lane": "model",
+      "col": 0,
+      "type": "security",
+      "label": "Classify scope",
+      "sublabel": "Safety and reply language",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 205
+        }
+      ]
+    },
+    {
+      "id": "decision",
+      "lane": "model",
+      "col": 1,
+      "type": "backend",
+      "label": "Check evidence",
+      "sublabel": "Every comparison subject",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 211
+        }
+      ],
+      "tag": "Decision slot"
+    },
+    {
+      "id": "reassess",
+      "lane": "model",
+      "col": 2,
+      "type": "backend",
+      "label": "Reassess the gap",
+      "sublabel": "Answer or refined query",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 242
+        }
+      ],
+      "tag": "Answer slot"
+    },
+    {
+      "id": "final",
+      "lane": "model",
+      "col": 3,
+      "type": "backend",
+      "label": "Final generation",
+      "sublabel": "Search disabled",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 249
+        }
+      ],
+      "tag": "Final answer slot"
+    },
+    {
+      "id": "validate",
+      "lane": "model",
+      "col": 4,
+      "type": "security",
+      "label": "Validate citations",
+      "sublabel": "Only supplied passage IDs",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 253
+        }
+      ]
+    },
+    {
+      "id": "save",
+      "lane": "model",
+      "col": 5,
+      "type": "database",
+      "label": "Save the turn",
+      "sublabel": "Accumulate fetched evidence",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 278
+        }
+      ]
+    },
+    {
+      "id": "initial",
+      "lane": "research",
+      "col": 1,
+      "type": "backend",
+      "label": "Initial web search",
+      "sublabel": "Complete pages only",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 341,
+          "end_line": 372
+        }
+      ],
+      "tag": "Search slot"
+    },
+    {
+      "id": "refined",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "Refined web search",
+      "sublabel": "Confirmed first search",
+      "width": 165,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261020_000022_chat_research.sql",
+          "line": 35
+        }
+      ],
+      "tag": "Refined search slot"
+    },
+    {
+      "id": "stop",
+      "lane": "failure",
+      "col": 4,
+      "type": "security",
+      "label": "Stop safely",
+      "sublabel": "Budget or invalid output",
+      "width": 165,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 273
+        }
+      ],
+      "tag": "No paid retries"
+    }
+  ],
+  "edges": [
+    {
+      "to": "classify",
+      "from": "intake"
+    },
+    {
+      "to": "decision",
+      "label": "Relevant",
+      "from": "classify"
+    },
+    {
+      "to": "initial",
+      "label": "Missing facts",
+      "role": "branch",
+      "from": "decision"
+    },
+    {
+      "to": "reassess",
+      "label": "Fetched evidence",
+      "from": "initial"
+    },
+    {
+      "to": "refined",
+      "label": "Refine",
+      "role": "branch",
+      "from": "reassess",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "to": "final",
+      "label": "Evidence",
+      "from": "refined",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "to": "validate",
+      "from": "final"
+    },
+    {
+      "to": "save",
+      "from": "validate"
+    },
+    {
+      "to": "validate",
+      "label": "Sufficient",
+      "role": "branch",
+      "from": "decision",
+      "fromSide": "top",
+      "toSide": "top",
+      "channelY": 160
+    },
+    {
+      "to": "validate",
+      "label": "Answer",
+      "role": "branch",
+      "from": "reassess"
+    },
+    {
+      "to": "stop",
+      "label": "Invalid",
+      "role": "error",
+      "variant": "security",
+      "from": "validate",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "to": "save",
+      "label": "Failed turn",
+      "role": "return",
+      "from": "stop",
+      "fromSide": "right",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Search conditions",
+      "items": [
+        "The submitted allowance defaults to one for old clients; the updated disclosure requests two.",
+        "Only a confirmed first search and an explicit remaining evidence gap allow refinement.",
+        "Repeated queries stop; uncertain searches disable further research. No third search."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Budget and evidence",
+      "items": [
+        "Each model/search slot reserves once under the owner budget lock. No provider retry or fallback.",
+        "Each search fetches up to 20 safe URLs; partial pages and snippets are not evidence.",
+        "The final generation either answers from available evidence or discloses insufficiency.",
+        "New turns have an eight-minute deadline. Hosted migration and live quality remain separate."
+      ]
+    }
+  ]
+}

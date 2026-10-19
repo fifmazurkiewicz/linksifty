@@ -16,6 +16,7 @@ create temporary table chat_item as select id from public.items where original_u
 select is((select count(*)::int from public.begin_chat_turn('22222222-2222-4222-8222-222222222222',(select id from chat_item),'aaaaaaaa-1111-4111-8111-111111111111','Foreign?')),0,'admin cannot start another owner chat');
 create temporary table claimed as select * from public.begin_chat_turn('11111111-1111-4111-8111-111111111111',(select id from chat_item),'aaaaaaaa-1111-4111-8111-111111111111','Explain the analysis');
 select ok((select claimed from claimed),'first request claims execution');
+select is((select deadline-created_at from public.chat_turns where id='aaaaaaaa-1111-4111-8111-111111111111'),interval '8 minutes','new turns allow bounded research time');
 select is((select claimed from public.begin_chat_turn('11111111-1111-4111-8111-111111111111',(select id from chat_item),'aaaaaaaa-1111-4111-8111-111111111111','Explain the analysis')),false,'duplicate request never claims execution');
 select is((select count(*)::int from public.begin_chat_turn('11111111-1111-4111-8111-111111111111',(select id from chat_item),'aaaaaaaa-2222-4222-8222-222222222222','Another?')),0,'second pending question is blocked');
 select is((select count(*)::int from public.list_chat_turns('22222222-2222-4222-8222-222222222222',(select id from chat_item))),0,'foreign history stays private');

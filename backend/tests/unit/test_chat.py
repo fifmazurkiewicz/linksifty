@@ -477,6 +477,29 @@ def test_research_never_retries_uncertain_or_duplicate_queries_and_obeys_refinem
     asyncio.run(run())
 
 
+def test_uncertain_refined_search_keeps_first_evidence_and_cannot_search_again() -> None:
+    async def run() -> None:
+        service, store, provider, fetch, search, turn = setup_chat()
+        search.search.side_effect = [
+            SearchResponse(True, ("https://source.test/article",)),
+            SearchResponse(False, ()),
+        ]
+        provider.reply.side_effect = [
+            ChatModelResult(draft=ChatDraft(search_query=q, paragraphs=[], insufficient=False))
+            for q in ["comparison capabilities", "comparison limitations"]
+        ] + [ChatModelResult(draft=ChatDraft(search_query=None, paragraphs=[], insufficient=True))]
+        result = await service.ask(uuid4(), turn.item_id, turn.id, turn.question, max_searches=2)
+        assert result.status == "completed" and result.insufficient
+        assert result.search_status == "uncertain" and len(result.sources) == 1
+        assert search.search.await_count == 2
+        assert provider.reply.await_args.kwargs["allow_search"] is False
+        fetch.assert_awaited_once()
+        # Only the confirmed search settles; the uncertain refined call stays reserved.
+        assert store.settle.await_count == 2  # Classifier and first search.
+
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize(
     "question,category,language,expected",
     [

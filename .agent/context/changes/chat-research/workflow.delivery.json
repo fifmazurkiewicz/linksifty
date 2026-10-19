@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d64dbc51-6b6b-4805-a20f-82ada173674a",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-research/workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/chat-research/workflow.html",
+  "specification": {
+    "sha256": "c61c0f43959a0363756713b0f33287fb54e9c850320df6b25cceadba54118599",
+    "bytes": 6999
+  },
+  "artifact": {
+    "sha256": "69f16d762b1a800193686677ddaaf38a96304b93d6c1cd1c4bd4a7919daa8eaa",
+    "bytes": 765222
+  }
+}
