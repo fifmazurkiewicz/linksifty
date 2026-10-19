@@ -152,6 +152,25 @@ warnings contain only turn ID and stable reason. No chat policy, owner scope,
 budget rule or retry behavior changes; the same opt-in content/retention policy
 applies. See [chat diagnostics](../deployment/setup.md#analysis-and-topic-chat-migration-000013).
 
+Chat answer selection is independent: the same edge adapter uses
+`OPENROUTER_CHAT_MODEL` (Sonnet 5.5 by default) for reply generations, with its own
+verified full-context reservation, output cap and provider price ceilings.
+Assessment/title/preview selection stays under `OPENROUTER_MODEL`; Jev stays
+pinned separately. Relevant payloads explicitly carry the validated reply
+language through both answer steps. No new service, storage or provider retry
+path is introduced. See [chat model rollout](../deployment/setup.md#chat-answer-quality-and-model-selection--2026-10-19).
+
+Migration 000022 extends the same chat path to two distinct searches per question:
+one initial query and one evidence-gap refinement, with up to three answer-model
+generations. The updated UI explicitly requests `max_searches: 2`; omitted values
+retain the old one-search consent. Unique `search_refined` / `answer_final` ledger
+slots preserve owner/budget/replay fences; only a confirmed settled first search
+can admit refinement. Uncertain calls never retry. The model receives attempted
+queries, cumulative evidence and explicit reply language. Its last generation
+cannot search. New turn deadlines are eight minutes. See [research rollout](../deployment/setup.md#chat-evidence-gap-research-migration-000022)
+and the [editable workflow](../../.agent/context/changes/chat-research/workflow.json)
+with [HTML](../../.agent/context/changes/chat-research/workflow.html).
+
 - [Brave/Langfuse workflow HTML](../../.agent/context/changes/processing-usage-inbox/brave-langfuse.html) · [editable JSON](../../.agent/context/changes/processing-usage-inbox/brave-langfuse.json). Repository-backed at local code commit c844819. Validate/deliver/strict artifact checks pass; automated browser check skipped because Chrome unavailable; no fresh perceptual inspection claimed. All diagram labels, explanations and viewer controls are in English. Latest workflow receipts are under brave-langfuse.content-tracing/; lifecycle English receipts remain under lifecycle.english/. Prior receipts are historical.
 
 Submission/resume maintenance (000008): owner-profile lock serializes duplicate URL decisions before creating new items/jobs/trial usage; existing rows remain. UI preflight is advisory, server guard authoritative. The original citation-format repair has been superseded by passage-ID selection within the OpenRouter adapter; existing exact source/offset fences remain. These are guards within existing steps, with unchanged topology and no new external calls.

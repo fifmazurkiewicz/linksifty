@@ -140,8 +140,9 @@ Requires migration `20261017_000011_delete_items.sql`; see the
 
 Completed analyses now include a saved conversation with inspectable source
 passages. Chat uses the analysis, original article, saved research and recent
-conversation first. Only missing evidence triggers web research: at most one
-Brave search per question, followed by safe page reads and a final answer.
+conversation first. Only missing evidence triggers web research: at most two
+distinct Brave searches per question (one query and one evidence-gap refinement),
+followed by safe page reads and a final answer. Ambiguous subjects prompt clarification.
 Model and search calls share the existing monthly budget. Request IDs prevent
 duplicate paid work after a network error. Deleting/expiring the item removes
 chat content while preserving charge reconciliation.
@@ -156,8 +157,18 @@ requests receive an uncited Polish/English refusal without research or answer
 generation. Invalid or uncertain classification stops the request. Classification
 uses the same monthly budget and server key. Apply migration
 `20261018_000015_chat_classification.sql` before deploying the matching backend;
-`OPENROUTER_MODEL` remains the answer model. See
+`OPENROUTER_MODEL` remains the assessment model. Chat independently uses
+`OPENROUTER_CHAT_MODEL=anthropic/claude-sonnet-5.5` (default), with low reasoning
+effort, explicit reply language and direct follow-up instructions. Set the chat
+variable to `openai/gpt-4o-mini` for rollback. Sonnet reserves up to $2.08192 per
+answer call before settling actual reported cost; the conservative reservation
+can block calls with a smaller available budget. No additional migration. See
 [classification rollout](docs/deployment/setup.md#chat-query-classification-migration-000015).
+
+Two-search chat requires `20261020_000022_chat_research.sql` before the matching
+backend/frontend. Each search and up to three answer-model calls reserve separately;
+uncertain requests are never retried. Older clients remain limited to one search.
+See [research rollout](docs/deployment/setup.md#chat-evidence-gap-research-migration-000022).
 
 ### Text-only source analysis
 

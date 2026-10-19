@@ -1,6 +1,13 @@
 # Linksifty product roadmap
 
-Canonical product roadmap · updated 2026-10-19. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
+Canonical product roadmap · updated 2026-10-20. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
+
+Chat research update (2026-10-20): M6/M9 support up to two distinct searches per
+question, conditional on missing evidence and the submitted search allowance.
+Old clients retain one-search consent. Unique billing slots, shared budgets,
+uncertainty stops and owner isolation remain enforced. Apply migration 000022
+before matching backend/frontend; hosted quality remains separate. See
+[canonical progress](../.agent/context/changes/chat-research/progress.md).
 
 Automatic partial-preview update (2026-10-19): M5/M6 now include a labeled
 one-sentence overview from readable fragments on failed fetches, under disclosed
@@ -17,7 +24,7 @@ are unchanged. [Preview workflow](../.agent/context/changes/partial-previews/wor
 | M3 Submission and durable processing | In progress | URL/paste submission, fenced bounded execution, heartbeat and recovery implemented locally with mocked tests | Hosted restart validation (duplicate blocking implemented locally) | C1, C4, C5 |
 | M4 Source-grounded verdict | In progress | Safe redirects/body controls, completeness guard, OpenRouter schema/excerpts, pure scorer and USD reservation code locally verified | Hosted source/provider acceptance (local SQL budget/RLS gate passed) | C2, C3, C4 |
 | M5 Inbox and detail | In progress | Authenticated queue, filters, stages, detail, recovery, settings and confirmed single/bulk deletion locally implemented | Hosted acceptance and browser QA; marking read remains broader MVP work | C5, C6 |
-| M6 Chat and source enrichment | In progress (local chat, Jev source selection and rich X ingestion) | Saved analysis/topic chat with citations, conditional one-search research, shared budget and idempotency; Brave/Langfuse and official X Article/text ingestion with bounded embedded-text completion and media-omission labels implemented locally | Hosted chat/search/X acceptance and live answer-quality evaluation | C7 |
+| M6 Chat and source enrichment | In progress (local chat, Jev source selection and rich X ingestion) | Saved analysis/topic chat with citations, conditional two-search research (000022), shared budget and idempotency; Brave/Langfuse and official X Article/text ingestion with bounded embedded-text completion and media-omission labels implemented locally | Hosted chat/search/X acceptance and live answer-quality evaluation | C7 |
 | M7 Validation and release | In progress | C8.1 GitHub CI and Docker build/smoke verified; 138 backend tests, 89 local pgTAP assertions, mypy/Ruff and 21 frontend tests/lint/build | Log redaction, deployment artifacts, hosted RLS/auth and 20-link evaluation | C8, E1 |
 | M8 Google access and account approval | In progress | Backend access rules, admin API, Resend flow and authenticated frontend implemented locally; mock suites pass | Apply and validate database migrations, configure hosted Google OAuth/Resend, run hosted account-flow check | [Implementation plan](superpowers/plans/2026-10-14-multi-user-access-admin.md) |
 | M9 Per-user model spend | In progress (local implementation) | Exact USD ledger/reservations, supported-model bound, admin caps and scoped user/admin views implemented with mocked tests | Retention schedule and hosted provider/cost acceptance (local PostgreSQL/RLS/concurrency passed) | [Current plan](../.agent/context/changes/processing-usage-inbox/plan.md) |

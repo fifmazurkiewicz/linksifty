@@ -177,6 +177,7 @@ def create_app(
                         configuration.openrouter_model,
                         client,
                         telemetry,
+                        chat_model=configuration.openrouter_chat_model,
                     )
                     if configuration.openrouter_api_key
                     else None

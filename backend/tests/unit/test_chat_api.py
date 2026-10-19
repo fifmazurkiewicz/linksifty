@@ -45,7 +45,21 @@ def test_chat_routes_authenticate_validate_and_use_only_verified_owner() -> None
     assert response.status_code == 200
     assert response.json()["status"] == "pending"
     assert "sources" not in response.json()
-    service.ask.assert_awaited_once_with(user, item, request_id, "Why?")
+    service.ask.assert_awaited_once_with(user, item, request_id, "Why?", max_searches=1)
+    response = client.post(
+        f"/v1/items/{item}/chat",
+        json={"question": "Why?", "request_id": str(uuid4()), "max_searches": 2},
+    )
+    assert response.status_code == 200
+    assert service.ask.await_args.kwargs["max_searches"] == 2
+    for limit in [0, 3, -1, None]:
+        assert (
+            client.post(
+                f"/v1/items/{item}/chat",
+                json={"question": "Why?", "request_id": str(uuid4()), "max_searches": limit},
+            ).status_code
+            == 422
+        )
 
 
 def test_missing_content_and_duplicate_conflicts_have_safe_http_errors() -> None:

@@ -92,13 +92,17 @@ class ChatInput(BaseModel):
     question: str
     passages: dict[str, ChatCitation]
     history: list[dict[str, str]]
+    reply_language: Literal["pl", "en"] | None = None
+    search_queries: list[str] = Field(default_factory=list, max_length=2)
 
 
 class ChatError(Exception):
     """Stable application failure translated by HTTP at the edge."""
 
 
-CallSlot = Literal["classification", "decision", "search", "answer"]
+CallSlot = Literal[
+    "classification", "decision", "search", "answer", "search_refined", "answer_final"
+]
 
 
 class ChatStore(Protocol):
@@ -129,7 +133,7 @@ class ChatStore(Protocol):
 
 
 class ChatProvider(Protocol):
-    def estimate(self, text: str) -> Decimal: ...
+    def chat_estimate(self) -> Decimal: ...
     def classification_estimate(self) -> Decimal: ...
     async def classify(self, context: ChatInput) -> ChatClassificationResult: ...
     async def reply(self, context: ChatInput, *, allow_search: bool) -> ChatModelResult: ...

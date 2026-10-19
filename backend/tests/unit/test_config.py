@@ -14,6 +14,27 @@ def test_settings_report_incomplete_when_server_secrets_are_missing() -> None:
     assert settings.is_configured is False
 
 
+def test_chat_model_defaults_to_sonnet_independently_of_assessment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("OPENROUTER_CHAT_MODEL", raising=False)
+    monkeypatch.setenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+    settings = Settings.from_environment()
+    assert settings.openrouter_chat_model == "anthropic/claude-sonnet-5.5"
+    assert settings.openrouter_model == "openai/gpt-4o-mini"
+    monkeypatch.setenv("OPENROUTER_CHAT_MODEL", "openai/gpt-4o-mini")
+    assert Settings.from_environment().openrouter_chat_model == "openai/gpt-4o-mini"
+
+
+def test_startup_wires_the_independent_chat_model() -> None:
+    settings = Settings.for_test()
+    with patch("linksifty.main.OpenRouterClient") as provider:
+        with TestClient(create_app(settings)):
+            pass
+    assert provider.call_args.kwargs["chat_model"] == "anthropic/claude-sonnet-5.5"
+    assert provider.call_args.args[1] == "openai/gpt-4o-mini"
+
+
 def test_health_endpoint_needs_no_provider_call() -> None:
     client = TestClient(create_app(Settings.for_test()))
 

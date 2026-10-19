@@ -200,6 +200,7 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `RESEND_FROM_EMAIL` | Sender identity on a domain verified in Resend, e.g. `Linksifty <noreply@example.com>` | Yes for approval email |
 | `OPENROUTER_API_KEY` | Server-only OpenRouter inference key | Required for assessment; missing key yields an explicit not-configured state |
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
+| `OPENROUTER_CHAT_MODEL` | `anthropic/claude-sonnet-5.5` | Independent chat answer model; `openai/gpt-4o-mini` is the verified rollback |
 | `OPENROUTER_IMAGE_MODEL` | `openai/gpt-4.1-mini` | Independent image-reading model; defaults to this value; legacy `openai/gpt-4o-mini` accepts at most four images |
 | `X_API_BEARER_TOKEN` | Official X app-only bearer token | Server-only; post lookup and full-archive search access required |
 | `X_API_READS_ENABLED` | Explicit operator approval for potentially billed X reads | Defaults false; token alone does not enable reads |
@@ -523,6 +524,7 @@ SUPABASE_ANON_KEY=<sb_publishable-key-or-legacy-anon-JWT>
 SUPABASE_SERVICE_ROLE_KEY=<sb_secret-key-or-legacy-service-role-JWT>
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_CHAT_MODEL=anthropic/claude-sonnet-5.5
 OPENROUTER_IMAGE_MODEL=openai/gpt-4.1-mini
 X_API_BEARER_TOKEN=
 X_API_READS_ENABLED=false
@@ -962,7 +964,8 @@ migrations, then deploy matching backend and frontend. The migration adds
 per-question reservation slots in the existing USD ledger. Existing analyses
 and legacy `chat_messages` remain compatible; new conversations use turn records.
 
-Reuse server-only `OPENROUTER_API_KEY` and the already supported `OPENROUTER_MODEL`.
+Reuse server-only `OPENROUTER_API_KEY`. `OPENROUTER_CHAT_MODEL` independently
+selects chat answers; `OPENROUTER_MODEL` selects assessments.
 Optional Brave research reuses `BRAVE_SEARCH_API_KEY` and the existing positive,
 operator-verified search price. The query gate added by migration 000015 uses
 the separate pinned Jev model described below; no new key or worker is required.
@@ -973,9 +976,11 @@ Each question first uses saved analysis/source passages, up to 30 relevant saved
 research sources and the last eight completed turns. Passage selection is bounded
 and uses question-word overlap; it is not exhaustive retrieval. The UI restores
 the latest 100 questions. Only the model's explicit evidence-gap decision can
-trigger one search. The server makes no more than one Brave request, fetches up
-to 20 result URLs with four concurrent reads and ten seconds per read, and runs
-one final generation with search disabled. Failed/partial sources and snippets
+trigger research. With migration 000022 and the updated UI, the server makes at
+most two distinct Brave requests per question, fetching up to 20 result URLs per
+search with four concurrent reads and ten seconds per read. The first research
+generation may request one refined query for a specific remaining evidence gap;
+the final generation has search disabled. Failed/partial sources and snippets
 never count as evidence. Search results are untrusted and fetched under existing
 URL/DNS/redirect controls.
 
@@ -983,7 +988,8 @@ Model decision, search and final answer reserve distinct slots under the same
 settings lock as analysis work. Generations settle actual reported USD, search
 uses the configured rate, and unknown costs remain reserved. Refresh/retry with
 the same request UUID returns stored state. Only one turn runs per item; an
-interrupted turn becomes failed after five minutes on the next read/submission.
+interrupted turn becomes failed after its deadline on the next read/submission
+(eight minutes for turns created after migration 000022; older turns keep five).
 There is no automatic paid retry. A new explicit submission after a known failed
 turn is a new question and may incur cost. Pending work can survive a browser
 disconnect; reopening chat polls its state. No streaming response is required.
@@ -1037,8 +1043,9 @@ without classification and will fail closed. Existing conversations stay readabl
 the migration does not rewrite previous answers. The existing frontend can display
 the fixed uncited refusal paragraphs without a contract change.
 
-No new credentials or environment variables are needed. Keep `OPENROUTER_MODEL`
-as the verified answer model (`openai/gpt-4o-mini`); the classifier is separately
+No new credentials are needed. Keep `OPENROUTER_MODEL`
+as the verified assessment model (`openai/gpt-4o-mini`); `OPENROUTER_CHAT_MODEL`
+defaults to `anthropic/claude-sonnet-5.5` for answers. The classifier is separately
 pinned to `typesafe/jev-1.13`, using the server-only `OPENROUTER_API_KEY` and
 `POST /api/alpha/decisions`. It makes one request with scope and language choices.
 Requests are bounded below 32K UTF-8 bytes, with provider price ceilings of
@@ -1061,6 +1068,83 @@ unsafe requests, prompt injection and greetings with relevant questions. Verify
 that rejected messages trigger neither answer generation nor Brave. Local mocked
 tests validate routing and response parsing, not Jev's real classification accuracy.
 See [progress and evidence](../../.agent/context/changes/chat-query-classification/progress.md).
+
+### Chat answer quality and model selection — 2026-10-19
+
+Deploy the matching backend to use `OPENROUTER_CHAT_MODEL`, defaulting to the
+owner-selected pinned `anthropic/claude-sonnet-5.5`. No migration or frontend
+change is needed. `OPENROUTER_MODEL` continues to select assessments, titles and
+previews; Jev classification and source selection stay separately pinned.
+`OPENROUTER_CHAT_MODEL=openai/gpt-4o-mini` is an explicit rollback. Unknown chat
+model IDs fail before inference; there is no automatic fallback.
+
+The adapter enforces $2/M prompt, $10/M completion and zero per-request price
+caps, with 8192 combined reasoning/output tokens and `reasoning.effort=low`.
+Reasoning text is excluded from responses. Sonnet 5.5 thinking is mandatory;
+attempting to disable it fails. Thinking consumes the output budget and is billed.
+The existing full-context bound reserves 1,000,000 input tokens plus 8192 output
+tokens: **USD 2.08192 per answer/decision call**. This is a temporary conservative
+reservation, not a quoted actual charge. Known reported cost settles normally;
+unknown cost remains reserved. Insufficient available budget can reject a call
+even if its actual cost would have been small. The legacy chat rollback retains
+its original USD 0.14848 bound and 4096 output-token cap.
+
+Relevant answers now receive the classifier's validated Polish/English language
+in both initial and post-search payloads. Instructions ask for a direct first
+sentence, usually 2–4 sentences for a simple follow-up, no summary repetition,
+and a clarifying question when a comparison name is ambiguous. This is a model
+instruction, not deterministic proof of language or answer quality. Passage-ID
+validation, owner scope, shared budget, bounded searches and duplicate fencing
+remain enforced. Earlier `classification_uncertain` failures are still stopped
+at the unchanged confidence gate; changing the answer model does not bypass it.
+
+Published API details checked 2026-10-19:
+[Sonnet model/context/prices/schema support](https://openrouter.ai/anthropic/claude-sonnet-5.5),
+[Claude 5.5 migration and thinking](https://openrouter.ai/docs/cookbook/evaluate-and-optimize/model-migrations/claude-5-5),
+[reasoning/output budget](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
+Local mocked regressions verify routing, caps, language propagation and source
+validation. No live answer-quality comparison or paid request is claimed. Use a
+separately authorized live test to assess the owner's Polish follow-up and
+ambiguous-comparison cases, including a necessary single-search answer.
+
+### Chat evidence-gap research (migration 000022)
+
+Apply `20261020_000022_chat_research.sql` after 000021, then deploy backend and
+frontend. The migration preserves existing data, grants and unique per-slot
+reservations. Old executors remain compatible. New turns have an eight-minute
+deadline to accommodate the bounded longer flow; existing turn deadlines do not
+change. A source push does not establish that this hosted migration has run.
+
+The updated UI explicitly sends `max_searches: 2` after disclosing two possible
+Brave charges and up to three answer-model calls, plus classification. Omitted
+limits default to one on the server, preserving the old UI's consent; only 1 or
+2 is accepted. Each new question has its own allowance, regardless of prior
+research. Duplicate UUIDs still return stored state without another executor.
+
+The model must assess evidence for every subject in the latest question,
+request a targeted query for missing facts, and reassess after fetching. It may
+request one distinct refined query after a confirmed first search. Repeated
+queries (case/whitespace normalized) stop with insufficient evidence. Ambiguous
+names require clarification first. These instructions are not proof of live
+model quality; no extra evaluator generation is introduced.
+
+The additional `search_refined` and `answer_final` slots each reserve once under
+the existing owner budget lock. Refinement requires the first search reservation
+to be settled and a post-search answer reservation. An uncertain first search
+disables further search; uncertain second searches are also never retried. The
+final answer may use existing evidence or disclose insufficiency. Budget denial
+prevents the affected paid call. Fetched evidence accumulates across both
+searches and is retained when a later call records a ChatError failure.
+Actual known charges settle; unknown model/search charges remain reserved.
+The per-call model bound is unchanged, so a third Sonnet generation may need
+another USD 2.08192 temporarily available even when actual usage is much lower.
+
+No new provider, dependency or credential. Roll back the backend/frontend
+together to the one-search version if necessary; the additive migration can stay.
+Do not drop paid ledger rows. Local mocked tests cover orchestration, request
+contracts and citations; the disposable SQL gate covers RLS, admission order,
+budget and concurrent duplicate-slot races. Hosted/provider quality remains a
+separate verification. See [progress](../../.agent/context/changes/chat-research/progress.md).
 
 ## Rich X Articles and images (migration 000016)
 
@@ -1305,6 +1389,7 @@ Local mocked/runtime/SQL/browser evidence is in
 The English [workflow](../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
 and [editable contract](../../.agent/context/changes/x-rich-sources/text-only-workflow.json)
 show the active scope. No hosted migration or paid quality test is implied.
+
 ## Automatic partial previews (migration 000021)
 
 Apply `20261019_000021_partial_previews.sql` after 000020, before deploying the

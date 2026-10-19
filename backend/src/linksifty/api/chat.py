@@ -1,5 +1,6 @@
 """Authenticated transport for item conversations."""
 
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -16,6 +17,7 @@ class ChatQuestion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     request_id: UUID
     question: str = Field(min_length=1, max_length=4000)
+    max_searches: Literal[1, 2] = 1
 
     @field_validator("question")
     @classmethod
@@ -64,6 +66,12 @@ async def ask(
 ) -> ChatTurn:
     response.headers["Cache-Control"] = "no-store"
     try:
-        return await _service(request).ask(user_id, item_id, question.request_id, question.question)
+        return await _service(request).ask(
+            user_id,
+            item_id,
+            question.request_id,
+            question.question,
+            max_searches=question.max_searches,
+        )
     except ChatError as error:
         raise _error(error) from error

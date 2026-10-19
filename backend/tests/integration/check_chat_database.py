@@ -87,6 +87,30 @@ def main() -> int:
         )
         assert sorted(searches) == ["0", "1"]
         print("PASS: concurrent requests reserve exactly one search slot")
+        execute(
+            f"select public.settle_analysis('{owner}',id,0.01) from public.usage_reservations "
+            f"where chat_turn_id='{turn}' and chat_slot='search'; "
+            f"select public.reserve_chat_call('{owner}','{turn}','answer',0.01);",
+            environment,
+        )
+        refinements = simultaneous(
+            [
+                f"select count(*) from public.reserve_chat_call("
+                f"'{owner}','{turn}','search_refined',0.01);"
+            ]
+            * 2
+        )
+        assert sorted(refinements) == ["0", "1"]
+        print("PASS: concurrent requests reserve exactly one refined search slot")
+        finals = simultaneous(
+            [
+                f"select count(*) from public.reserve_chat_call("
+                f"'{owner}','{turn}','answer_final',0.01);"
+            ]
+            * 2
+        )
+        assert sorted(finals) == ["0", "1"]
+        print("PASS: concurrent requests reserve exactly one final answer slot")
         claimed = simultaneous(
             [
                 f"select claimed from public.begin_chat_turn('{owner}',"

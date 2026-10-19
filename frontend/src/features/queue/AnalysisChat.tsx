@@ -86,7 +86,7 @@ export function AnalysisChat({ id, session }: { id: string; session: Session }) 
     try {
       const turn = await api<Turn>(endpoint, session, {
         method: 'POST', signal: abort.signal,
-        body: JSON.stringify({ request_id: submitted.id, question }),
+        body: JSON.stringify({ request_id: submitted.id, question, max_searches: 2 }),
       })
       if (!active.current || abort.signal.aborted) return
       setHistory(value => value && ({ ...value, turns: [...value.turns.filter(t => t.id !== turn.id), turn] }))
@@ -103,8 +103,8 @@ export function AnalysisChat({ id, session }: { id: string; session: Session }) 
 
   return <section className="analysis-chat" aria-labelledby="analysis-chat-title">
     <h2 id="analysis-chat-title">Chat about this analysis</h2>
-    <p className="hint" id="chat-disclosure">Ask about the analysis or investigate its topic. Uses your saved sources first; searches the web only when needed, at most once per question. Answers use your monthly AI budget.
-      {history?.search_available && history.search_price_usd && <> A search sends a short public-topic query to Brave and costs {money(history.search_price_usd)}; AI charges apply separately.</>}
+    <p className="hint" id="chat-disclosure">Ask about the analysis or investigate its topic. Uses your saved sources first; searches the web only when needed, at most twice per question. Answers use your monthly AI budget, with up to three AI calls plus the relevance and safety check.
+      {history?.search_available && history.search_price_usd && <> A search sends a short public-topic query to Brave; each search costs {money(history.search_price_usd)}; AI charges apply separately.</>}
       {history && !history.search_available && <> Web search is currently unavailable; answers use saved material.</>}
     </p>
     {loading && <p role="status">Loading your conversation…</p>}
@@ -127,9 +127,9 @@ export function AnalysisChat({ id, session }: { id: string; session: Session }) 
             })}
           </div>)}
           {turn.insufficient && <p className="hint">There is not enough verified evidence to fully answer this question.</p>}
-          {turn.search_status === 'ready' && <p className="chat-research-note">One web search · fetched source excerpts checked</p>}
-          {turn.search_status === 'no_sources' && <p className="chat-research-note">One web search found no new readable sources. This answer uses saved evidence.</p>}
-          {turn.search_status === 'uncertain' && <p className="chat-research-note">The search outcome is uncertain; it was not repeated. This answer uses saved evidence.</p>}
+          {turn.search_status === 'ready' && <p className="chat-research-note">Web research · fetched source excerpts checked</p>}
+          {turn.search_status === 'no_sources' && <p className="chat-research-note">The latest web search found no new readable sources. This answer uses available evidence.</p>}
+          {turn.search_status === 'uncertain' && <p className="chat-research-note">The search outcome is uncertain; it was not repeated. This answer uses available evidence.</p>}
           {turn.search_status === 'budget_exhausted' && <p className="chat-research-note">Web research was blocked by your available budget.</p>}
         </div>}
         {turn.status === 'failed' && <p className="error">{failureMessage(turn.error)}</p>}

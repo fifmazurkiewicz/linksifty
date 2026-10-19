@@ -1,4 +1,4 @@
-"""Saved-context answers with at most one durable, conditional search per question."""
+"""Saved-context answers with at most two durable, conditional searches per question."""
 
 import asyncio
 import hashlib
@@ -166,12 +166,24 @@ class ChatService:
             search_price_usd=self._search_price if self.search_available else None,
         )
 
-    async def ask(self, user_id: UUID, item_id: UUID, request_id: UUID, question: str) -> ChatTurn:
+    async def ask(
+        self,
+        user_id: UUID,
+        item_id: UUID,
+        request_id: UUID,
+        question: str,
+        *,
+        max_searches: Literal[1, 2] = 1,
+    ) -> ChatTurn:
         context = await self._store.context(user_id, item_id)
         if context is None:
             raise ChatError("not_found")
         if self._provider is None:
             raise ChatError("unavailable")
+        try:
+            self._provider.chat_estimate()
+        except ValueError as failure:
+            raise ChatError("unavailable") from failure
         claim = await self._store.claim_turn(user_id, item_id, request_id, question)
         if claim is None:
             raise ChatError("busy")
@@ -194,25 +206,50 @@ class ChatService:
                 if classification.category != "relevant":
                     answer = [_refusal(classification)]
                 else:
-                    draft = await self._generate(
-                        user_id, turn, "decision", payload, self.search_available
-                    )
-                    if draft.search_query is not None:
+                    payload.reply_language = classification.language
+                    allow_search = self.search_available
+                    draft = await self._generate(user_id, turn, "decision", payload, allow_search)
+                    queries: list[str] = []
+                    while draft.search_query is not None:
                         if (
-                            not self.search_available
+                            not allow_search
                             or not draft.search_query.strip()
                             or draft.paragraphs
+                            or draft.insufficient
                         ):
                             raise ChatError("invalid_answer")
-                        sources, search_status = await self._research(
-                            user_id, turn, draft.search_query, context, turns
+                        query = " ".join(draft.search_query.split())
+                        if query.casefold() in {q.casefold() for q in queries}:
+                            draft = ChatDraft(search_query=None, paragraphs=[], insufficient=True)
+                            break
+                        new_sources, search_status = await self._research(
+                            user_id,
+                            turn,
+                            query,
+                            context,
+                            turns,
+                            slot="search" if not queries else "search_refined",
                         )
                         if search_status == "budget_exhausted":
                             draft = ChatDraft(search_query=None, paragraphs=[], insufficient=True)
-                        else:
-                            context.sources.extend(sources)
-                            payload = _input(context, turns, question)
-                            draft = await self._generate(user_id, turn, "answer", payload, False)
+                            break
+                        queries.append(query)
+                        sources.extend(new_sources)
+                        context.sources.extend(new_sources)
+                        payload = _input(context, turns, question)
+                        payload.reply_language = classification.language
+                        payload.search_queries = list(queries)
+                        allow_search = len(queries) < max_searches and search_status in {
+                            "ready",
+                            "no_sources",
+                        }
+                        draft = await self._generate(
+                            user_id,
+                            turn,
+                            "answer" if len(queries) == 1 else "answer_final",
+                            payload,
+                            allow_search,
+                        )
                     if draft.search_query is not None or (
                         not draft.paragraphs and not draft.insufficient
                     ):
@@ -269,7 +306,7 @@ class ChatService:
         if self._provider is None:
             raise ChatError("unavailable")
         try:
-            amount = self._provider.estimate("")
+            amount = self._provider.chat_estimate()
         except ValueError as failure:
             raise ChatError("unavailable") from failure
         reservation = await self._store.reserve_call(user_id, turn, slot, amount)
@@ -302,11 +339,18 @@ class ChatService:
         return result.classification
 
     async def _research(
-        self, user_id: UUID, turn: ChatTurn, query: str, context: ChatContext, turns: list[ChatTurn]
+        self,
+        user_id: UUID,
+        turn: ChatTurn,
+        query: str,
+        context: ChatContext,
+        turns: list[ChatTurn],
+        *,
+        slot: Literal["search", "search_refined"],
     ) -> tuple[list[EvidenceSource], str]:
         if self._search is None:
             return [], "unavailable"
-        reservation = await self._store.reserve_call(user_id, turn, "search", self._search_price)
+        reservation = await self._store.reserve_call(user_id, turn, slot, self._search_price)
         if reservation is None:
             return [], "budget_exhausted"
         # Exactly one request. An uncertain response is never retried.
