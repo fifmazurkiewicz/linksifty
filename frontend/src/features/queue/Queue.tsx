@@ -109,7 +109,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTi
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
           {item.status === 'awaiting_manual_content' && item.preview_charge_pending && <p className="hint">A partial-preview charge is unconfirmed. Retry is unavailable until it is reconciled; paste complete text to continue.</p>}
-          {item.status === 'awaiting_manual_content' && item.partial_overview && <section aria-label="Partial preview">
+          {item.status === 'awaiting_manual_content' && item.partial_overview && <section className="queue-preview" aria-label="Partial preview">
             <p className="meta">Partial preview</p>
             <p>{item.partial_overview}</p>
             <p className="hint">Based only on incomplete fetched text; this is not an assessment.</p>

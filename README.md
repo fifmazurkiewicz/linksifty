@@ -77,6 +77,12 @@ MVP limitations. The frontend remains a separate Vercel build.
 
 ## Processing and usage
 
+New AI previews, topic titles and assessment prose use Polish for Polish sources
+and English for all other source languages. Chat replies use Polish or English
+according to the user's question, defaulting to English for other languages.
+These are model instructions; proper names, code and verbatim source quotations
+are preserved. Saved results are not automatically translated or regenerated.
+
 Queue entries use concise AI topic titles in All, Needs action and Ready, with
 clickable original URLs. New analyses generate titles in the same model call;
 titles survive assessment validation failures. Existing untitled ready/failed
