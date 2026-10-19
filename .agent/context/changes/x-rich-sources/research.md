@@ -1,5 +1,24 @@
 # Verified research — 2026-10-18
 
+## Embedded Article compatibility — 2026-10-19
+
+Owner-supplied logs at 16:20:39 UTC show HTTP 200 for the Argona0x submission,
+then `x_article_incomplete/article_entities_invalid`. Reassembling five complete
+response chunks yields a quoted Article with 7,387 body characters, nine code
+snippets and two `entities.tweets` IDs, without expanded embedded bodies.
+Current parser accepts only `posts`; an in-memory alias probe then reaches
+`partial_content/missing_referenced_post`. Existing tests use `posts` and fully
+supplied expansion bodies, missing both actual shape and completion behavior.
+
+Graft unavailable; focused adapter/parser/tests and active text-only contract
+read. Existing `_lookup` validates returned identity and remembers all expanded
+posts/media with conflict and post-count guards. Reusing it inside the dependency
+walk preserves response/access checks and the fetch-local twelve-request hook
+and sixty-second timeout. No provider SDK, endpoint or schema assumption is new.
+Only missing Article embedded edges are completed; ordinary quote/repost missing
+expansions retain their established failure behavior. Raw Article text remains
+uncommitted, and every verification call is mocked.
+
 Graft is unavailable. Focused reads cover XAdapter, ProcessingService,
 ProcessingRepository, OpenRouterClient, migrations 000005–000015 and queue UI.
 Prior investigation: ../x-ingestion/research.md#rich-source-diagnosis--2026-10-18.

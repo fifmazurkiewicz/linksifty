@@ -222,3 +222,43 @@ browser gate/toolkit unavailable and disclosed. Canonical plan/progress precede
 boards; roadmap statuses remain unchanged while active media scope is corrected.
 Migration ordering and drain/mixed-worker risks are documented. Unrelated admin
 edits remain preserved, including the shared README/App changes outside T8.
+
+
+## Embedded Article text compatibility review — 2026-10-19
+
+Outcome: approve T9 locally. No actionable findings by severity or new review
+dispositions; RC1 remains verified. Hosted acceptance is pending, with no archive
+or production-success claim. Graft unavailable; focused impact/source reads used.
+
+Plan coverage: both Article aliases are validated, IDs deduplicated and missing
+embedded text completed using existing strict lookup/remember code. The same
+walk handles returned expansions, recursive embeds and later thread sources.
+Successful bodies are reused; any failed read aborts acquisition. Ordinary
+quote/repost missing-expansion behavior remains protected by existing tests.
+Cycle, version, identity, truncation, post-count, twelve-request and sixty-second
+checks remain. Text-only media metadata introduces no CDN/vision work.
+
+Verification: 24 new cases, red/green and two deliberate-break checks, 517 full
+backend tests, strict mypy and Ruff pass. Captured-primary replay preserves nine
+code snippets and two embedded references with explicitly synthetic missing
+responses. Full-run stale mutation bytecode was corrected by recompiling restored
+modules before the final passing run; see evidence.md. No source body fixture,
+secret, dependency, API/account ownership or scoring change. Existing provider
+consent and durable attempt fencing remain; new embedded reads share the approved
+per-acquisition cap and can incur X charges under existing submission/Retry consent.
+
+Deployment/architecture docs and the English editable flow reflect the change.
+Archify validation/delivery/strict artifact checks pass; browser validation lacks
+Chrome and toolkit is unavailable. These are disclosed limitations, not passing
+checks. Plan/progress are complete locally before derived board reconciliation;
+T1–T9 are done locally and hosted acceptance remains Planned. No frontend or SQL
+changes require their gates. Unrelated admin edits remain outside this change.
+
+
+T9 publication documentation review: README, roadmap/board and C7.1 references
+now link to the current source contract; general source setup/architecture no
+longer contradict bounded embedded-text completion or text-only media behavior.
+Two older diagrams explicitly declare historical scope and their regenerated
+artifacts have current passing static receipts (browser unavailable). Current
+frame/plan scope and derived board agree. No actionable finding, new disposition
+or product milestone status change. Unrelated admin README/code is excluded.

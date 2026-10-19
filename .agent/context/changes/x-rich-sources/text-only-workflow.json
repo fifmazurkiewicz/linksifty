@@ -18,10 +18,20 @@
       "id": "fetch",
       "lane": "text",
       "col": 1,
-      "yOffset": -280,
+      "yOffset": -420,
       "type": "backend",
       "label": "Fetch source text",
       "sublabel": "X metadata or bounded HTML",
+      "width": 200
+    },
+    {
+      "id": "embeds",
+      "lane": "text",
+      "col": 1,
+      "yOffset": -280,
+      "type": "backend",
+      "label": "Resolve Article embeds",
+      "sublabel": "Reuse text; lookup missing once",
       "width": 200
     },
     {
@@ -78,8 +88,21 @@
   "edges": [
     {
       "from": "fetch",
+      "to": "embeds",
+      "label": "text and references"
+    },
+    {
+      "from": "embeds",
       "to": "complete",
-      "label": "text and media types"
+      "label": "required text present"
+    },
+    {
+      "from": "embeds",
+      "to": "manual",
+      "label": "unavailable or limits",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top"
     },
     {
       "from": "complete",
@@ -120,6 +143,15 @@
         "Migration 000019 stores omission metadata beside owner-scoped source text. NULL preserves unknown historical/manual scope; an empty list records new text-only scope.",
         "Research metadata is separate from text passages. Existing analyses and billed image attempts are not rewritten, retried or refunded.",
         "Apply migration before matching backend/frontend deployment. This is a behavior contract, not a frozen repository map."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Embedded Article text",
+      "items": [
+        "Accept and validate entities.tweets and entities.posts; deduplicate IDs and reuse returned posts. Missing embedded text gets one official lookup, including nested Article embeds.",
+        "Embedded lookups and thread search share twelve requests, one hundred posts and sixty seconds. Failed requests, cycles, conflicting versions and incomplete text request paste, never partial assessment.",
+        "Missing ordinary quote/repost expansions still request paste. Extra X reads use existing submission or Retry consent; media remain metadata."
       ]
     }
   ]

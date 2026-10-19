@@ -432,8 +432,8 @@ class XAdapter:
         ):
             raise _Failure(FetchFailure.PARTIAL, "invalid_conversation_root")
         posts = {root.id: root}
-        # Validate before requesting more potentially billed resources.
-        self._source_posts([root, selected], available)
+        # Complete required source text before requesting thread search pages.
+        await self._source_posts(client, [root, selected], available, media)
         token: str | None = None
         seen_tokens: set[str] = set()
         for _ in range(_MAX_PAGES):
@@ -494,7 +494,7 @@ class XAdapter:
                 raise _Failure(FetchFailure.PARTIAL, "disconnected_thread")
         if identifier not in visited:
             raise _Failure(FetchFailure.PARTIAL, "selected_post_outside_thread")
-        sources = self._source_posts(ordered, available)
+        sources = await self._source_posts(client, ordered, available, media)
         # Labels, URLs and RT previews must not make short sources pass the minimum.
         readable_text = "\n\n".join(post.content() for post in sources)
         omitted_media = tuple(
@@ -541,14 +541,19 @@ class XAdapter:
             if len(available) > _MAX_POSTS:
                 raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
 
-    @staticmethod
-    def _source_posts(ordered: list[_Post], available: dict[str, _Post]) -> list[_Post]:
+    async def _source_posts(
+        self,
+        client: httpx.AsyncClient,
+        ordered: list[_Post],
+        available: dict[str, _Post],
+        media: dict[str, XMedia],
+    ) -> list[_Post]:
         thread_ids = {post.id for post in ordered}
         visited: set[str] = set()
         active: set[str] = set()
         sources: list[_Post] = []
 
-        def visit(post: _Post) -> None:
+        async def visit(post: _Post) -> None:
             if post.id in active:
                 raise _Failure(FetchFailure.PARTIAL, "reference_cycle")
             if post.id in visited:
@@ -560,13 +565,18 @@ class XAdapter:
                 if ref.type == "replied_to" and post.id in thread_ids:
                     continue  # The author's thread parents are validated by _thread.
                 target = available.get(ref.id)
+                if target is None and ref.type == "embedded":
+                    if len(available) >= _MAX_POSTS:
+                        raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
+                    # Successful lookups populate available; any failure ends the fetch.
+                    target = await self._lookup(client, ref.id, available, media)
                 if target is None:
                     raise _Failure(FetchFailure.PARTIAL, "missing_referenced_post")
-                visit(target)
+                await visit(target)
             active.remove(post.id)
             visited.add(post.id)
             sources.append(post)
 
         for post in ordered:
-            visit(post)
+            await visit(post)
         return sources

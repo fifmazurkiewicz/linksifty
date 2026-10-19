@@ -109,3 +109,19 @@ media. Save selected research media metadata in existing bounded JSON. Return
 these fields through assessment DTOs and show a visible text-only scope notice
 and media labels without hiding them in collapsed sections. No false complete
 multimedia claim, backfill, automatic retry, model migration or content rewrite.
+
+## T9 embedded Article text compatibility
+
+Treat `entities.tweets` and `entities.posts` as validated embedded post lists;
+merge and deduplicate their IDs, including DraftJS references. Never ignore an
+unknown entity or a malformed alias. Missing embedded text receives one direct
+lookup using the existing fixed endpoint and strict response validation. Cache
+returned posts in the acquisition-local map, so shared references and the later
+thread walk reuse them. A failed lookup ends acquisition without a retry.
+
+Retain the existing missing-expansion failure for ordinary quote/repost edges;
+this correction targets Article embeds rather than broadening every reference
+read. Nested Article embeds use the same walk, cycle/version checks, request
+budget, post cap and deadline. Known post-cap exhaustion stops before another
+read. Media stay omission metadata. More official X reads can incur X charges
+under existing submission/Retry consent; local verification mocks every call.

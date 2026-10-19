@@ -73,10 +73,11 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
             "symbols",
             "media",
             "posts",
+            "tweets",
             "code",
         }:
             raise _invalid("article_entities_invalid")
-        for key in ("media", "posts"):
+        for key in ("media", "posts", "tweets"):
             values = value.get(key, [])
             if not isinstance(values, list):
                 if key == "media":
@@ -215,5 +216,7 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
     # X supplies no insertion offsets for these snippets; never invent their location.
     extra_code = [content for code, content in code_blocks if code not in body]
     return ArticleContent(
-        "\n\n".join([title.strip(), body, *extra_code, *links]), tuple(media), tuple(posts)
+        "\n\n".join([title.strip(), body, *extra_code, *links]),
+        tuple(media),
+        tuple(dict.fromkeys(posts)),
     )

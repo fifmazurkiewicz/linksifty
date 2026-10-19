@@ -4,7 +4,7 @@ Current source policy (2026-10-19): complete **text only**, with durable metadat
 for omitted media. The rich-media acquisition/vision sections below are historical;
 see [the active text-only flow](#text-only-analysis--migration-000019).
 
-Updated 2026-10-16. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
+Updated 2026-10-19. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
 
 ## Implemented request path
 
@@ -210,23 +210,30 @@ Archive search also returns the author's replies to other commenters. Those
 branches are excluded only when a returned parent belongs to another author in
 the same conversation, or descends from an already excluded branch. Missing
 thread parents and an excluded submitted post still request paste. Known video
-and GIF types are identified before image URL availability so unsupported media
-receives the correct failure label.
+and GIF types are retained as media-omission labels under the active text-only
+policy, without requiring image URLs or downloads.
 
 Existing lookup/search requests expand referenced posts. Reply-parent selection
 is separate from quote/repost dependencies, so a quoting reply remains connected
 to its author's thread. A submitted repost resolves to its expanded original's
 author/conversation; its RT preview is excluded. Complete recursive dependencies
 are deduplicated and attributed by URL/author ID. Missing references, cycles or
-conflicting versions request paste, with no implicit retry. The Article follow-up
-below permits one direct lookup for missing quoted Article media expansions.
+conflicting versions request paste, with no implicit retry. The active Article
+path completes missing embedded text with bounded once-only lookups; it does not
+look up posts solely to complete media expansions.
 Expanded resource charges remain in the operator's X account. The 100-post bound
 includes collected expanded context; unrelated expanded content is not source.
 
-- [Acquisition contract HTML](../../.agent/context/changes/x-ingestion/x-workflow.html)
+- [Current source contract](../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
+  · [Editable JSON](../../.agent/context/changes/x-rich-sources/text-only-workflow.json)
+- [Historical acquisition contract](../../.agent/context/changes/x-ingestion/x-workflow.html)
   · [Editable JSON](../../.agent/context/changes/x-ingestion/x-workflow.json)
 
 ### Full Articles and static images — migration 000016
+
+Historical media-reading architecture, superseded by
+[text-only analysis](#text-only-analysis--migration-000019). It remains documented
+for old charge settlement and migration history.
 
 The acquisition result can carry bounded ephemeral image bytes alongside full
 Article/thread text. The X edge parses complete Article bodies and validates
@@ -401,6 +408,15 @@ other labels. Missing byte URLs/expansions do not block otherwise complete text;
 media metadata cannot satisfy minimum text length. No media-only hydration or
 CDN request occurs. The public HTML adapter records visible media tags without
 fetching them or treating alt text as a transcription.
+
+Article `entities.tweets` and `entities.posts` normalize to deduplicated validated
+embedded IDs. The dependency walk reuses the acquisition-local post map and looks
+up missing embedded posts once through the existing official lookup adapter.
+Nested Articles use the same cycle/version checks. Thread search and embedded
+lookups share twelve requests, one hundred posts and the sixty-second deadline;
+a known full post map stops another lookup before spending. Any lookup failure
+ends acquisition, and ordinary quote/repost references still require expansions.
+No media-only lookup or partial-source assessment is introduced.
 
 ProcessingService caches validated text with omission metadata, then follows
 existing research/assessment admission. Its active image-reader branch and startup

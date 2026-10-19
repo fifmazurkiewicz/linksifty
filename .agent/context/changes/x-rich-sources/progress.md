@@ -1,5 +1,25 @@
 # Rich X sources progress — 2026-10-18
 
+## T9 execution — embedded Article text compatibility (2026-10-19)
+
+Complete locally. The owner approved the bounded in-chat fix after offline diagnosis:
+HTTP 200 contains `entities.tweets`, rejected by a parser accepting only `posts`;
+normalizing the key then fails because two embedded bodies are not expanded.
+Implement validated aliases and once-only missing-embed lookups in the existing
+walk. Preserve text completeness, text-only media scope and all acquisition
+bounds. Graft unavailable; focused source reads used. No live paid requests,
+deployment or schema change is included. Unrelated local admin edits are retained.
+
+Both entity keys are validated and deduplicated, and missing Article embedded
+posts use the existing lookup and acquisition-local map. Nested embeds, returned
+expansions and later thread-discovered Articles reuse the same bounded traversal.
+All 517 backend tests, strict mypy (50 files) and Ruff lint/format pass. Red/green,
+alias/lookup mutations and captured-primary replay are recorded in evidence.md.
+Self-review approves local T9 with no actionable findings. Archify validation,
+delivery and strict artifact checks pass; its browser gate is skipped (Chrome
+unavailable). agent-toolkit check is unavailable (exit 127). Hosted acceptance
+remains pending; this compatibility fix adds no migration or dependency.
+
 Owner approved complete media/Article ingestion with “YUP LETS IMPLEMENT IT”.
 Frame, research, decisions, plan and reviews are recorded here. Graft is
 unavailable; focused repository reads used.
@@ -245,3 +265,17 @@ Exclude pre-existing local admin changes; stage only the new submission copy in
 shared App.tsx and the text-only section in shared README.md. Publication does
 not apply the migration or authorize a live paid retry. Migration 000019 must
 precede use of the matching backend/UI; drain old workers as documented.
+
+
+## T9 publication documentation — 2026-10-19
+
+The owner requested push to main and reconciliation of all relevant documentation
+and diagrams. README, canonical roadmap and derived board, C7.1 completion
+references, architecture/setup guidance and this change's frame/plan/progress/
+evidence are synchronized. The current workflow includes embedded completion;
+both earlier acquisition/media workflows are labeled historical and regenerated.
+All three diagrams pass validation/delivery/strict artifact checks; browser gates
+remain skipped because Chrome is unavailable. No live X retry is included.
+Publication includes only this X fix and its docs; unrelated local admin changes,
+including their shared README hunk, remain outside the commit. Origin/main was
+fetched and matched local base 92afb67 before preparing publication.

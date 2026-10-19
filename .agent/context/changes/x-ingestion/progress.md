@@ -1,5 +1,11 @@
 # X ingestion
 
+Current source policy and Article compatibility live in
+[rich-source progress](../x-rich-sources/progress.md) and its
+[text-only workflow](../x-rich-sources/text-only-workflow.html). The acquisition
+diagram here is now explicitly historical; its earlier media rejection behavior
+is superseded. T9 adds bounded missing-embed text lookups, no new migration.
+
 ## Quote/repost fix — 2026-10-18
 
 Owner-supplied hosted log identifies `unsupported_references`. The adapter's

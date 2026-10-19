@@ -631,6 +631,13 @@ C1–C8 pozostają epikami. Poniższe **40 zadań** jest jednostką pracy na kan
 
 Local implementation and boundaries: [canonical progress](../../../.agent/context/changes/x-ingestion/progress.md). Migration 000012 and explicit operator enablement required.
 
+Current scope is complete text with explicit media omissions (migration 000019).
+Article `tweets`/`posts` embeds reuse returned text or receive bounded once-only
+lookups under the existing request/post/deadline limits. The compatibility fix
+adds no migration. [Current source workflow](../../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
+and [T9 verification](../../../.agent/context/changes/x-rich-sources/evidence.md#embedded-article-text-verification--2026-10-19)
+supersede historical media-reading diagrams; hosted acceptance remains separate.
+
 #### C7.2 — Sprawdzenie do pięciu źródeł
 
 **Status:** Planned · **Zależności:** C2.5, C3.2

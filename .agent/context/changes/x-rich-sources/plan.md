@@ -1,5 +1,9 @@
 # Rich X source ingestion implementation plan
 
+Active scope is T8–T9: complete text, media-omission labels and bounded embedded
+Article text completion. Earlier media-reading tasks describe historical delivery
+and legacy charge recovery; they do not enable new image reads.
+
 Goal: complete Article and image source text, budgeted and cached before scoring.
 Architecture: existing acquisition -> image extraction -> complete-source cache
 -> existing research/assessment. Python 3.11, strict typing, HTTPX/Pydantic v2,
@@ -128,3 +132,20 @@ must precede deployment; local verification makes no hosted-success claim.
 Plan review: scope is the owner's explicit narrowing of the existing ingestion
 flow, not permission to accept incomplete text. Existing image cost settlement
 and uncertain-attempt protections remain. Migration precedes matching deployment.
+
+## Approved embedded Article text compatibility — 2026-10-19
+
+- [x] T9 Accept and validate both Article `entities.tweets` and `entities.posts`,
+  deduplicating embedded IDs. Reuse expanded text; look up missing embedded posts
+  once through the existing official endpoint, including recursively embedded
+  Articles. Preserve fail-closed handling for missing ordinary quote/repost
+  expansions, invalid content, cycles and conflicting versions. Share the
+  twelve-request, hundred-post and sixty-second bounds with thread acquisition.
+  Add realistic mocked regressions, mutation and captured-payload replay evidence;
+  update the existing text-only contract diagram and deployment documentation.
+  Run backend tests, strict mypy, Ruff lint/format and agent-toolkit check.
+  No dependency, migration, frontend, deployment or live paid read is needed.
+
+Bounded design approval: the owner accepted the preceding in-chat recommendation
+with “Yup, lets do this”. This extends the existing dependency walk; it introduces
+no new integration, credential, approval surface or media processing.

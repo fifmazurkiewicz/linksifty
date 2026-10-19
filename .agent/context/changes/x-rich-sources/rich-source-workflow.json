@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "Rich X Source Acquisition and Image Budget Contract",
+    "title": "Historical: Rich X Source Acquisition and Image Budget Contract",
     "locale": "en",
     "quality_profile": "showcase",
     "output": ".agent/context/changes/x-rich-sources/rich-source-workflow.html"
@@ -287,6 +287,15 @@
     }
   ],
   "cards": [
+    {
+      "dot": "slate",
+      "title": "Historical contract",
+      "items": [
+        "This diagram preserves the earlier acquisition and media policy, before migration 000019.",
+        "The current Text-only Source Analysis Contract supersedes media-reading paths and includes bounded Article embedded-text completion.",
+        "Use the current workflow linked from the architecture overview and roadmap for active source behavior."
+      ]
+    },
     {
       "dot": "amber",
       "title": "Bounded acquisition and cost",

@@ -379,3 +379,76 @@ shared files. Other admin changes remain local. Staged source whitespace check
 passes excluding preserved Archify-generated HTML blank-line spaces; original
 artifact bytes and validation receipts are unchanged. No hosted migration or
 paid retry is part of publication.
+
+
+## Embedded Article text verification — 2026-10-19
+
+- Initial new regression run before product edits: 17 failed, 6 passed. Failures
+  reproduce rejected tweets aliases, undeduplicated posts, missing embedded bodies
+  and blocked nested/error/limit paths. Final suite adds a later-thread discovery
+  regression; 24 new cases cover the approved behavior. All X calls use synthetic
+  content and HTTPX MockTransport; no retained real-source fixture or credentials.
+- Existing rich-source/adapter/text-only suites plus the initial regressions:
+  165 passed after implementation. Deliberately disabling missing-embed lookup
+  makes 14 fail/10 pass; removing the tweets whitelist alias makes 17 fail/7 pass.
+  Both changes were restored in finally blocks. A subsequent full run initially
+  loaded stale equal-size mutation bytecode (14 failed/503 passed); force-compiling
+  the two restored modules cleared that cache. The final full run below uses the
+  restored source and passes. Mutation source was never left in the worktree.
+- Final commands use UV_CACHE_DIR=/private/tmp/linksifty-uv-cache and
+  UV_OFFLINE=true with uv run --package linksifty:
+  `pytest backend/tests -q --tb=short` -> 517 passed in 7.34s, one existing
+  Starlette/httpx deprecation warning; `mypy --strict backend/src` -> 50 files
+  pass; `ruff check .` -> pass; `ruff format --check .` -> 130 formatted files.
+  `agent-toolkit check` -> command unavailable, exit 127. No frontend or database
+  code changed, so their gates are not required for T9.
+- Captured Argona0x primary response replay remains unmodified. Two missing
+  embedded bodies and an empty archive page are synthetic mocked completions:
+  success, 15,771 source characters, all nine original code snippets retained,
+  two attributed embedded sources, four mocked X requests and image/video omission
+  labels. No CDN or model calls. This proves parsing/integration for the captured
+  primary shape, not actual embedded availability or complete live thread coverage.
+- Guards cover invalid aliases, duplicate IDs/reused expansions, long embedded
+  text, recursive Article embeds/cycles, late thread embeds, lookup 404/429/timeout,
+  truncated text, wrong IDs, conflicting versions and partial provider errors.
+  Exact call assertions protect no retries/redundant reads. Request exhaustion
+  stops at twelve; a full hundred-post map stops before another read; a shortened
+  test timeout proves embedded reads remain inside the existing sixty-second
+  acquisition scope. Existing ordinary quote/repost rejection tests remain green.
+- English text-only workflow JSON/HTML updated in place using Archify. Command:
+  `node .agents/skills/archify/bin/archify.mjs finalize workflow
+  .agent/context/changes/x-rich-sources/text-only-workflow.json
+  .agent/context/changes/x-rich-sources/text-only-workflow.html --quality showcase
+  --out-dir .agent/context/changes/x-rich-sources/embedded-diagram-check --json`.
+  Exit 2: validate, deliver and strict artifact check PASS; browser-check SKIPPED
+  because Chrome/Chromium is unavailable. Update check unavailable/cache unavailable,
+  noticeRequired=false. No perceptual review claimed. Current receipts are under
+  [embedded-diagram-check](embedded-diagram-check/text-only-workflow.finalize-summary.json).
+- Source/document whitespace checks pass, excluding the renderer-preserved HTML
+  whitespace. Plan/progress and review precede the final derived Kanban update.
+  No new actionable review finding or Skip. Roadmap milestone states are unchanged.
+  No new dependency, lockfile, migration, paid request, hosted mutation, push or
+  deployment. Backend deployment and explicitly authorized hosted retry remain
+  pending; unrelated local admin changes are preserved.
+
+
+### T9 publication and documentation reconciliation
+
+Owner explicitly requested main push, then all relevant docs/diagrams. README,
+roadmap plus derived board, C7.1 references and source documentation now describe
+the aliases, once-only missing-embed completion, shared limits, X charges and
+manual fallback. General setup/architecture passages no longer imply image
+availability blocks text or that every missing embed forbids another read.
+The original frame/plan and earlier diagrams are explicitly historical wherever
+media behavior was superseded. No milestone is promoted to hosted acceptance.
+
+Historical workflow finalize commands use the existing JSON/HTML pairs with
+--quality showcase --json and fresh --out-dir historical-scope-check directories
+under x-ingestion and x-rich-sources, respectively. Both exit 2 with validate,
+deliver and strict artifact checks PASS; browser-check SKIPPED (Chrome unavailable),
+update noticeRequired=false, no visual inspection claimed. The active text-only
+workflow's existing embedded-diagram-check receipts remain current.
+
+Source implementation is unchanged since the 517-test/mypy/Ruff verification.
+Only this change's exact files and README hunk are selected for main publication;
+unrelated local admin work is preserved. No paid X retry or hosted-success claim.

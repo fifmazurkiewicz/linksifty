@@ -165,10 +165,17 @@ X posts, connected threads, full Article bodies/code and ordinary web pages are
 analyzed as text. Images, video, GIFs and audio are not downloaded or read by AI;
 results show known media types and explicitly disclose the text-only scope.
 Missing, short, truncated or otherwise incomplete text still requests paste.
+Article embeds accept both X field names (`tweets` and `posts`). Missing embedded
+text is fetched once and deduplicated within the shared twelve-request,
+hundred-post and sixty-second acquisition limits. Unavailable embedded text still
+requests paste; extra X reads can incur the existing disclosed X charges.
 Migration `20261019_000019_text_only_sources.sql` must follow 000018 before the
 matching backend/UI deployment. Historical analyses are not relabeled or rerun;
 existing uncertain image charges retain their accounting safeguards.
 See [text-only rollout](docs/deployment/setup.md#text-only-operation-migration-000019).
+The embedded-text compatibility fix needs only the matching backend deployment,
+with no additional migration. See the [source workflow](.agent/context/changes/x-rich-sources/text-only-workflow.html)
+and [verification evidence](.agent/context/changes/x-rich-sources/evidence.md#embedded-article-text-verification--2026-10-19).
 
 
 Jev selects comparison pages before downloads, using article and candidate

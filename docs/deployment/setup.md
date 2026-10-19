@@ -378,7 +378,8 @@ measure or cap X's invoice.
 
 The adapter reads the selected post, optionally its conversation root, then
 paginates that author's conversation through full-archive search. Limits are
-12 HTTP requests (two lookups plus ten search pages), 100 unique thread/context posts,
+12 HTTP requests shared by post lookups (including missing Article embeds) and
+up to ten search pages, 100 unique thread/context posts,
 1 MB per response, 100 KB final UTF-8 text and 60 seconds per acquisition. Each
 post retains its canonical URL in the saved text. Long-post `note_post.text`
 (legacy `note_tweet.text`) replaces the short preview. The archive start is
@@ -390,14 +391,18 @@ their thread parent. A submitted repost resolves to the original author's thread
 RT previews are never treated as source text. Expanded dependencies are validated
 recursively and saved once, with author IDs, canonical URLs and explicit reference
 links. Quoted context is the returned post and its dependencies, not a separately
-searched second author's full thread. Missing expanded posts do not trigger extra
-HTTP requests. Expansions can increase resource-based X charges despite unchanged
-HTTP request limits; they use the same operator opt-in and explicit queue retry.
+searched second author's full thread. Missing ordinary quote/repost expansions
+request paste. Article embedded-post IDs use both `entities.tweets` and
+`entities.posts`; missing embedded text receives a single direct lookup per post,
+within the same aggregate limits. Expanded resources and added embedded lookups
+can incur X charges under the same operator opt-in and explicit queue retry.
 
-Missing parents/pages, API partial errors, absent long text, video/polls,
+Missing parents/pages, API partial errors, absent long text,
 missing quote/repost dependencies and X Article previews request manually pasted content.
-Full Article bodies and supported static images use the rich-source path described
-below; a preview or unavailable image is never enough for assessment.
+Full Article text and code are supported. Under the active
+[text-only policy](#text-only-operation-migration-000019), media are omission
+metadata and do not trigger downloads or vision calls. Incomplete text still
+stops acquisition; an unavailable image alone does not block complete text.
 Only parent-connected posts by the root author form the thread; other users'
 replies are excluded unless explicitly required as expanded reference context.
 Unknown/duplicate reference types, cycles and conflicting versions also stop
@@ -456,7 +461,10 @@ missing source material. Earlier deployments logged `attachments_present` and
 `article_present` for all media/Articles. Paste the complete content for cases
 the adapter cannot acquire. `unsupported_references` identifies unknown or invalid
 combinations of reference types; `missing_referenced_post` identifies an absent
-dependency, and `reference_cycle` identifies cyclic references.
+required expansion, and `reference_cycle` identifies cyclic references. Missing
+Article embeds now get one bounded lookup; failure retains the lookup's exact
+HTTP, payload or content check. `article_entities_invalid` can indicate an unknown
+entity kind; the supported `tweets`/`posts` aliases do not cause that rejection.
 `disconnected_thread` identifies missing thread parents or cycles.
 `provider_partial_errors` means X returned an error alongside its response;
 `invalid_post_payload` and `invalid_search_payload` identify schema failures.
@@ -1030,6 +1038,10 @@ See [progress and evidence](../../.agent/context/changes/chat-query-classificati
 
 ## Rich X Articles and images (migration 000016)
 
+Historical media-reading flow, superseded by
+[text-only operation](#text-only-operation-migration-000019). Keep its migration
+and charge-reconciliation history; new processing does not read images.
+
 Apply [20261018_000016_rich_x_sources.sql](../../supabase/migrations/20261018_000016_rich_x_sources.sql)
 **after 000015 and before deploying the matching backend/frontend**. The new
 backend queries the reservation purpose column, so deploying it first interrupts
@@ -1226,6 +1238,16 @@ identity, size and access checks. Photos, video, GIFs, audio and other attachmen
 are only availability metadata. Ordinary HTML tags similarly identify media
 without following their URLs. Media-only/short, truncated, withheld, login or
 unsupported text still requests pasted content. No media content is invented.
+
+Article embedded-post lists accept both `entities.tweets` and `entities.posts`.
+IDs are validated and deduplicated. Already returned posts are reused; missing
+embedded posts receive one direct official lookup each, including nested Article
+embeds. These reads share the twelve-request, hundred-post and sixty-second
+acquisition limits with thread search and can incur X charges under the existing
+submission/Retry consent. Failed reads are never retried automatically. Missing
+ordinary quote/repost expansions, incomplete text, cycles and conflicting versions
+still request paste. This compatibility fix needs only a backend deployment,
+with no additional migration or configuration beyond the text-only prerequisites.
 
 Pause new processing and drain existing active calls before replacing old workers.
 Apply [20261019_000019_text_only_sources.sql](../../supabase/migrations/20261019_000019_text_only_sources.sql)

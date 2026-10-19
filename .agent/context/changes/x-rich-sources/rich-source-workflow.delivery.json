@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "628b9097-85e1-43ab-854f-85f2f13412e6",
+  "receiptId": "69f334fe-f165-4ca8-8043-e4328cd6a051",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
   "input": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.json",
   "output": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/rich-source-workflow.html",
   "specification": {
-    "sha256": "bc2b338285b0e43127145d8bf1564b156b2622039e5cf7fc0dae0d80fae42966",
-    "bytes": 7195
+    "sha256": "1b06639858e03bc9d5c132ff138b3f12c5416310acbdbef969ed803ca99623e0",
+    "bytes": 7663
   },
   "artifact": {
-    "sha256": "a1695a9c9dc831187ada84759c6aca7b6d1024a3405abb8d3b7a8ae2f19d2c87",
-    "bytes": 775132
+    "sha256": "3a824b53573c570ba0ebc1dc8f4cad19c43dbf3d25616745d3727256e1152fe1",
+    "bytes": 775750
   }
 }

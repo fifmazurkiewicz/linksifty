@@ -1,5 +1,11 @@
 # Complete rich X sources
 
+Current scope (2026-10-19): T8 supersedes the original media-reading goal with
+complete text plus media-omission metadata. T9 fixes captured Article embeds:
+validate `tweets`/`posts` aliases, reuse returned text and complete missing embeds
+once within existing limits. Preserve code, provenance and completeness; never
+assess partial text. The original frame below is retained as historical context.
+
 2026-10-18. Owner explicitly requests implementation after diagnosis of the same
 submitted post failing first reference handling, then `attachments_present`.
 The post has text-bearing imagery and a quoted X Article. Ordinary quote/repost
