@@ -224,6 +224,7 @@ def create_app(
                     if configuration.brave_search_api_key
                     else None,
                     search_price=configuration.brave_search_price,
+                    telemetry=telemetry,
                 )
             try:
                 yield

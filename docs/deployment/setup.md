@@ -994,6 +994,32 @@ authenticated-visit reconciliation can settle orphan model reservations with a
 generation ID. No-ID uncertain outcomes retain the existing operator-reconciliation
 requirement. Chat does not change saved scores, verdicts or assessment rules.
 
+With existing `LANGFUSE_ENABLED=true` and configured project keys, each newly
+claimed question produces a `chat` trace with opaque `turn_id` metadata. Its
+`openrouter.chat.classification` and `openrouter.chat.answer` generations contain
+bounded, redacted provider inputs, validated outputs, generation IDs, reported
+tokens/cost and stable failure reasons. Both the initial answer/search decision
+and any post-search answer use the answer generation name. The
+`chat.classification.response` / `chat.answer.response` events retain redacted raw
+responses and HTTP status, including malformed/rejected results. Classification
+responses include choices, confidence and probabilities. `chat.finished` records
+the persisted outcome, including application evidence/budget failures. Transport
+exceptions export their class only. SDK failures cannot retry or block chat.
+The existing content redaction, access and independent retention policy applies
+to question/history/evidence and model responses; this is best-effort tracing.
+Deploy the matching backend; no new flag or migration is required. Previous
+questions cannot be backfilled. Failed turns also log `chat_failed` with opaque
+turn ID and stable reason in backend logs, without question or owner identity.
+
+For the generic failure message, inspect the owner's chat API response `error`
+or `chat_turns.error`. `classification_uncertain` means the classifier returned
+scope confidence below 0.8; neither the answer model nor search runs. Repeating
+the same wording may fail again. A question naming the analysis topic and the
+comparison explicitly may clarify the intended scope. The cutoff remains
+unchanged. Consult the owner-scoped reservation ledger for actual charges:
+known classification cost can already be settled even when the turn fails;
+the generic UI text alone does not establish an outstanding reservation.
+
 Local gates include `supabase/tests/analysis_chat.test.sql` and
 `backend/tests/integration/check_chat_database.py` using the explicit disposable
 database convention in section 13. Hosted acceptance remains manual: verify two

@@ -226,7 +226,7 @@ class OpenRouterClient:
             )
             return text.encode()[:limit].decode("utf-8", errors="ignore")
 
-        payload = {
+        payload: dict[str, object] = {
             "model": _CLASSIFIER_MODEL,
             "state": {
                 "question": context.question,
@@ -296,6 +296,14 @@ class OpenRouterClient:
                 },
             },
         }
+        with self._telemetry.generation(
+            _CLASSIFIER_MODEL, input=payload, name="openrouter.chat.classification"
+        ) as record:
+            result = await self._classify_request(payload)
+            record(result)
+            return result
+
+    async def _classify_request(self, payload: dict[str, object]) -> ChatClassificationResult:
         # UTF-8 bytes conservatively bound text tokens; leave room for provider framing.
         if len(json.dumps(payload, ensure_ascii=False).encode()) > 30000:
             return ChatClassificationResult(cost=Decimal(0), failure_reason="input_too_large")
@@ -307,8 +315,15 @@ class OpenRouterClient:
                 timeout=30,
                 follow_redirects=False,
             )
-        except httpx.HTTPError:
+        except httpx.HTTPError as error:
+            self._telemetry.event(
+                "chat.classification.transport_error", {"exception": type(error).__name__}
+            )
             return ChatClassificationResult(failure_reason="provider_unreachable")
+        self._telemetry.event(
+            "chat.classification.response",
+            {"status_code": response.status_code, "body": response.text},
+        )
         try:
             body = json.loads(response.content, parse_float=Decimal)
         except (ValueError, UnicodeError):
@@ -322,6 +337,15 @@ class OpenRouterClient:
             if isinstance(generation, str) and 0 < len(generation) <= 200
             else None,
         )
+        if isinstance(usage, dict):
+            result.input_tokens = (
+                usage.get("prompt_tokens") if type(usage.get("prompt_tokens")) is int else None
+            )
+            result.output_tokens = (
+                usage.get("completion_tokens")
+                if type(usage.get("completion_tokens")) is int
+                else None
+            )
         if not response.is_success:
             if (
                 response.status_code in {400, 401, 402, 403, 404, 413, 422, 429}
@@ -390,6 +414,16 @@ class OpenRouterClient:
         for definition in [schema, *schema.get("$defs", {}).values()]:
             if "properties" in definition:
                 definition["required"] = list(definition["properties"])
+        with self._telemetry.generation(
+            self._model, input=messages, name="openrouter.chat.answer"
+        ) as record:
+            result = await self._reply_request(messages, schema)
+            record(result)
+            return result
+
+    async def _reply_request(
+        self, messages: list[dict[str, str]], schema: dict[str, object]
+    ) -> ChatModelResult:
         if len(json.dumps([messages, schema], ensure_ascii=False).encode()) > 110000:
             return ChatModelResult(cost=Decimal(0), failure_reason="input_too_large")
         try:
@@ -421,8 +455,15 @@ class OpenRouterClient:
                 timeout=90,
                 follow_redirects=False,
             )
-        except httpx.HTTPError:
+        except httpx.HTTPError as error:
+            self._telemetry.event(
+                "chat.answer.transport_error", {"exception": type(error).__name__}
+            )
             return ChatModelResult(failure_reason="provider_unreachable")
+        self._telemetry.event(
+            "chat.answer.response",
+            {"status_code": response.status_code, "body": response.text},
+        )
         try:
             body = json.loads(response.content, parse_float=Decimal)
         except (ValueError, UnicodeError):
@@ -437,6 +478,15 @@ class OpenRouterClient:
             else None,
             cost=_cost(usage.get("cost")) if isinstance(usage, dict) else None,
         )
+        if isinstance(usage, dict):
+            result.input_tokens = (
+                usage.get("prompt_tokens") if type(usage.get("prompt_tokens")) is int else None
+            )
+            result.output_tokens = (
+                usage.get("completion_tokens")
+                if type(usage.get("completion_tokens")) is int
+                else None
+            )
         if not response.is_success:
             if (
                 response.status_code in {400, 401, 402, 403, 404, 422, 429}

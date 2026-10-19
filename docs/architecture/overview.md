@@ -142,6 +142,16 @@ The model receives primary/additional source texts, not a browsing tool. The mod
 
 Langfuse root/fetch/research/generation observations and discrete events capture the complete relevant analysis flow: stages, search/skip/fetch decisions, source passages, model messages and completion, citation validation, budget changes, persistence, heartbeat and recovery. Article/model content is included by default when existing LANGFUSE_ENABLED is enabled, per the owner’s revised decision. Trace fields are bounded and redacted; configured secrets, account identity, lease tokens and authentication headers are excluded. Exceptions are reduced to class names; telemetry errors neither repeat nor stop business work. This is best-effort observability, not a durable charge ledger. SDK shutdown is flushed outside the event loop. Langfuse defaults off; its access and retention are operator-managed independently of Supabase cleanup.
 
+Chat reuses this telemetry boundary: one `chat` scope per newly claimed turn,
+correlated by opaque `turn_id`, contains `openrouter.chat.classification` and
+`openrouter.chat.answer` generations plus redacted HTTP response events and the
+persisted `chat.finished` outcome. This covers classifier confidence/probabilities,
+raw and validated model output, reported token/cost details and failure reasons.
+Duplicates return stored state without another generation. Backend `chat_failed`
+warnings contain only turn ID and stable reason. No chat policy, owner scope,
+budget rule or retry behavior changes; the same opt-in content/retention policy
+applies. See [chat diagnostics](../deployment/setup.md#analysis-and-topic-chat-migration-000013).
+
 - [Brave/Langfuse workflow HTML](../../.agent/context/changes/processing-usage-inbox/brave-langfuse.html) · [editable JSON](../../.agent/context/changes/processing-usage-inbox/brave-langfuse.json). Repository-backed at local code commit c844819. Validate/deliver/strict artifact checks pass; automated browser check skipped because Chrome unavailable; no fresh perceptual inspection claimed. All diagram labels, explanations and viewer controls are in English. Latest workflow receipts are under brave-langfuse.content-tracing/; lifecycle English receipts remain under lifecycle.english/. Prior receipts are historical.
 
 Submission/resume maintenance (000008): owner-profile lock serializes duplicate URL decisions before creating new items/jobs/trial usage; existing rows remain. UI preflight is advisory, server guard authoritative. The original citation-format repair has been superseded by passage-ID selection within the OpenRouter adapter; existing exact source/offset fences remain. These are guards within existing steps, with unchanged topology and no new external calls.

@@ -6,6 +6,7 @@ from contextlib import ExitStack, contextmanager
 
 from langfuse import Langfuse, LangfuseGeneration, propagate_attributes
 
+from linksifty.application.chat_contracts import ChatClassificationResult, ChatModelResult
 from linksifty.application.processing_contracts import ModelResult
 from linksifty.infrastructure.redaction import redact
 
@@ -44,6 +45,8 @@ class LangfuseTelemetry:
                     metadata={
                         "reservation_id"
                         if name == "orphan.reconciliation"
+                        else "turn_id"
+                        if name == "chat"
                         else "job_id": identifier
                     },
                 )
@@ -77,13 +80,13 @@ class LangfuseTelemetry:
 
     @contextmanager
     def generation(
-        self, model: str, *, input: object = None
-    ) -> Iterator[Callable[[ModelResult], None]]:
+        self, model: str, *, input: object = None, name: str = "openrouter.assessment"
+    ) -> Iterator[Callable[[ModelResult | ChatClassificationResult | ChatModelResult], None]]:
         observation = None
         try:
             if self._client is not None:
                 observation = self._client.start_observation(
-                    name="openrouter.assessment",
+                    name=name,
                     as_type="generation",
                     model=model,
                     input=redact(input, self._secrets),
@@ -91,17 +94,25 @@ class LangfuseTelemetry:
         except Exception:
             _logger.warning("telemetry_unavailable")
 
-        def finish(result: ModelResult) -> None:
+        def finish(result: ModelResult | ChatClassificationResult | ChatModelResult) -> None:
             if observation is None:
                 return
             try:
+                output = (
+                    result.assessment
+                    if isinstance(result, ModelResult)
+                    else result.classification
+                    if isinstance(result, ChatClassificationResult)
+                    else result.draft
+                )
                 observation.update(
-                    output=redact(result.assessment.model_dump(mode="json"), self._secrets)
-                    if result.assessment
+                    output=redact(output.model_dump(mode="json"), self._secrets)
+                    if output
                     else None,
                     metadata={
                         "failure_reason": result.failure_reason or "none",
-                        "accepted": result.assessment is not None,
+                        "accepted": output is not None and result.failure_reason is None,
+                        "generation_id": result.generation_id,
                     },
                     level="ERROR" if result.failure_reason else "DEFAULT",
                     status_message=result.failure_reason,

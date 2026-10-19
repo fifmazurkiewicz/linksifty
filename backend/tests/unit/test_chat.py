@@ -19,7 +19,7 @@ from linksifty.application.chat_contracts import (
     DraftParagraph,
 )
 from linksifty.application.chat_service import ChatService
-from linksifty.application.processing_contracts import AssessmentView, EvidenceSource
+from linksifty.application.processing_contracts import AssessmentView, EvidenceSource, Telemetry
 from linksifty.application.research_contracts import SearchResponse
 from linksifty.domain.acquisition import FetchFailure, FetchResult
 
@@ -82,6 +82,28 @@ def test_saved_context_answer_does_not_search_and_restores_exact_evidence() -> N
         search.search.assert_not_awaited()
         fetch.assert_not_awaited()
         assert provider.reply.await_count == 1
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("failure", [None, "provider_rejected", "invalid_evidence"])
+def test_chat_trace_records_final_outcome_and_excludes_owner_identity(failure: str | None) -> None:
+    async def run() -> None:
+        _, store, provider, fetch, search, turn = setup_chat()
+        telemetry = create_autospec(Telemetry, instance=True)
+        if failure == "provider_rejected":
+            provider.classify.return_value = ChatClassificationResult(failure_reason=failure)
+        if failure == "invalid_evidence":
+            provider.reply.return_value.draft.paragraphs[0].passage_ids = ["missing:1"]
+        service = ChatService(store, provider, fetch, telemetry=telemetry)
+        owner = uuid4()
+        result = await service.ask(owner, turn.item_id, turn.id, turn.question)
+        telemetry.scope.assert_called_once_with("chat", str(turn.id))
+        telemetry.event.assert_any_call(
+            "chat.finished",
+            {"status": result.status, "failure": failure, "search_status": "not_needed"},
+        )
+        assert str(owner) not in str(telemetry.mock_calls)
 
     asyncio.run(run())
 

@@ -39,6 +39,8 @@ class ChatModelResult(BaseModel):
     cost: Decimal | None = Field(default=None, ge=0, allow_inf_nan=False)
     generation_id: str | None = None
     failure_reason: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 class ChatClassification(BaseModel):
@@ -51,6 +53,8 @@ class ChatClassificationResult(BaseModel):
     cost: Decimal | None = Field(default=None, ge=0, allow_inf_nan=False)
     generation_id: str | None = None
     failure_reason: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 class ChatTurn(BaseModel):

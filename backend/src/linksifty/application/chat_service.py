@@ -2,8 +2,10 @@
 
 import asyncio
 import hashlib
+import logging
 import re
 from collections.abc import Awaitable, Callable
+from contextlib import nullcontext
 from decimal import Decimal
 from typing import Literal
 from urllib.parse import urlsplit, urlunsplit
@@ -23,10 +25,12 @@ from linksifty.application.chat_contracts import (
     ChatStore,
     ChatTurn,
 )
-from linksifty.application.processing_contracts import EvidenceSource
+from linksifty.application.processing_contracts import EvidenceSource, Telemetry
 from linksifty.application.research_contracts import SearchProvider
 from linksifty.domain.acquisition import FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
+
+_logger = logging.getLogger(__name__)
 
 
 def _refusal(classification: ChatClassification) -> ChatParagraph:
@@ -139,7 +143,9 @@ class ChatService:
         *,
         search: SearchProvider | None = None,
         search_price: Decimal = Decimal(0),
+        telemetry: Telemetry | None = None,
     ) -> None:
+        self._telemetry = telemetry
         self._store = store
         self._provider = provider
         self._fetch = fetch
@@ -174,76 +180,88 @@ class ChatService:
             raise ChatError("request_conflict")
         if not claim.claimed:
             return turn
-        status: Literal["completed", "failed"] = "failed"
-        answer: list[ChatParagraph] = []
-        sources: list[EvidenceSource] = []
-        search_status = "not_needed"
-        insufficient = False
-        error: str | None = None
-        try:
-            turns = await self._store.history(user_id, item_id)
-            payload = _input(context, turns, question)
-            classification = await self._classify(user_id, turn, payload)
-            if classification.category != "relevant":
-                answer = [_refusal(classification)]
-            else:
-                draft = await self._generate(
-                    user_id, turn, "decision", payload, self.search_available
-                )
-                if draft.search_query is not None:
-                    if (
-                        not self.search_available
-                        or not draft.search_query.strip()
-                        or draft.paragraphs
+        with self._telemetry.scope("chat", str(turn.id)) if self._telemetry else nullcontext():
+            status: Literal["completed", "failed"] = "failed"
+            answer: list[ChatParagraph] = []
+            sources: list[EvidenceSource] = []
+            search_status = "not_needed"
+            insufficient = False
+            error: str | None = None
+            try:
+                turns = await self._store.history(user_id, item_id)
+                payload = _input(context, turns, question)
+                classification = await self._classify(user_id, turn, payload)
+                if classification.category != "relevant":
+                    answer = [_refusal(classification)]
+                else:
+                    draft = await self._generate(
+                        user_id, turn, "decision", payload, self.search_available
+                    )
+                    if draft.search_query is not None:
+                        if (
+                            not self.search_available
+                            or not draft.search_query.strip()
+                            or draft.paragraphs
+                        ):
+                            raise ChatError("invalid_answer")
+                        sources, search_status = await self._research(
+                            user_id, turn, draft.search_query, context, turns
+                        )
+                        if search_status == "budget_exhausted":
+                            draft = ChatDraft(search_query=None, paragraphs=[], insufficient=True)
+                        else:
+                            context.sources.extend(sources)
+                            payload = _input(context, turns, question)
+                            draft = await self._generate(user_id, turn, "answer", payload, False)
+                    if draft.search_query is not None or (
+                        not draft.paragraphs and not draft.insufficient
                     ):
                         raise ChatError("invalid_answer")
-                    sources, search_status = await self._research(
-                        user_id, turn, draft.search_query, context, turns
-                    )
-                    if search_status == "budget_exhausted":
-                        draft = ChatDraft(search_query=None, paragraphs=[], insufficient=True)
-                    else:
-                        context.sources.extend(sources)
-                        payload = _input(context, turns, question)
-                        draft = await self._generate(user_id, turn, "answer", payload, False)
-                if draft.search_query is not None or (
-                    not draft.paragraphs and not draft.insufficient
-                ):
-                    raise ChatError("invalid_answer")
-                for paragraph in draft.paragraphs:
-                    if not paragraph.text.strip() or any(
-                        pid not in payload.passages for pid in paragraph.passage_ids
-                    ):
-                        raise ChatError("invalid_evidence")
-                    answer.append(
-                        ChatParagraph(
-                            text=paragraph.text,
-                            citations=[
-                                payload.passages[pid]
-                                for pid in dict.fromkeys(paragraph.passage_ids)
-                            ],
+                    for paragraph in draft.paragraphs:
+                        if not paragraph.text.strip() or any(
+                            pid not in payload.passages for pid in paragraph.passage_ids
+                        ):
+                            raise ChatError("invalid_evidence")
+                        answer.append(
+                            ChatParagraph(
+                                text=paragraph.text,
+                                citations=[
+                                    payload.passages[pid]
+                                    for pid in dict.fromkeys(paragraph.passage_ids)
+                                ],
+                            )
                         )
-                    )
-                insufficient = draft.insufficient
-            status = "completed"
-        except ChatError as failure:
-            error = str(failure)
-            answer = []
-        # Infrastructure errors intentionally propagate. The durable pending turn
-        # expires on read; its reservations survive and no provider is resent.
-        saved = await self._store.finish(
-            user_id,
-            turn,
-            status=status,
-            answer=answer,
-            insufficient=insufficient,
-            search_status=search_status,
-            sources=sources,
-            error=error,
-        )
-        if saved is None:
-            raise ChatError("not_found")  # Deleted/rejected/expired during the request.
-        return saved
+                    insufficient = draft.insufficient
+                status = "completed"
+            except ChatError as failure:
+                error = str(failure)
+                answer = []
+            # Infrastructure errors intentionally propagate. The durable pending turn
+            # expires on read; its reservations survive and no provider is resent.
+            saved = await self._store.finish(
+                user_id,
+                turn,
+                status=status,
+                answer=answer,
+                insufficient=insufficient,
+                search_status=search_status,
+                sources=sources,
+                error=error,
+            )
+            if saved is None:
+                raise ChatError("not_found")  # Deleted/rejected/expired during the request.
+            if self._telemetry is not None:
+                self._telemetry.event(
+                    "chat.finished",
+                    {
+                        "status": saved.status,
+                        "failure": saved.error,
+                        "search_status": saved.search_status,
+                    },
+                )
+            if saved.status == "failed":
+                _logger.warning("chat_failed turn_id=%s reason=%s", turn.id, saved.error)
+            return saved
 
     async def _generate(
         self, user_id: UUID, turn: ChatTurn, slot: CallSlot, payload: ChatInput, allow_search: bool
