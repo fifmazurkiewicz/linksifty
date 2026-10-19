@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2f9a8acc-8ab4-4c0e-9bb0-d98f7633ca08",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/reader-replies-workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/reader-replies-workflow.html",
+  "specification": {
+    "sha256": "8899c0dafcfd1625a0e1cb8617f2a8971e15474f361ba7f00cc9f467d83ad7b0",
+    "bytes": 3932
+  },
+  "artifact": {
+    "sha256": "0dcdfa030cac5fc08b3548d789b0ff04bf14575ed71a35d638712069e580e781",
+    "bytes": 757712
+  }
+}

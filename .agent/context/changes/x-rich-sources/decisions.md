@@ -51,3 +51,25 @@ The owner approved the short in-chat design and dedicated image-model change.
 - Keep current assessment model. Stronger evaluation needs evidence after input
   completeness is fixed. Mock all integrations; no live paid test or environment
   mutation. Existing main-push authorization covers this ongoing ingestion fix.
+
+## Approved thread/media correction — 2026-10-19
+
+- Keep the primary source as the root and its author's connected self-replies.
+  Exclude branches only when a returned parent is another author in the same
+  conversation, or a descendant of an already excluded author reply. Unknown
+  parents, cycles and identity failures remain errors. An explicitly submitted
+  post must still be present in the accepted thread; never return only a root
+  after excluding the submitted post.
+- Identify unsupported media types before checking image URLs. Do not fetch,
+  transcribe or silently omit videos/GIFs belonging to accepted source posts.
+- The owner approved this in-chat design and requested an expandable comments
+  panel, with permission to code. The owner subsequently clarified actual reader
+  comments, specifically X users. The temporary analysis-note interpretation is
+  superseded; the draft panel, tests and screenshots were removed. The owner
+  clarified both submitted and searched X posts, plus Reddit only if supported.
+- Reddit has no supported comments adapter. Show that state without scraping or
+  new credentials. X replies load on explicit charge-disclosed button consent,
+  using one lookup and one twenty-result search page. Cache one attempt per owned
+  item/source, including uncertain attempts. Source membership is resolved from
+  persisted primary/research records, never arbitrary browser URLs. Replies stay
+  outside primary and comparison evidence; no model call or score change.

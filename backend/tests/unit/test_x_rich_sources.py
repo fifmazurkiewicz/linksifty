@@ -138,14 +138,15 @@ def test_untrusted_media_url_is_rejected_before_any_media_request(url: str) -> N
 
 
 @pytest.mark.parametrize("kind", ["video", "animated_gif"])
-def test_video_is_explicitly_unsupported_not_silently_omitted(kind: str) -> None:
+@pytest.mark.parametrize("url", [IMAGE_URL, None])
+def test_video_is_explicitly_unsupported_not_silently_omitted(kind: str, url: str | None) -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/2/tweets/100":
             return httpx.Response(
                 200,
                 json={
                     "data": post(attachments={"media_keys": ["media"]}),
-                    "includes": {"media": [{"media_key": "media", "type": kind, "url": IMAGE_URL}]},
+                    "includes": {"media": [{"media_key": "media", "type": kind, "url": url}]},
                 },
             )
         return httpx.Response(200, json={"meta": {"result_count": 0}})

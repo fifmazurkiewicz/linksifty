@@ -10,6 +10,7 @@ from uuid import uuid4
 import httpx
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 
+from linksifty.application.discussions import DiscussionReply, DiscussionResult
 from linksifty.domain.acquisition import FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.x_urls import x_post_id
@@ -121,6 +122,8 @@ class _Post(BaseModel):
                 result.append(resolved)
         missing = False
         for media in result:
+            if media.type != "photo":
+                raise _Failure(FetchFailure.X_MEDIA_UNSUPPORTED, "non_static_image")
             if not media.url and media.media_key:
                 missing = True
             else:
@@ -209,6 +212,74 @@ class XAdapter:
                 request_id,
                 {"status": response.status_code, "body": "[OMITTED: nesting limit]"},
             )
+
+    async def comments(self, url: str) -> DiscussionResult:
+        """One explicit, bounded reply sample; failure never repeats a paid read."""
+        identifier = x_post_id(url)
+        if identifier is None:
+            return DiscussionResult(status="unavailable")
+        params = {
+            "tweet.fields": "author_id,conversation_id,note_tweet,referenced_tweets,attachments",
+            "expansions": "author_id",
+            "user.fields": "username",
+        }
+        try:
+            async with asyncio.timeout(30):
+                async with httpx.AsyncClient(
+                    transport=self._transport, trust_env=False, follow_redirects=False, timeout=10
+                ) as client:
+                    lookup = _Lookup.model_validate(await self._get(client, identifier, **params))
+                    if lookup.data.id != identifier:
+                        raise _Failure(FetchFailure.PARTIAL, "lookup_id_mismatch")
+                    conversation = lookup.data.conversation_id
+                    payload = await self._get(
+                        client,
+                        "search/all",
+                        **params,
+                        query=f"conversation_id:{conversation} is:reply",
+                        max_results="20",
+                        start_time="2006-03-21T00:00:00Z",
+                        sort_order="recency",
+                    )
+            page = _Search.model_validate(payload)
+            if page.meta.result_count != len(page.data) or len(page.data) > 20:
+                raise _Failure(FetchFailure.PARTIAL, "comment_count_mismatch")
+            users: dict[str, str] = {}
+            includes = payload.get("includes")
+            if isinstance(includes, dict) and isinstance(includes.get("users"), list):
+                for user in includes["users"]:
+                    if (
+                        isinstance(user, dict)
+                        and isinstance(user.get("id"), str)
+                        and isinstance(user.get("username"), str)
+                        and re.fullmatch(r"[A-Za-z0-9_]{1,15}", user["username"])
+                    ):
+                        users[user["id"]] = user["username"]
+            replies: list[DiscussionReply] = []
+            seen: set[str] = set()
+            for post in page.data:
+                if post.conversation_id != conversation:
+                    raise _Failure(FetchFailure.PARTIAL, "comment_conversation_mismatch")
+                if post.withheld or post.id in seen or post.parent() is None:
+                    continue
+                seen.add(post.id)
+                text = post.note.text if post.note is not None else post.text
+                if not text.strip() or "\x00" in text:
+                    continue
+                replies.append(
+                    DiscussionReply(
+                        id=post.id,
+                        author_id=post.author_id,
+                        username=users.get(post.author_id),
+                        text=text[:4000],
+                        truncated=len(text) > 4000 or bool(_TRUNCATED.search(text)),
+                        has_media=bool(post.attachments),
+                    )
+                )
+            return DiscussionResult(status="ready", replies=replies)
+        except (_Failure, ValidationError, ValueError, httpx.HTTPError, TimeoutError):
+            _logger.warning("x_comments_unavailable; no automatic retry")
+            return DiscussionResult(status="unavailable")
 
     async def fetch(self, url: str) -> FetchResult:
         identifier = x_post_id(url)
@@ -409,17 +480,29 @@ class XAdapter:
         ordered = [root]
         remaining = {key: value for key, value in posts.items() if key != root.id}
         visited = {root.id}
+        excluded: set[str] = set()
         while remaining:
-            ready = sorted(
-                (post for post in remaining.values() if post.parent() in visited),
-                key=lambda post: int(post.id),
-            )
-            if not ready:
-                raise _Failure(FetchFailure.PARTIAL, "disconnected_thread")
-            for post in ready:
-                ordered.append(post)
-                visited.add(post.id)
+            count = len(remaining)
+            for post in sorted(remaining.values(), key=lambda post: int(post.id)):
+                parent_id = post.parent()
+                parent = available.get(parent_id or "")
+                if parent_id in visited:
+                    ordered.append(post)
+                    visited.add(post.id)
+                elif parent_id in excluded or (
+                    parent is not None
+                    and parent.author_id != root.author_id
+                    and parent.conversation_id == root.id
+                ):
+                    # Search also returns the author's conversations with commenters.
+                    excluded.add(post.id)
+                else:
+                    continue
                 del remaining[post.id]
+            if len(remaining) == count:
+                raise _Failure(FetchFailure.PARTIAL, "disconnected_thread")
+        if identifier not in visited:
+            raise _Failure(FetchFailure.PARTIAL, "selected_post_outside_thread")
         sources = await self._resolve_sources(client, ordered, available, media, looked_up)
         # Labels, URLs and RT previews must not make short sources pass the minimum.
         readable_text = "\n\n".join(post.content() for post in sources)

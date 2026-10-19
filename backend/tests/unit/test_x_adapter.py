@@ -164,6 +164,79 @@ def test_thread_gaps_cycles_or_wrong_author_fail_closed(posts: list[dict[str, ob
     assert result.failure == "partial_content"
 
 
+@pytest.mark.parametrize("selected", ["100", "103"])
+def test_comment_reply_branches_do_not_break_the_authors_thread(selected: str) -> None:
+    calls: list[str] = []
+    comment_reply = post("102", "90", text="Comment reply", attachments={"media_keys": ["gif"]})
+    continuation = post("103", "100", text="Author's actual continuation. " * 20)
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/103":
+            return httpx.Response(200, json={"data": continuation})
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(200, json={"data": post()})
+        assert request.url.path == "/2/tweets/search/all"
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    post("104", "102", text="Nested comment reply"),
+                    continuation,
+                    comment_reply,
+                ],
+                "includes": {
+                    "tweets": [post("90", "100", author_id="70", text="Reader's comment")],
+                    "media": [{"media_key": "gif", "type": "animated_gif"}],
+                },
+                "meta": {"result_count": 3},
+            },
+        )
+
+    result = acquire(respond, f"https://x.com/user/status/{selected}")
+    assert result.failure is None
+    assert result.text is not None
+    assert "Author's actual continuation" in result.text
+    assert "Comment reply" not in result.text and "Nested comment reply" not in result.text
+    assert "Reader's comment" not in result.text
+    assert len(calls) == (2 if selected == "100" else 3)
+
+
+@pytest.mark.parametrize(
+    "parent_author,parent_conversation", [("70", "100"), ("50", "100"), ("70", "999")]
+)
+def test_excluding_comment_branches_never_discards_the_submitted_post_or_a_gap(
+    parent_author: str, parent_conversation: str
+) -> None:
+    selected = post("102", "90")
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/2/tweets/102":
+            return httpx.Response(200, json={"data": selected})
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(200, json={"data": post()})
+        return httpx.Response(
+            200,
+            json={
+                "data": [selected],
+                "includes": {
+                    "tweets": [
+                        post(
+                            "90",
+                            "100",
+                            author_id=parent_author,
+                            conversation_id=parent_conversation,
+                        )
+                    ]
+                },
+                "meta": {"result_count": 1},
+            },
+        )
+
+    result = acquire(respond, "https://x.com/user/status/102")
+    assert result.failure == "partial_content" and result.text is None
+
+
 @pytest.mark.parametrize(
     "url",
     [

@@ -98,3 +98,46 @@ Alternative multi-call batches would require durable per-batch accounting and
 recovery changes. One dedicated image call preserves the existing ledger and
 uncertain-outcome fencing. No evidence currently warrants a stronger text
 assessment model; the observed failure happens before inference.
+
+## Thread/comment diagnosis — 2026-10-19
+
+Graft is unavailable; focused source/documentation reads were used. The new
+owner-supplied payload reproduces partial_content/disconnected_thread offline:
+archive search returns nine author replies to other commenters, with the foreign
+parent posts present in includes. One reply has an animated GIF without a URL.
+These are conversation branches, rather than the author's self-reply thread.
+A probe filtering those known comment branches succeeds with the root's two
+images and synthetic valid image bytes. The original replay makes three mocked
+X requests, no media request, and stops at disconnected_thread.
+
+Separately, known video and animated_gif media without URLs reproduce
+x_media_unavailable/missing_article_media_expansion: _Post.media checks URL
+absence before validating type. validate_media already rejects both types as
+x_media_unsupported. FetchResult failures are handled per job into manual paste;
+this result does not terminate the queue loop. No live API request was made.
+
+The existing assessment response includes research source IDs/URLs, criterion
+rationales and citations with source IDs. The current Source checking disclosure
+shows source links but no per-source analysis notes. No published reader-comment
+collection or stored per-source standalone commentary is evidenced.
+
+## Clarified X reply display — 2026-10-19
+
+The owner requests actual replies from X users on the submitted link or X links
+found in additional search, and Reddit only if already supported. Focused source
+reads show no Reddit integration. Current ordinary fetcher explicitly rejects X
+URLs; selected social candidates must be retained separately for optional reply
+display rather than misrepresented as fetched comparison evidence. Research JSON
+already supports bounded additional metadata; no research SQL signature changes
+are necessary. Existing X admission authorizes primary acquisition only and cannot
+be reused for independent paid comment requests.
+
+Use separate once-only item/source admission with explicit product consent. Existing
+Supabase profile/item owner/expiry guards and cascade conventions apply. Comments
+are a display snapshot, not complete source acquisition or assessment evidence.
+Official X conversation/search documentation (read 2026-10-19):
+https://docs.x.com/x-api/fundamentals/conversation-id and
+https://docs.x.com/x-api/posts/search/integrate/build-a-query describe using the
+conversation ID to search replies. Lookup resolves the conversation for a submitted
+middle post; one bounded search page is explicitly incomplete. No live X request
+or credential read is needed for implementation/testing. Graft remains unavailable.

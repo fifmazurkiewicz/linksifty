@@ -103,3 +103,68 @@ pending. English editable workflow and rendered HTML reflect the lookup/model/
 image limits. Static specification and artifact validation pass. Browser checks
 are unavailable (Chrome absent), as is agent-toolkit; these are disclosed rather
 than counted as success. No archive or claim of hosted inference quality.
+
+## Thread/media correction review — 2026-10-19
+
+Outcome: approve T5 locally. T6 (actual X-user replies panel) is pending scope
+clarification and is not included in this approval. Graft is unavailable;
+focused repository reads were used. No actionable findings by severity and no
+Skip decisions.
+
+The primary source remains the author's connected thread. Only branches with a
+known foreign-author parent in the same conversation, and their author
+descendants, are excluded. Unknown parents, cycles, foreign-conversation parents
+and a submitted post outside the retained thread still fail closed. Unsupported
+video/GIF types are identified before URL absence; source media are neither
+silently discarded nor converted to partial assessment text.
+
+Evidence: four initial failures become green; all 163 acquisition/debug cases
+and all 470 backend tests pass. Thread/media mutations each fail two targeted
+cases and were restored. Both supplied logs replay successfully using synthetic
+image bytes with unchanged mocked API responses. Strict typing (47 files), Ruff
+and whitespace checks pass. agent-toolkit is unavailable, not passed.
+
+No new provider request, source persistence, API, schema, scoring or dependency
+change in T5. Existing owner/lease/budget fences remain. No live paid request or
+deployment occurred. The temporary analysis-note panel was removed after the
+owner clarified actual reader comments by X users; it is not part of delivery.
+
+
+## Reader-replies review — 2026-10-19
+
+Outcome: approve T6 locally. Findings by severity: one medium (P2), RC1 keyboard
+focus loss, returned to implementation and now verified fixed. Its canonical
+[Fix now disposition](review-decisions.md#rc1--keyboard-focus-after-loading)
+contains evidence and follow-up. No unresolved findings, Skip decisions or
+accepted exceptions. Hosted provider quality acceptance remains pending.
+
+Plan fidelity: actual X-user replies for primary and selected search links,
+independent collapsed UI, explicit per-source X-charge consent, saved-only GET,
+two-read/twenty-reply bounds, text/media disclosure, and unsupported Reddit match
+the clarified scope. Discussion links/replies are separate from fetched evidence
+and never reach scoring/model context. No analysis-note substitution remains.
+
+Security/privacy: verified owner travels through each server-only RPC; eligible
+completed/unexpired items and saved source membership are checked before atomic
+once-only admission. Alias post IDs share the attempt. Uncertain/failed persistence
+cannot buy another request. Completion is owner/item/attempt fenced and cannot
+resurrect deleted content. Client grants are revoked; foreign content stays
+inaccessible even to admins. No client URL, arbitrary HTTP destination, scraping,
+new credentials or reply-media request. Output is bounded and rendered as text.
+
+Architecture/conventions: routes handle transport, application service admission,
+repository persistence, X adapter remote I/O, entrypoint concrete wiring. Native
+details/summary, existing tokens and isolated styles preserve product conventions.
+No dependency or lockfile changes; unrelated dirty admin/App/README edits retained.
+
+Evidence: 487 backend tests, 77 frontend tests, strict mypy, Ruff, frontend lint/
+build, 23 new pgTAP assertions and full disposable database/race gate pass. Guard
+and consent mutations fail as intended; focus regression is red/green and native
+keyboard verified on desktop/mobile synthetic previews. Workflow static checks
+pass; Archify browser-check and agent-toolkit unavailable, explicitly disclosed.
+
+Canonical plan/progress precede derived delivery/review boards. Setup documents
+migration 000018 ordering, X configuration/cost and unsupported Reddit. English
+editable workflow describes the new data flow. No roadmap milestone state is
+changed by this bounded addition. No archive, hosted acceptance or external
+publication is claimed. Graft is unavailable; focused impact/source reads used.

@@ -154,3 +154,122 @@ another potentially billed quoted-post lookup.
   5MB/image, 10MB total, static decoded images, 20MP/image, 8192 output tokens,
   USD 0.16896 reservation and provider price caps. No accounting/schema change.
   All incomplete/uncertain responses remain ineligible for analysis.
+
+## Thread/media fixes and additional-source notes — 2026-10-19
+
+The analysis-note UI evidence below is historical and superseded: the owner
+later clarified actual X-user reader comments. The draft UI/types/tests and
+source-notes screenshots were removed. Current retained implementation is T5;
+the last frontend baseline without the discarded panel was 69 passing tests.
+Do not interpret the historical UI checks as T6 acceptance.
+
+- Red: focused adapter/rich-source suites -> 4 failed, 149 passed. Two cases
+  reproduce comment-branch disconnected_thread; two reproduce URL-less video/GIF
+  media misclassified as unavailable. Green X adapter/rich-source/debug suites
+  -> 163 passed. New guards also reject an excluded submitted post, a missing
+  same-author parent and an unrelated foreign-parent conversation.
+- Deliberately invert foreign-parent exclusion -> 2 focused failures; restored.
+  Deliberately bypass early media-type check -> 2 focused failures, 2 passes;
+  restored. Both changes were restored before the full backend run.
+- Actual captured responses replay through the updated adapter unchanged: the
+  new log returns two images over 3 mocked X/2 mocked CDN calls; the earlier
+  Article returns eleven images over 4 mocked X/11 mocked CDN calls. All image
+  bytes are synthetic PNGs; source content is neither committed nor printed.
+  No live paid call or real CDN verification is claimed.
+- UI red: new source grouping/disclosure test fails because the panel is absent
+  (1 failed, 14 passed). Green -> 15 assessment tests pass. Existing broad heading
+  and source-link assertions are scoped to their owning panels because the new
+  panel introduces additional headings/links. Assertions retain eight criteria
+  and the original checked-source link.
+- UI covers collapsed/independent expansion, source-ID attribution, URL-only
+  legacy citation attribution, primary-ID exclusion even when URLs match,
+  precise evidence, safe external links, uncited-page state and no panel for
+  failed/uncertain/empty or unsafe research. Removing the panel deliberately ->
+  1 focused failure, 14 skipped; restored before the final run.
+- Final commands (uv uses UV_CACHE_DIR=/private/tmp/linksifty-uv-cache and
+  UV_OFFLINE=true to avoid the sandbox-blocked default cache):
+  `uv run --package linksifty pytest backend/tests -q` -> 470 passed, existing
+  Starlette/httpx TestClient deprecation warning;
+  `uv run --package linksifty mypy --strict backend/src` -> 47 files pass;
+  `uv run --package linksifty ruff check .` -> pass;
+  `uv run --package linksifty ruff format --check .` -> 120 files formatted.
+  `frontend/: npm test -- --run` -> 75 passed;
+  `npm run lint` -> pass; `npm run build` -> TypeScript/Vite pass.
+- `agent-toolkit check` attempted -> exit 127, executable unavailable. Graft
+  unavailable; focused source/documentation reads replace code-map orientation.
+- Real in-app browser QA uses a temporary localhost Vite fixture, synthetic
+  session/source/assessment data and a mocked fetch function. Enter opens the
+  panel and its passage; Space opens/closes the panel at a 390px iframe viewport.
+  Analysis/Source checking remain collapsed. Desktop dark/mobile light layout
+  and visible focus inspected. Screenshots: source-notes-desktop.png and
+  source-notes-mobile.png. No console errors. The sandbox initially prevented
+  localhost binding; approved escalation allowed the preview. Temporary fixture
+  files, tab and server were removed/stopped after QA.
+- Existing API source IDs are reflected in the frontend type; no backend API,
+  schema, dependency, model request or billing changes. Existing owner scope,
+  unknown-cost fencing and no-partial-assessment guards remain. Hosted source
+  acceptance remains separate. No unrelated dirty admin file was changed.
+
+
+## Reader replies verification — 2026-10-19
+
+This section is the current T6 evidence; the earlier analysis-note draft was
+removed and its historical checks do not establish acceptance for this feature.
+
+- Behavioral TDD covers explicit strict consent, verified ownership, persisted
+  source membership, unsupported/unconfigured sources, cached/repeated/unknown
+  attempts and persistence failure without repeated provider calls. Adapter cases
+  cover bounded text replies, IDs/conversations/counts, unsafe URLs and provider
+  errors. Research preserves selected discussion links separately from fetched
+  evidence; UI covers disclosure, independent expansion, safe rendering/links,
+  saved-only refresh, errors, empty and unsupported states.
+- Mutation: bypassing the admitted-claim guard makes two service cases fail;
+  changing browser consent to false makes one focused UI case fail. Restored
+  both before final suites. RC1 focus assertion was red before the persistent
+  status fix and green afterward (8 focused reader-comments tests).
+- With UV_CACHE_DIR=/private/tmp/linksifty-uv-cache and UV_OFFLINE=true:
+  `uv run --package linksifty pytest backend/tests -q` -> 487 passed; existing
+  Starlette/httpx TestClient deprecation warning remains.
+  `uv run --package linksifty mypy --strict backend/src` -> 50 files pass;
+  `uv run --package linksifty ruff check .` -> pass;
+  `uv run --package linksifty ruff format --check .` -> 127 formatted files.
+- `frontend/: npm test -- --run` -> 77 passed; `npm run lint` -> pass;
+  `npm run build` -> TypeScript/Vite pass, including after RC1 correction.
+- Disposable local PostgreSQL 17 with synthetic auth/data: apply migrations
+  1–17, new pgTAP test fails on missing discussion functions; apply 000018,
+  all 23 reader-discussion assertions pass. Full processing database gate passes
+  all 15 pgTAP files plus budget/deletion/source-selection races and concurrent
+  discussion admission (one winner). Run twice; final run includes new race.
+  Temporary cluster is stopped/deleted in finally. No hosted database connection,
+  real data or credential access. Tests cover owner, rejected/expired account,
+  source membership, alias dedup, immutable completion, deletion and client grants.
+- Native in-app browser: synthetic assessment/session, mocked GET/POST only.
+  Return expands the desktop panel; Space expands mobile at a 390px iframe.
+  Load activation focuses “1 reader reply saved.” on both. Dark desktop/light
+  mobile layouts and visible focus inspected; no horizontal clipping observed.
+  [Desktop screenshot](reader-comments-desktop.png),
+  [mobile screenshot](reader-comments-mobile.png). Temporary preview fixtures,
+  tab and localhost server were removed/stopped. No live X or model calls.
+- Archify editable reader-replies-workflow.json and standalone HTML are retained
+  with receipts. Finalize exits 2: specification, delivery and strict artifact
+  checks PASS; browser-check SKIPPED (Chrome unavailable). Native product QA does
+  not substitute for that diagram-specific browser gate.
+- `agent-toolkit check` attempted -> exit 127, unavailable; Graft unavailable.
+  Focused source/docs reads were used. Neither unavailable tool is counted passed.
+- Rollout: migration 000018 precedes matching backend/frontend deployment.
+  Existing X read flag and server bearer token control availability. No new
+  provider/model/dependency; no automatic search, request retry or assessment
+  ingestion of comments. Reddit remains unsupported. No push/deployment performed.
+
+
+### Publication snapshot
+
+Owner explicitly requested main push. Origin/main equals HEAD at 017e737 before
+publication. A temporary index export containing the exact staged frontend
+(without unrelated local admin changes) passes 74 tests, oxlint and TypeScript/
+Vite build. Existing 77-test working-tree result includes three admin tests.
+No dependency changes or unrelated edits are staged. Strict mypy (50 files),
+Ruff lint and Ruff format (127 files) pass again; toolkit attempted, exit 127.
+Staged source whitespace check passes excluding the preserved Archify-generated
+HTML, whose generated blank lines contain spaces. Its original artifact bytes
+and validation receipts are retained without postprocessing.

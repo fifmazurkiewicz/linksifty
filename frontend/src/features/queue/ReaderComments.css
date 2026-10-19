@@ -1,0 +1,5 @@
+.reader-comments ol { padding-left: 22px; }
+.reader-comments li { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.reader-comments li p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.reader-comments li .hint { font-size: 13px; }
+.reader-comments button { min-height: 44px; }

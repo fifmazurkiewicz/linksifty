@@ -9,6 +9,7 @@ from decimal import Decimal
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
+from linksifty.application.discussions import discussion_platform
 from linksifty.application.item_contracts import ItemRecord
 from linksifty.application.media_contracts import ImageReader
 from linksifty.application.processing_contracts import (
@@ -19,6 +20,7 @@ from linksifty.application.processing_contracts import (
     ProcessingJob,
     ProcessingStore,
     ResearchContext,
+    ResearchSourceView,
     RubricConfig,
     Telemetry,
     UsageSummary,
@@ -267,6 +269,18 @@ class ProcessingService:
                     attempts = 0
                     for candidate in selected:
                         url = candidate.url
+                        if discussion_platform(url) is not None:
+                            identifier = x_post_id(url)
+                            discussion_url = (
+                                f"https://x.com/i/web/status/{identifier}" if identifier else url
+                            )
+                            if all(
+                                source.url != discussion_url
+                                for source in context.discussion_sources
+                            ):
+                                context.discussion_sources.append(
+                                    ResearchSourceView(id=str(uuid4()), url=discussion_url)
+                                )
                         try:
                             parsed = urlparse(url)
                             host = parsed.hostname

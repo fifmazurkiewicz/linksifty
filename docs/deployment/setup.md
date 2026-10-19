@@ -1156,3 +1156,36 @@ activation. Existing saved Walmart/retail results will not rewrite themselves;
 review the next explicitly authorized analysis after rollout. The analysis-chat
 research path keeps its existing relevance gate and search policy; this change
 filters comparison pages for initial article assessments.
+
+
+## Reader comments rollout — migration 000018
+
+Apply [20261019_000018_reader_discussions.sql](../../supabase/migrations/20261019_000018_reader_discussions.sql)
+after 000017, before deploying the matching backend and frontend. It adds an
+RLS-protected server-only cache with owner/item/source checks and atomic once-only
+X admission. No new key, provider, model, worker or dependency is required.
+Reuse `X_API_READS_ENABLED` and server-only `X_API_BEARER_TOKEN`; the X account
+must permit the existing full-archive search endpoint. A missing configuration
+shows an unavailable state without a provider request.
+
+Opening Reader comments reads saved results only. Each explicit Load X replies
+click discloses separate X charges and can perform up to two X API reads, returning
+at most twenty recent replies from the conversation. Reply text stays separate
+from assessment evidence; reply media is not fetched. The result is a limited
+snapshot, not complete discussion coverage. Reddit comments remain unsupported.
+
+One attempt is retained per item/post, including aliases. Failures, timeouts or
+unknown persistence outcomes do not automatically repeat potentially billed
+reads; Check saved results is read-only. Content expires/deletes with its item,
+and a late completion cannot restore it. Existing assessments expose the primary
+link and already persisted social sources; additional selected social candidates
+are retained by new analyses only. Rollout does not trigger search or reassessment.
+
+The X ingestion correction excludes confirmed author replies to commenters from
+the author's source thread while retaining completeness checks. Video/GIF sources
+remain unsupported and require complete pasted content; they are now labeled
+unsupported before image-URL availability checks. No video transcription is added.
+
+See [local verification](../../.agent/context/changes/x-rich-sources/evidence.md#reader-replies-verification--2026-10-19).
+Hosted migration, X access and real reply quality remain operator acceptance;
+local tests use mocked providers and a disposable synthetic database.

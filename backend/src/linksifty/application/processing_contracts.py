@@ -76,14 +76,15 @@ class EvidenceSource(BaseModel):
     text: str
 
 
-class ResearchContext(BaseModel):
-    status: str = "not_requested"
-    sources: list[EvidenceSource] = Field(default_factory=list, max_length=20)
-
-
 class ResearchSourceView(BaseModel):
     id: str
     url: str
+
+
+class ResearchContext(BaseModel):
+    status: str = "not_requested"
+    sources: list[EvidenceSource] = Field(default_factory=list, max_length=20)
+    discussion_sources: list[ResearchSourceView] = Field(default_factory=list, max_length=20)
 
 
 class Telemetry(Protocol):

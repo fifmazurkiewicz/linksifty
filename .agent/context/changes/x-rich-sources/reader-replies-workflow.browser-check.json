@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "browser-check",
+  "evidenceKind": "automated-browser",
+  "status": "skipped",
+  "visualReview": "not-requested",
+  "provenance": "current",
+  "deliveryReceiptId": "2f9a8acc-8ab4-4c0e-9bb0-d98f7633ca08",
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/reader-replies-workflow.html",
+    "sha256": "0dcdfa030cac5fc08b3548d789b0ff04bf14575ed71a35d638712069e580e781",
+    "bytes": 757712
+  },
+  "state": {
+    "detail": "read",
+    "motion": "still"
+  },
+  "chrome": {
+    "status": "unavailable",
+    "executable": null
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/reader-replies-workflow.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "containment": {
+    "status": "skipped",
+    "policy": "fit-or-reader-declared-readable-vertical-scroll",
+    "viewports": []
+  },
+  "themeStates": {
+    "status": "skipped",
+    "viewports": []
+  },
+  "readability": {
+    "status": "skipped",
+    "minimumProjectedNodeTextPx": 6,
+    "viewports": []
+  },
+  "viewerChrome": {
+    "status": "skipped",
+    "viewports": []
+  },
+  "captures": {
+    "status": "not-requested",
+    "screenshots": [],
+    "contactSheet": null
+  },
+  "sidecars": {
+    "receipt": "reader-replies-workflow.browser-check.json",
+    "files": []
+  },
+  "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+}

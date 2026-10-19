@@ -56,3 +56,48 @@ behavioral tests in its owning task below. No live paid verification is assumed.
   backend tests, strict mypy, Ruff lint/format, frontend tests/lint/build and
   agent-toolkit check. Record mutation and offline captured-payload reproduction.
   No hosted fetch, environment change, database migration or new dependency.
+
+## Approved thread and media correction — 2026-10-19
+
+- [x] T5 Exclude only confirmed replies to other commenters (and their author
+  descendants) from the author's self-reply thread. Preserve missing-parent,
+  cycle, identity and submitted-post coverage checks. Classify known video/GIF
+  types before image URL availability. Add regression, mutation and captured-log
+  replay evidence, with every remote integration mocked. The owner approved the
+  bounded in-chat design with “Approved and lets code”. No video processing,
+  paid retry, deployment, dependency or schema change.
+
+- [x] T6 Expandable reader replies for the submitted X link and selected X
+  search results, as clarified by the owner. Reddit is conditional on existing
+  support; no Reddit adapter exists, so disclose unsupported status. Reuse
+  native details/summary and existing tokens. No analysis-note substitution.
+  - Record selected X/Reddit candidates as discussion links in existing research
+    JSON, separate from fetched evidence. Legacy fetched social sources remain
+    eligible. Do not send discussion candidates/replies to the assessment model.
+  - Add an owner/item/source-scoped cached discussion table and three server-only
+    RPCs (list, atomic once-only admission, fenced completion), migration 000018.
+    Check profile access, completed/unexpired item and persisted source membership.
+    Retain uncertain admissions; repeat clicks/read refresh never repeat X calls.
+    Cascade comments on item/account deletion; late writes cannot resurrect them.
+  - Add a small application discussion service, repository edge, authenticated
+    no-store GET/POST routes and entrypoint wiring. POST requires explicit cost
+    consent. No client-supplied fetch URL; source IDs resolve from owned records.
+  - Extend XAdapter with a bounded optional replies operation: fixed official
+    lookup plus one archive-search page, at most twenty replies, thirty seconds,
+    existing response byte bounds, text-only display and safe username validation.
+    No media downloads, extra pagination, automatic retries or paid model calls.
+  - Add independently collapsed Reader comments UI. Opening reads cached status;
+    only a Load replies button with X-charge disclosure sends POST. Show loading,
+    empty, failure/uncertain, unsupported Reddit and missing configuration states;
+    link each reply to its original X post and label the result a limited snapshot.
+  - TDD covers consent, owner/expiry/source checks, cached/repeated/uncertain
+    admission, no provider repeat after persistence failure, X error/size/identity
+    guards, research candidate separation, unsafe UI links and disclosure behavior.
+    Run mocked backend/frontend suites, strict typing, Ruff, frontend lint/build,
+    toolkit and the explicit disposable database gate when available. Record
+    mutation evidence, native browser QA and an editable/validated Archify flow.
+
+Scope review before T6 implementation: this matches the clarified approved
+feature. All provider reads remain explicit and once-only per owned source;
+Reddit integration and broad crawling are outside this change. Database rollout
+must precede deployment; local verification makes no hosted-success claim.

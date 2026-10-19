@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Reader Reply Loading Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/x-rich-sources/reader-replies-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "replies",
+      "label": "Explicit loading of public reply snapshots"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "panel",
+      "lane": "replies",
+      "col": 1,
+      "yOffset": -280,
+      "type": "frontend",
+      "label": "Open reader panel",
+      "sublabel": "Read saved status only",
+      "width": 190
+    },
+    {
+      "id": "consent",
+      "lane": "replies",
+      "col": 1,
+      "yOffset": -140,
+      "type": "security",
+      "label": "Load X replies",
+      "sublabel": "Explicit X charge consent",
+      "width": 190
+    },
+    {
+      "id": "admit",
+      "lane": "replies",
+      "col": 1,
+      "yOffset": 0,
+      "type": "database",
+      "label": "Admit once per post",
+      "sublabel": "Owner, item, source and expiry",
+      "width": 190
+    },
+    {
+      "id": "read",
+      "lane": "replies",
+      "col": 1,
+      "yOffset": 140,
+      "type": "cloud",
+      "label": "Read reply sample",
+      "sublabel": "Two X calls; twenty replies",
+      "width": 190
+    },
+    {
+      "id": "save",
+      "lane": "replies",
+      "col": 1,
+      "yOffset": 280,
+      "type": "database",
+      "label": "Save terminal result",
+      "sublabel": "Keep uncertain admission",
+      "width": 190
+    },
+    {
+      "id": "display",
+      "lane": "replies",
+      "col": 1,
+      "yOffset": 420,
+      "type": "frontend",
+      "label": "Display reader replies",
+      "sublabel": "Separate from assessment",
+      "width": 190
+    },
+    {
+      "id": "cached",
+      "lane": "replies",
+      "col": 2,
+      "yOffset": 0,
+      "type": "database",
+      "label": "Reuse saved attempt",
+      "sublabel": "No repeated provider read",
+      "width": 190
+    },
+    {
+      "id": "unsupported",
+      "lane": "replies",
+      "col": 2,
+      "yOffset": -140,
+      "type": "backend",
+      "label": "Reddit unavailable",
+      "sublabel": "No supported comments adapter",
+      "width": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "panel",
+      "to": "consent",
+      "label": "user chooses"
+    },
+    {
+      "from": "consent",
+      "to": "admit",
+      "label": "confirmed X source"
+    },
+    {
+      "from": "consent",
+      "to": "unsupported",
+      "label": "Reddit",
+      "variant": "dashed"
+    },
+    {
+      "from": "admit",
+      "to": "read",
+      "label": "new admission"
+    },
+    {
+      "from": "admit",
+      "to": "cached",
+      "label": "prior attempt"
+    },
+    {
+      "from": "read",
+      "to": "save",
+      "label": "success or failure"
+    },
+    {
+      "from": "save",
+      "to": "display",
+      "label": "owner still eligible"
+    },
+    {
+      "from": "cached",
+      "to": "display",
+      "label": "cached status",
+      "fromSide": "bottom",
+      "toSide": "right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Scope and limits",
+      "items": [
+        "Sources are the submitted X post and selected social search results; Reddit is explicitly unsupported.",
+        "Replies are public opinions, displayed as text with original post links; reply media is not fetched.",
+        "Opening or refreshing the panel reads the owner-scoped cache. No automatic paid retry, including uncertain outcomes."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Privacy and rollout",
+      "items": [
+        "Admission checks the verified owner, a completed unexpired item and persisted source membership.",
+        "URL aliases share one admission; deletion cascades cached replies and fences late writes.",
+        "Migration 000018 precedes backend and frontend deployment. This is a behavior contract, not repository snapshot proof."
+      ]
+    }
+  ]
+}

@@ -98,3 +98,64 @@ code makes the regression fail and was restored. Diagram specification, delivery
 and strict artifact checks pass; browser-check is skipped (Chrome unavailable).
 agent-toolkit check was attempted and is unavailable (exit 127). No archive or
 hosted-success claim. T1–T4 complete locally; hosted acceptance remains planned.
+
+## Approved thread/media correction — 2026-10-19
+
+T5 complete locally. The owner approved both diagnosed X corrections. Four focused
+cases failed before implementation: two comment-branch thread acquisitions and
+two video/GIF objects without URLs. All 163 X adapter/rich-source/debug cases
+now pass, including submitted-post, missing-parent, cycle and identity guards.
+Both supplied logs replay successfully with mocked image bytes (two and eleven
+images). Deliberate thread/media mutations each produce two regression failures.
+
+T6 complete locally: the owner clarified actual replies under both submitted and
+searched X links, with Reddit only if supported. No Reddit adapter exists.
+The amended plan implements explicit once-only reply loading and separate cached
+display, without adding replies to assessment evidence. The discarded analysis
+note UI remains removed. Scope/owner/cost/recovery review completed before T6
+implementation; migration 000018 must precede hosted deployment.
+
+T5 gates: 470 backend tests, strict mypy (47 files), Ruff lint/format pass.
+Frontend baseline before the discarded panel was 69 passing tests, with lint
+and build passing. agent-toolkit remains unavailable (exit 127), and Graft is
+unavailable. See evidence.md and implementation review. Local
+completion does not establish hosted acceptance. No push/deployment/live paid
+retry was made. Existing unrelated README/App/AdminPanel/auth-flow edits remain.
+
+
+### T6 delivery and verification
+
+Actual X reader replies are available in an independent collapsed panel for the
+submitted post and selected social search candidates. Opening reads saved data;
+explicit Load X replies consent admits one bounded provider attempt per item/post.
+Replies never enter assessment evidence or scoring. Reddit is visibly unsupported.
+Owner/access/expiry/source checks, atomic admission, terminal/uncertain persistence
+and deletion fences are implemented in migration 000018 and application edges.
+Existing analyses expose their primary and saved social sources; selected social
+candidates become available on new analyses only, with no retroactive search.
+
+Final gates: 487 backend tests, 77 frontend tests, strict mypy (50 files), Ruff
+lint/format (127 files), frontend lint and TypeScript/Vite build pass. All 15
+pgTAP files and the disposable PostgreSQL concurrency gate pass, including 23
+reader-discussion assertions and exactly one concurrent reply admission. RC1
+keyboard-focus finding is fixed and verified by red/green test and native desktop/
+390px mobile checks. Canonical review disposition precedes its derived board.
+
+Archify specification/delivery/strict artifact checks pass; its browser check is
+skipped because Chrome is unavailable. Native product browser QA uses synthetic
+fixtures and mocked requests; screenshots are retained. agent-toolkit check is
+unavailable (exit 127), Graft is unavailable. No dependency, real secret read,
+paid provider call, hosted migration, push or deployment was performed for T5/T6.
+Apply migration 000018 before deploying matching backend/frontend. Hosted quality
+acceptance remains pending; this active change is not archived as hosted complete.
+
+
+### Main publication — owner authorized 2026-10-19
+
+The owner requested “push main”. Remote main matches local base 017e737. Stage
+only T5/T6 source, tests, migration and change documentation; exclude unrelated
+admin-approval-count, README, App and admin/auth-flow edits. The exact staged
+frontend snapshot passes all 74 tests, lint and build independently of those
+local edits (the earlier 77-test run included three admin tests). Final strict
+mypy and Ruff checks pass; toolkit remains unavailable. Publication includes
+migration 000018 but does not apply it. Operator migration must precede use.

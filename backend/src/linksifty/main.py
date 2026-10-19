@@ -16,16 +16,18 @@ from fastapi.responses import JSONResponse
 from langfuse import Langfuse
 from pydantic import BaseModel, Field, HttpUrl, ValidationError
 
-from linksifty.api import accounts, admin, chat, items, processing
+from linksifty.api import accounts, admin, chat, discussions, items, processing
 from linksifty.api.auth import CurrentUser
 from linksifty.application.account_contracts import AccountService
 from linksifty.application.chat_service import ChatService
+from linksifty.application.discussions import DiscussionService
 from linksifty.application.item_contracts import DuplicateSubmission, ItemRecord
 from linksifty.application.item_service import ItemService
 from linksifty.application.processing_service import ProcessingService
 from linksifty.config import Settings
 from linksifty.infrastructure.brave_client import BraveSearch
 from linksifty.infrastructure.chat_repository import ChatRepository
+from linksifty.infrastructure.discussion_repository import DiscussionRepository
 from linksifty.infrastructure.http_fetcher import fetch_public_text
 from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 from linksifty.infrastructure.openrouter_client import OpenRouterClient
@@ -205,6 +207,19 @@ def create_app(
                     else None,
                     telemetry=telemetry,
                 )
+                application.state.discussions = DiscussionService(
+                    DiscussionRepository(
+                        configuration.supabase_url, configuration.supabase_service_role_key, client
+                    ),
+                    XAdapter(
+                        configuration.x_api_bearer_token,
+                        transport=transport,
+                        debug=configuration.x_api_debug,
+                        secrets=diagnostic_secrets,
+                    ).comments
+                    if configuration.x_api_reads_enabled and configuration.x_api_bearer_token
+                    else None,
+                )
                 application.state.chat = ChatService(
                     ChatRepository(
                         configuration.supabase_url, configuration.supabase_service_role_key, client
@@ -232,12 +247,14 @@ def create_app(
     app.include_router(processing.router)
     app.include_router(items.router)
     app.include_router(chat.router)
+    app.include_router(discussions.router)
     app.state.settings = configuration
     app.state.authenticator = None
     app.state.items = None
     app.state.accounts = None
     app.state.processing = None
     app.state.chat = None
+    app.state.discussions = None
 
     @app.exception_handler(ValidationError)
     async def invalid_persistence(request: Request, error: ValidationError) -> JSONResponse:

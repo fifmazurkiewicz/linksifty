@@ -1,0 +1,44 @@
+begin;
+select plan(23);
+insert into auth.users(id,email) values
+ ('11111111-1111-4111-8111-111111111111','reply-owner@example.test'),
+ ('22222222-2222-4222-8222-222222222222','reply-other@example.test');
+select public.get_or_create_account_profile('11111111-1111-4111-8111-111111111111','reply-owner@example.test',true);
+select public.get_or_create_account_profile('22222222-2222-4222-8222-222222222222','reply-other@example.test',true);
+create temporary table target as select * from public.submit_fetch_items(
+ '11111111-1111-4111-8111-111111111111',array['https://x.com/author/status/100']);
+select is((select count(*)::int from public.get_item_discussions('11111111-1111-4111-8111-111111111111',(select id from target))),0,'unfinished items have no discussion access');
+update public.items set status='completed' where id in(select id from target);
+update public.jobs set search_context='{"status":"no_sources","sources":[],"discussion_sources":[{"id":"selected","url":"https://x.com/i/web/status/200"},{"id":"alias","url":"https://twitter.com/author/status/100?s=20"},{"id":"reddit","url":"https://reddit.com/r/test/comments/abc"}]}'::jsonb where item_id in(select id from target);
+select is((select jsonb_array_length(sources) from public.get_item_discussions('11111111-1111-4111-8111-111111111111',(select id from target))),4,'primary and persisted search candidates are available');
+select is((select count(*)::int from public.get_item_discussions('22222222-2222-4222-8222-222222222222',(select id from target))),0,'another user cannot read the item');
+select is((select count(*)::int from public.begin_item_discussion('22222222-2222-4222-8222-222222222222',(select id from target),'primary')),0,'another user cannot admit reads');
+select is((select count(*)::int from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'unknown')),0,'arbitrary unpersisted source cannot be fetched');
+select is((select count(*)::int from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'reddit')),0,'unsupported Reddit source cannot admit X reads');
+create temporary table claim as select * from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'primary');
+select is((select admitted from claim),true,'one explicit attempt admitted');
+select is((select admitted from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'primary')),false,'repeat cannot rebill');
+select is((select admitted from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'alias')),false,'URL aliases cannot rebill the same post');
+select is((select count(*)::int from public.finish_item_discussion('22222222-2222-4222-8222-222222222222',(select id from target),(select attempt_id from claim),'ready','[]')),0,'foreign completion fenced');
+select is((select count(*)::int from public.finish_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),gen_random_uuid(),'ready','[]')),0,'wrong attempt fenced');
+select throws_ok($$select * from public.finish_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),(select attempt_id from claim),'ready','[{"id":"bad"}]')$$,'P0001','invalid_discussion','malformed reply rejected');
+select is((select status from public.finish_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),(select attempt_id from claim),'ready','[]')),'ready','empty sample cached');
+select is((select count(*)::int from public.finish_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),(select attempt_id from claim),'unavailable','[]')),0,'terminal result cannot be overwritten');
+select is((select admitted from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'selected')),true,'selected X source has a separate explicit attempt');
+update public.items set expires_at=now()-interval '1 second' where id in(select id from target);
+select is((select count(*)::int from public.get_item_discussions('11111111-1111-4111-8111-111111111111',(select id from target))),0,'expiry hides saved comments');
+select is((select count(*)::int from public.begin_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),'selected')),0,'expiry prevents more reads');
+select is((select count(*)::int from public.finish_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),(select id from public.item_discussions where post_id='200'),'ready','[]')),0,'expiry fences late completion');
+update public.items set expires_at=now()+interval '1 day' where id in(select id from target);
+update public.account_profiles set status='rejected' where user_id='11111111-1111-4111-8111-111111111111';
+select is((select count(*)::int from public.get_item_discussions('11111111-1111-4111-8111-111111111111',(select id from target))),0,'rejected account cannot read');
+update public.account_profiles set status='approved' where user_id='11111111-1111-4111-8111-111111111111';
+delete from public.items where id in(select id from target);
+select is((select count(*)::int from public.item_discussions where item_id in(select id from target)),0,'deletion cascades comments');
+select is((select count(*)::int from public.finish_item_discussion('11111111-1111-4111-8111-111111111111',(select id from target),(select attempt_id from claim),'ready','[]')),0,'late completion cannot resurrect a deleted item');
+set local role authenticated;
+select throws_ok($$select * from public.get_item_discussions('11111111-1111-4111-8111-111111111111',gen_random_uuid())$$,'42501',null,'browser cannot invoke discussion RPC');
+select throws_ok($$select * from public.item_discussions$$,'42501',null,'browser cannot read discussion table directly');
+reset role;
+select * from finish();
+rollback;

@@ -476,6 +476,36 @@ def concurrent_source_selection(environment: dict[str, str], same_job: bool = Fa
         execute(f"delete from auth.users where id='{user}';", environment)
 
 
+def concurrent_discussions(environment: dict[str, str]) -> None:
+    user = str(uuid4())
+    try:
+        execute(
+            f"""insert into auth.users(id,email) values ('{user}','discussion-race@example.test');
+            select public.get_or_create_account_profile(
+              '{user}','discussion-race@example.test',true);
+            select public.submit_fetch_items('{user}',array['https://x.com/author/status/100']);
+            update public.items set status='completed' where user_id='{user}';""",
+            environment,
+        )
+        item = execute(f"select id from public.items where user_id='{user}';", environment).strip()
+        barrier = Barrier(2)
+
+        def admit() -> str:
+            barrier.wait(timeout=10)
+            return execute(
+                f"select admitted from public.begin_item_discussion('{user}','{item}','primary');",
+                environment,
+            ).strip()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(admit) for _ in range(2)]
+            outcomes = sorted(future.result(timeout=20) for future in futures)
+        assert outcomes == ["f", "t"]
+        print("PASS: concurrent discussion clicks admit exactly one X request")
+    finally:
+        execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def main() -> int:
     environment = local_environment()
     if environment is None:
@@ -498,6 +528,7 @@ def main() -> int:
         "retry_fetch.test.sql",
         "image_reading.test.sql",
         "source_selection.test.sql",
+        "reader_discussions.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -511,6 +542,7 @@ def main() -> int:
     concurrent_image_reading(environment)
     concurrent_source_selection(environment, same_job=True)
     concurrent_source_selection(environment)
+    concurrent_discussions(environment)
     return 0
 
 

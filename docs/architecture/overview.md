@@ -202,6 +202,13 @@ requests paste before assessment reservation. X may omit undisclosed deleted/hid
 posts; the result represents the accessible indexed snapshot. X billing is
 operator-approved and separate from the model/Brave ledger.
 
+Archive search also returns the author's replies to other commenters. Those
+branches are excluded only when a returned parent belongs to another author in
+the same conversation, or descends from an already excluded branch. Missing
+thread parents and an excluded submitted post still request paste. Known video
+and GIF types are identified before image URL availability so unsupported media
+receives the correct failure label.
+
 Existing lookup/search requests expand referenced posts. Reply-parent selection
 is separate from quote/repost dependencies, so a quoting reply remains connected
 to its author's thread. A submitted repost resolves to its expanded original's
@@ -344,3 +351,30 @@ updated unchecked opt-in and data/cost disclosure.
 This is a behavior contract for the approved change, not a frozen repository map.
 Automated artifact checks and browser limitations are recorded in the change's
 evidence. Chat answering/research policy remains unchanged.
+
+
+## Reader replies — migration 000018
+
+`DiscussionService` resolves only owned, completed, unexpired items and persisted
+source IDs. DiscussionRepository invokes server-only list/admit/finish RPCs; the
+API handles authentication, strict consent and no-store responses. The entrypoint
+wires the existing X adapter only when X reads and its server token are enabled.
+
+A collapsed Reader comments panel reads cached results on opening. An explicit
+Load X replies click discloses X charges and admits one attempt per item/post,
+including URL aliases. X performs one post lookup and one conversation-search
+page, bounded to thirty seconds and twenty text replies. Media is labeled but
+not downloaded. Uncertain attempts stay admitted; refresh reads saved data only.
+Owner/item/attempt completion fences and cascading deletion prevent late writes.
+
+Selected safe social candidates are retained as discussion links in research JSON
+before ordinary host deduplication, separately from fetched evidence. Replies
+and discussion candidates never enter assessment scoring or model passages.
+Legacy assessments can use their primary and already saved social sources;
+there is no retroactive search. Reddit has no adapter and is shown unsupported.
+
+[Reply workflow HTML](../../.agent/context/changes/x-rich-sources/reader-replies-workflow.html)
+· [editable contract](../../.agent/context/changes/x-rich-sources/reader-replies-workflow.json)
+· [verification](../../.agent/context/changes/x-rich-sources/evidence.md#reader-replies-verification--2026-10-19).
+This is a behavioral contract. Archify static checks pass; diagram browser QA is
+skipped because Chrome is unavailable. Synthetic product browser QA is separate.

@@ -31,6 +31,78 @@ class RelevantSelector:
         )
 
 
+def test_selected_social_links_are_preserved_for_discussions_without_becoming_evidence() -> None:
+    from unittest.mock import create_autospec
+    from uuid import uuid4
+
+    from linksifty.application.processing_contracts import (
+        ProcessingJob,
+        ProcessingStore,
+        Reservation,
+    )
+    from linksifty.application.processing_service import ProcessingService
+    from linksifty.application.research_contracts import SearchProvider, SearchResponse
+    from linksifty.domain.acquisition import FetchFailure, FetchResult
+
+    async def run() -> None:
+        urls = (
+            "https://x.com/author/status/100?s=20",
+            "https://twitter.com/author/status/100",
+            "https://x.com/other/status/200",
+            "https://reddit.com/r/test/comments/abc",
+            "https://article.example/evidence",
+        )
+        store = create_autospec(ProcessingStore, instance=True)
+        store.stage.return_value = True
+        store.save_research.return_value = True
+        store.reserve_search.return_value = Reservation(
+            id=uuid4(), state="reserved", threshold_snapshot=60
+        )
+        store.reserve_selection.return_value = uuid4()
+        search = create_autospec(SearchProvider, instance=True)
+        search.search.return_value = SearchResponse(
+            confirmed=True, urls=urls, candidates=tuple(SearchCandidate(url) for url in urls)
+        )
+
+        async def fetch(url: str) -> FetchResult:
+            return (
+                FetchResult(text="Independent article evidence. " * 20)
+                if url.startswith("https://article.example")
+                else FetchResult(failure=FetchFailure.UNSUPPORTED)
+            )
+
+        service = ProcessingService(
+            store,
+            None,
+            fetch,
+            search=search,
+            search_price=Decimal("0.001"),
+            selector=RelevantSelector(),
+        )
+        context = await service.research(
+            ProcessingJob(
+                id=uuid4(),
+                user_id=uuid4(),
+                item_id=uuid4(),
+                lease_token=uuid4(),
+                original_url="https://primary.example",
+                web_search=True,
+            ),
+            "Primary article about practical testing. " * 20,
+        )
+        assert context.status == "ready"
+        assert [source.url for source in context.sources] == ["https://article.example/evidence"]
+        assert [source.url for source in context.discussion_sources] == [
+            "https://x.com/i/web/status/100",
+            "https://x.com/i/web/status/200",
+            "https://reddit.com/r/test/comments/abc",
+        ]
+        assert len({source.id for source in context.discussion_sources}) == 3
+        store.save_research.assert_awaited_once()
+
+    asyncio.run(run())
+
+
 def test_brave_uses_header_auth_and_bounds_candidates() -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         assert request.headers["X-Subscription-Token"] == "test-key"
