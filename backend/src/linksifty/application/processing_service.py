@@ -455,6 +455,20 @@ class ProcessingService:
         if not await self._stage(job, "reading_images"):
             return None
         result = await reader.extract(fetched.images)
+        self._event(
+            "image.reading",
+            images=len(fetched.images),
+            failure=result.failure_reason,
+            check=result.failure_check,
+            cost_known=result.cost is not None,
+        )
+        if result.failure_reason:
+            _logger.warning(
+                "image_reading_rejected job_id=%s check=%s cost_known=%s",
+                job.id,
+                result.failure_check or "unspecified",
+                result.cost is not None,
+            )
         await self._store.record_image_generation(job, reservation, result.generation_id)
         if result.cost is None:
             await self._stage(job, "image_reading_uncertain", "awaiting_manual_content")

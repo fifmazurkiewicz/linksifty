@@ -378,3 +378,12 @@ there is no retroactive search. Reddit has no adapter and is shown unsupported.
 · [verification](../../.agent/context/changes/x-rich-sources/evidence.md#reader-replies-verification--2026-10-19).
 This is a behavioral contract. Archify static checks pass; diagram browser QA is
 skipped because Chrome is unavailable. Synthetic product browser QA is separate.
+
+
+Image-reading maintenance: validated X /media/ photo URLs request original size
+using name=orig under the existing download/decoding bounds. MediaResult carries
+a code-generated failure check through the existing service to Render logs and
+image.reading telemetry. Raw response/image/source text is excluded. Provider
+admission, prompt/model, accounting, unknown-cost fencing and complete-source
+requirements remain unchanged. This is an existing adapter/service correction,
+with no new integration or data-flow stage.

@@ -29,3 +29,20 @@ retaining code, resolving quoted Article media, and processing eleven total
 images without omitting sources, bypassing budgets or adding automatic retries.
 The owner approved the bounded design, including a dedicated image model and
 up to twelve images, then asked whether assessment needs a stronger LLM.
+
+
+## Hosted image-reading failure — 2026-10-19
+
+Owner reports image_reading_failed after the thread fix. Screenshot and supplied
+08:54:33–08:54:58 UTC logs concern post 2111867588405862713. X lookup/search
+return successfully with two photo dependencies; the comment-branch GIF is not
+a required primary image. The application reaches image reading and a known-cost
+failure; the existing parser discards its exact rejection cause. Logs contain no
+OpenRouter response or rejection check. Model output/finish/coverage/legibility
+remain competing explanations; none is established as this attempt's root cause.
+
+Public CDN inspection finds the first bare image URL serves 849×1200, while the
+same URL with name=orig serves 1055×1491, matching API dimensions. Fine text is
+dense. Prefer original bytes under existing bounds, and expose safe fixed
+rejection checks before proposing another model or weakening source completeness.
+This improves input quality but does not prove resolution caused the failure.

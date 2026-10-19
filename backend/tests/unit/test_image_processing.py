@@ -11,6 +11,7 @@ from linksifty.application.processing_contracts import (
     AssessmentProvider,
     ProcessingJob,
     ProcessingStore,
+    Telemetry,
 )
 from linksifty.application.processing_service import ProcessingService
 from linksifty.domain.acquisition import FetchResult, SourceImage
@@ -47,6 +48,7 @@ def test_image_reading_is_budgeted_and_complete_before_assessment(outcome: str) 
             generation_id="generation",
             cost=None if outcome == "uncertain" else Decimal("0.004"),
             failure_reason=None if outcome == "complete" else "image_reading_failed",
+            failure_check="image_incomplete" if outcome == "unreadable" else None,
         )
         job = ProcessingJob(
             id=uuid4(),
@@ -55,12 +57,14 @@ def test_image_reading_is_budgeted_and_complete_before_assessment(outcome: str) 
             lease_token=uuid4(),
             original_url="https://x.com/user/status/100",
         )
+        telemetry = create_autospec(Telemetry, instance=True)
         service = ProcessingService(
             cast(ProcessingStore, store),
             cast(AssessmentProvider, provider),
             AsyncMock(),
             x_fetch=AsyncMock(return_value=FetchResult(text=TEXT, images=(IMAGE,))),
             image_reader=None if outcome == "unconfigured" else cast(ImageReader, reader),
+            telemetry=cast(Telemetry, telemetry),
         )
         await service.process(job)
         provider.assess.assert_not_awaited()
@@ -81,6 +85,15 @@ def test_image_reading_is_budgeted_and_complete_before_assessment(outcome: str) 
                     job, "image_reading_uncertain", "awaiting_manual_content"
                 )
             else:
+                telemetry.event.assert_any_call(
+                    "image.reading",
+                    {
+                        "images": 1,
+                        "failure": "image_reading_failed",
+                        "check": "image_incomplete",
+                        "cost_known": True,
+                    },
+                )
                 store.settle.assert_awaited_once()
                 store.stage.assert_awaited_with(
                     job, "image_reading_failed", "awaiting_manual_content"

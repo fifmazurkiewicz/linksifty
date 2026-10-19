@@ -168,3 +168,25 @@ migration 000018 ordering, X configuration/cost and unsupported Reddit. English
 editable workflow describes the new data flow. No roadmap milestone state is
 changed by this bounded addition. No archive, hosted acceptance or external
 publication is claimed. Graft is unavailable; focused impact/source reads used.
+
+
+## Image quality/diagnostic maintenance review — 2026-10-19
+
+Outcome: approve the local bounded correction and diagnostic change. No actionable
+findings or new dispositions. The reported hosted failure remains unresolved
+until its provider rejection check is observed; T7 stays in progress.
+
+Original-size requests preserve fixed-host validation, query format, credential
+isolation, single-call acquisition and all static-image/size bounds. Failures
+do not fall back to lower-quality content. Diagnostics contain fixed check
+labels, image count and a cost-known boolean, not raw source/model/provider text.
+No scoring/model/prompt/budget/retry rule is changed. Known costs and generation
+IDs survive rejection; unknown outcomes remain fenced and cannot yield assessment.
+
+Evidence: 11 red/green cases, diagnostic and normalization mutations, 498 backend
+tests, strict typing and Ruff pass. Privacy assertions cover rejected model text
+and provider error messages. Read-only CDN observation proves only the resolution
+difference, not the hosted failure cause. No frontend/database gate is necessary
+for this backend-only maintenance. Toolkit is unavailable. Canonical execution
+status and derived board retain pending hosted diagnosis; no archive or production
+success claim. Existing unrelated admin changes remain untouched.

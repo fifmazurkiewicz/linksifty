@@ -12,6 +12,7 @@ class MediaResult(BaseModel):
     text: str | None = None
     readable_text: str | None = None
     failure_reason: str | None = None
+    failure_check: str | None = None
     generation_id: str | None = None
     cost: Decimal | None = Field(default=None, ge=0, allow_inf_nan=False)
 

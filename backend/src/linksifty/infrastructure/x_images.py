@@ -63,7 +63,12 @@ def validate_media(media: XMedia) -> str:
             raise _unavailable()
     except ValueError as error:
         raise _unavailable() from error
-    return url
+    # Bare CDN URLs can serve a smaller derivative that loses fine source text.
+    return (
+        str(httpx.URL(url).copy_merge_params({"name": "orig"}))
+        if target.path.startswith("/media/")
+        else url
+    )
 
 
 async def fetch_images(

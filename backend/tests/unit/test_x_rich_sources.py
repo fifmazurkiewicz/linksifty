@@ -100,7 +100,7 @@ def test_static_image_is_acquired_without_x_credentials_and_without_lowering_min
     assert result.failure is None
     assert len(result.images) == 1
     assert result.images[0].data == png()
-    assert result.images[0].url == IMAGE_URL
+    assert result.images[0].url == IMAGE_URL + "?name=orig"
     assert result.images[0].source_url == "https://x.com/i/web/status/100"
     assert calls.count("pbs.twimg.com") == 1
 
@@ -427,7 +427,7 @@ def test_article_media_key_references_require_expanded_valid_image(
     if expanded:
         assert result.failure is None and TEXT in (result.text or "")
         assert len(result.images) == 1 and result.images[0].data == png()
-        assert image_requests == [IMAGE_URL]
+        assert image_requests == [IMAGE_URL + "?name=orig"]
     else:
         assert result.text is None and not result.images
         assert result.failure == "x_media_unavailable"
@@ -677,3 +677,38 @@ def test_unsafe_known_media_stops_before_billable_quoted_article_lookup() -> Non
     result = acquire(respond)
     assert result.failure == "x_media_unavailable" and result.text is None
     assert calls == ["/2/tweets/100"]
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        IMAGE_URL,
+        IMAGE_URL + "?name=small",
+        "https://pbs.twimg.com/media/example?format=png&name=small",
+    ],
+)
+def test_text_bearing_photos_request_original_size_once(url: str) -> None:
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "pbs.twimg.com":
+            requests.append(request)
+            assert request.url.params["name"] == "orig"
+            if "format=" in url:
+                assert request.url.params["format"] == "png"
+            assert "authorization" not in request.headers and "cookie" not in request.headers
+            return httpx.Response(200, content=png(), headers={"content-type": "image/png"})
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(attachments={"media_keys": ["photo"]}),
+                    "includes": {"media": [{"media_key": "photo", "type": "photo", "url": url}]},
+                },
+            )
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond)
+    assert result.failure is None and len(result.images) == 1
+    assert len(requests) == 1
+    assert httpx.URL(result.images[0].url).params["name"] == "orig"

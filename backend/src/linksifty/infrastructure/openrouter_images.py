@@ -43,6 +43,12 @@ class _Readings(BaseModel):
     images: list[_Reading] = Field(min_length=1, max_length=MAX_SOURCE_IMAGES)
 
 
+def _reject(result: MediaResult, check: str) -> MediaResult:
+    result.failure_check = check
+    _logger.warning("image_reading_failed check=%s", check)
+    return result
+
+
 class OpenRouterImageReader:
     def __init__(self, key: str, model: str, client: httpx.AsyncClient) -> None:
         self._key = key
@@ -70,7 +76,9 @@ class OpenRouterImageReader:
                 for image in images
             )
         ):
-            return MediaResult(cost=Decimal(0), failure_reason="image_reading_failed")
+            return _reject(
+                MediaResult(cost=Decimal(0), failure_reason="image_reading_failed"), "input_bounds"
+            )
         content: list[dict[str, object]] = []
         for index, image in enumerate(images, 1):
             encoded = base64.b64encode(image.data).decode("ascii")
@@ -118,14 +126,14 @@ class OpenRouterImageReader:
             )
         except httpx.HTTPError as error:
             _logger.warning("image_reading_failed error_type=%s", type(error).__name__)
-            return MediaResult(failure_reason="image_reading_uncertain")
+            return _reject(MediaResult(failure_reason="image_reading_uncertain"), "transport_error")
         result = MediaResult(failure_reason="image_reading_failed")
         try:
             if len(response.content) > 200000:
-                return result
+                return _reject(result, "response_too_large")
             body = json.loads(response.content, parse_float=Decimal)
             if not isinstance(body, dict):
-                return result
+                return _reject(result, "response_shape")
             identifier = body.get("id")
             result.generation_id = (
                 identifier if isinstance(identifier, str) and 1 <= len(identifier) <= 200 else None
@@ -137,23 +145,35 @@ class OpenRouterImageReader:
                 and result.generation_id is None
             ):
                 result.cost = Decimal(0)
-            if not response.is_success or result.cost is None:
-                return result
+            if not response.is_success:
+                return _reject(result, f"provider_http_{response.status_code}")
+            if result.cost is None:
+                return _reject(result, "cost_unknown")
             choice = body["choices"][0]
             if choice["finish_reason"] != "stop":
-                return result
-            readings = _Readings.model_validate_json(choice["message"]["content"]).images
+                finish = choice["finish_reason"]
+                return _reject(
+                    result,
+                    f"finish_{finish}"
+                    if finish in {"length", "content_filter"}
+                    else "finish_other",
+                )
+            try:
+                readings = _Readings.model_validate_json(choice["message"]["content"]).images
+            except ValidationError:
+                return _reject(result, "reading_schema")
             expected = {f"image{index}": image for index, image in enumerate(images, 1)}
             if len(readings) != len(expected) or {reading.image_id for reading in readings} != set(
                 expected
             ):
-                return result
+                return _reject(result, "image_coverage")
+            if any(not reading.complete for reading in readings):
+                return _reject(result, "image_incomplete")
             if any(
-                not reading.complete
-                or not (reading.transcription.strip() or reading.description.strip())
+                not (reading.transcription.strip() or reading.description.strip())
                 for reading in readings
             ):
-                return result
+                return _reject(result, "empty_reading")
             parts: list[str] = []
             for reading in readings:
                 image = expected[reading.image_id]
@@ -164,12 +184,12 @@ class OpenRouterImageReader:
                 )
             text = "\n\n".join(parts)
             if len(text.encode("utf-8")) > 100000 or "\x00" in text:
-                return result
+                return _reject(result, "extracted_text_bounds")
             result.text = text
             result.readable_text = "\n\n".join(
                 f"{reading.transcription}\n{reading.description}" for reading in readings
             )
             result.failure_reason = None
         except (ValueError, KeyError, IndexError, TypeError, ValidationError):
-            pass
+            return _reject(result, "response_invalid")
         return result

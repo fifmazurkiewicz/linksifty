@@ -159,3 +159,31 @@ frontend snapshot passes all 74 tests, lint and build independently of those
 local edits (the earlier 77-test run included three admin tests). Final strict
 mypy and Ruff checks pass; toolkit remains unavailable. Publication includes
 migration 000018 but does not apply it. Operator migration must precede use.
+
+
+## Hosted image-reading follow-up — T7
+
+In progress: root cause of the supplied hosted attempt remains unconfirmed.
+Local input-quality correction and diagnostic maintenance are complete: request
+original CDN photos, preserve all bounds and single-attempt behavior, and report
+fixed rejection checks to Render and the image.reading event. No raw source or
+provider payload is logged. Existing vision model and billing rules are unchanged.
+
+Eight diagnostic cases fail before implementation and pass afterward; removing
+the failure check makes all eight fail. Three original-size cases fail before
+implementation and pass afterward; bypassing normalization makes all three fail.
+Final 498 backend tests, strict mypy (50 files), Ruff lint and format (127 files)
+pass. Toolkit remains unavailable (exit 127). No frontend or database change,
+new dependency, paid request, push or deployment in this follow-up. Public CDN
+read-only inspection confirms 849×1200 versus original 1055×1491 for the first
+photo; browser tab closed. Provider output and hosted quality remain pending.
+
+
+### T7 publication authorization
+
+Owner explicitly requested “push main” for the original-resolution and image
+rejection diagnostics correction. Publish only T7 source, tests and matching
+documentation. Preserve unrelated local admin/App/README/auth-flow work. The
+498-test, typing, lint and format evidence above applies without further product
+code changes. This publication does not claim hosted diagnosis or quality success,
+apply a database migration, change a model, or authorize a paid retry.

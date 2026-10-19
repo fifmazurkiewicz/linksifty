@@ -73,3 +73,20 @@ The owner approved the short in-chat design and dedicated image-model change.
   item/source, including uncertain attempts. Source membership is resolved from
   persisted primary/research records, never arbitrary browser URLs. Replies stay
   outside primary and comparison evidence; no model call or score change.
+
+
+## Image input quality and rejection diagnostics
+
+Retain the configured vision model (default openai/gpt-4.1-mini). Do not attribute
+the hosted failure to the model or image quality without its response. Original
+CDN resolution is a directly verified input-quality improvement: merge name=orig
+for validated /media/ URLs, preserving format/query fields and deduplicating the
+normalized download target. Existing credential isolation, fixed host, no
+redirects/retries and byte/pixel/image limits continue to apply. Unavailable or
+oversized originals stop; there is no lower-quality automatic fallback.
+
+Expose only code-generated check labels, image count and whether cost is known.
+Keep raw model/provider messages, image/base64 bytes, source text, keys and
+generation IDs out of the new logs/events. Preserve known-cost settlement and
+unknown-cost fencing before assessment/source caching. This is diagnostic
+maintenance in the existing acquisition path, with no new integration or model.

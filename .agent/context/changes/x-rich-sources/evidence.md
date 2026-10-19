@@ -273,3 +273,34 @@ Ruff lint and Ruff format (127 files) pass again; toolkit attempted, exit 127.
 Staged source whitespace check passes excluding the preserved Archify-generated
 HTML, whose generated blank lines contain spaces. Its original artifact bytes
 and validation receipts are retained without postprocessing.
+
+
+## Image-reading diagnosis — 2026-10-19
+
+- Owner-provided logs show the Roman post lookup plus two archive pages returning
+  200 with two required photos. Screenshot shows image_reading_failed after source
+  acquisition. No image-reader response/check was logged. The exact hosted
+  rejection is unknown; this is not evidence that the vision model is incapable.
+- Read-only public CDN inspection in the in-app browser: the bare first photo URL
+  https://pbs.twimg.com/media/HU7cALMXkAAattK.jpg reports 849×1200. Adding
+  ?name=orig reports 1055×1491, matching API media dimensions. The photo contains
+  dense fine text. Inspection did not call X API/OpenRouter, retain image bytes
+  or alter remote content. Tab closed. Web tool could not open these images;
+  direct browser inspection supplies the observation, not secondary search claims.
+- Red diagnostic tests: 8 failed, 13 passed. Green image reader/processing: 28
+  passed, including telemetry propagation, no assessment on failure, cost and
+  generation preservation, one call and absence of source/key/provider payload
+  in logs. Deliberately clearing failure_check -> 8 failures; restored.
+- Red original-size tests: 3 failures. Green acquisition/reader/processing suites:
+  87 passed. Cases cover bare, named small and format/query photos; fixed CDN,
+  credential-free request, one call and original provenance are asserted. Existing
+  unsafe-URL, redirect, byte, pixel and animation checks still run. Removing
+  normalization -> 3 failures; restored. Existing URL expectations now explicitly
+  expect name=orig; source identity and image byte assertions are retained.
+- Final `uv run --package linksifty pytest backend/tests -q --tb=short`: 498
+  passed, existing Starlette/httpx deprecation warning. `mypy --strict backend/src`:
+  50 files pass; `ruff check .`: pass; `ruff format --check .`: 127 formatted files.
+  Commands use UV_CACHE_DIR=/private/tmp/linksifty-uv-cache and UV_OFFLINE=true.
+  `agent-toolkit check`: unavailable (exit 127). No frontend/database change.
+- No live model call, automatic paid retry, secret access, push, deployment or
+  migration was performed. Hosted success/root cause is not claimed.

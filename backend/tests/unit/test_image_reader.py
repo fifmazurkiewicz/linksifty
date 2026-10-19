@@ -223,3 +223,75 @@ def test_unknown_image_model_never_sends_a_paid_request() -> None:
         assert not calls
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "case,check",
+    [
+        ("provider", "provider_http_400"),
+        ("cost", "cost_unknown"),
+        ("length", "finish_length"),
+        ("schema", "reading_schema"),
+        ("coverage", "image_coverage"),
+        ("incomplete", "image_incomplete"),
+        ("empty", "empty_reading"),
+        ("invalid", "response_invalid"),
+    ],
+)
+def test_image_rejection_diagnostic_is_specific_private_and_keeps_accounting(
+    case: str, check: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    calls: list[httpx.Request] = []
+    private = "PRIVATE_SOURCE_AND_PROVIDER_MESSAGE"
+    reading = dict(READING, transcription=private)
+    if case == "schema":
+        reading.pop("description")
+    if case == "coverage":
+        reading["image_id"] = "unknown"
+    if case == "incomplete":
+        reading["complete"] = False
+    if case == "empty":
+        reading.update(transcription="", description="")
+    body: dict[str, object] = {
+        "id": "private-generation-id",
+        "usage": {} if case == "cost" else {"cost": "0.003"},
+        "choices": [
+            {
+                "finish_reason": "length" if case == "length" else "stop",
+                "message": {"content": json.dumps({"images": [reading]})},
+            }
+        ],
+    }
+    if case == "provider":
+        body = {"error": {"message": private}}
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if case == "invalid":
+            return httpx.Response(200, text=private)
+        return httpx.Response(400 if case == "provider" else 200, json=body)
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            result = await OpenRouterImageReader(
+                "private-key", "openai/gpt-4.1-mini", client
+            ).extract((IMAGE,))
+        assert result.text is None and result.failure_reason == "image_reading_failed"
+        assert result.failure_check == check
+        assert result.cost == (
+            None
+            if case in {"cost", "invalid"}
+            else Decimal(0)
+            if case == "provider"
+            else Decimal("0.003")
+        )
+        assert result.generation_id == (
+            None if case in {"provider", "invalid"} else "private-generation-id"
+        )
+        assert len(calls) == 1
+
+    asyncio.run(run())
+    assert f"check={check}" in caplog.text
+    assert private not in caplog.text
+    assert "private-key" not in caplog.text
+    assert "private-generation-id" not in caplog.text

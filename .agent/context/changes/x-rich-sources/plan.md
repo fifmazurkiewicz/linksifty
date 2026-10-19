@@ -101,3 +101,12 @@ Scope review before T6 implementation: this matches the clarified approved
 feature. All provider reads remain explicit and once-only per owned source;
 Reddit integration and broad crawling are outside this change. Database rollout
 must precede deployment; local verification makes no hosted-success claim.
+
+
+- [ ] T7 Hosted image-reading diagnosis: retain safe parser rejection checks in
+  MediaResult, Render logs and image.reading telemetry; test privacy, accounting,
+  coverage, schema, truncation and single-call behavior. Request original-size
+  /media/ photos on the existing fixed CDN with no retry or limit increase.
+  Local correction/tests complete; actual hosted rejection remains unconfirmed
+  until matching diagnostics from an independently authorized attempt are available.
+  No model, budget, schema migration or partial-source acceptance change.

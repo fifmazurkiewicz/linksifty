@@ -1189,3 +1189,24 @@ unsupported before image-URL availability checks. No video transcription is adde
 See [local verification](../../.agent/context/changes/x-rich-sources/evidence.md#reader-replies-verification--2026-10-19).
 Hosted migration, X access and real reply quality remain operator acceptance;
 local tests use mocked providers and a disposable synthetic database.
+
+
+### Image-reading rejection diagnostics
+
+The existing vision reader defaults to `openai/gpt-4.1-mini`. Validated X /media/
+photos request `name=orig` to avoid default CDN downscaling, with existing byte,
+pixel, static-image and timeout limits. Query format is preserved; originals
+are neither retried nor replaced by a lower-quality fallback on failure.
+
+Inspect Render `image_reading_failed check=...` and `image_reading_rejected`
+(job ID and cost-known flag), or Langfuse `image.reading` (image count, failure,
+check and cost-known flag). Checks distinguish `provider_http_<status>`,
+`cost_unknown`, `finish_length`/`finish_content_filter`/`finish_other`,
+`reading_schema`, `image_coverage`, `image_incomplete`, `empty_reading`,
+`input_bounds`, `response_too_large`, `response_shape`, `response_invalid`,
+`extracted_text_bounds` and `transport_error`. No extra debug flag is needed.
+These diagnostics exclude raw image/model/source/provider text and credentials.
+An incomplete or invalid reading still requests manual content; unknown cost
+still blocks automatic retry. Known charges remain settled even on rejection.
+Old traces containing only image_reading_failed cannot establish the cause;
+model changes and live paid retries need separate evidence and authorization.
