@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "486c591a-4f2c-47bd-941e-b0db953e029c",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/.agent/context/changes/ai-link-titles/titles-workflow.json",
+  "output": "/Users/Filip/dev/linksifty/.agent/context/changes/ai-link-titles/titles-workflow.html",
+  "specification": {
+    "sha256": "93532d5421eede603a53defc41953cc6003cbedb02caf56d3ffcb9203eda0cad",
+    "bytes": 6692
+  },
+  "artifact": {
+    "sha256": "87a8b869cfb4919ad8cf6acc0e54a9b8eb5b35fcf537bc24f3483827795c5b9c",
+    "bytes": 763105
+  }
+}

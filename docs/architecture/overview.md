@@ -436,3 +436,8 @@ inactive processing and shared monthly capacity. A per-item unresolved ledger
 reservation prevents duplicate paid execution; content deletion detaches that
 reservation while preserving late-generation reconciliation. No source fetching,
 new worker, new service or assessment rerun is introduced.
+
+Editable [title workflow JSON](../../.agent/context/changes/ai-link-titles/titles-workflow.json)
+and [workflow HTML](../../.agent/context/changes/ai-link-titles/titles-workflow.html)
+cover normal analysis and confirmed backfill. Schema, delivery and strict artifact
+checks pass; browser QA is unavailable because Chrome/Chromium is absent.

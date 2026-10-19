@@ -25,7 +25,15 @@ after content deletion. Unknown outcomes remain reserved.
 - [x] T2: Provider, application, API, SQL persistence/admission and queue UI.
 - [x] T3: Database isolation/accounting/recovery tests; backend/frontend suites,
   mypy, Ruff, frontend lint/build pass. Toolkit check attempted but unavailable.
-- [ ] T4: Documentation, editable/validated workflow, review and push main.
+- [x] T4: Deployment documentation, editable workflow and implementation review.
+  Workflow schema/artifact gates pass; Chrome is unavailable for browser QA.
 
 Pre-existing admin-count edits in README, App, CSS, AdminPanel and auth-flow tests
 are excluded from the feature commit. Evidence is in [evidence.md](evidence.md).
+
+Implementation commit: `ca29e43`. Local implementation and verification are
+complete, with unavailable toolkit/browser gates explicitly recorded. The
+owner-authorized publication target is `origin/main`; hosted activation still
+requires migration 000020 followed by matching backend/frontend deployment.
+
+The [derived board](plan-kanban.html) follows this canonical record.

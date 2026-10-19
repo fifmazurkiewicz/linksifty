@@ -1,0 +1,299 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "AI topic titles and safe backfill",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/ai-link-titles/titles-workflow.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "ca29e438f693d07c77ddf6d97d48095c889988a0",
+      "provider": "github"
+    }
+  },
+  "lanes": [
+    {
+      "id": "analysis",
+      "label": "New analysis"
+    },
+    {
+      "id": "backfill",
+      "label": "Existing untitled link"
+    },
+    {
+      "id": "safety",
+      "label": "Admission and recovery",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "complete",
+    "assess",
+    "validate",
+    "save",
+    "queue"
+  ],
+  "nodes": [
+    {
+      "id": "complete",
+      "lane": "analysis",
+      "col": 0,
+      "type": "database",
+      "label": "Complete text",
+      "sublabel": "Primary source only",
+      "width": 160,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 501,
+          "end_line": 520
+        }
+      ]
+    },
+    {
+      "id": "assess",
+      "lane": "analysis",
+      "col": 1,
+      "type": "cloud",
+      "label": "AI assessment",
+      "sublabel": "Existing budgeted call",
+      "width": 160,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 564,
+          "end_line": 590
+        }
+      ]
+    },
+    {
+      "id": "validate",
+      "lane": "analysis",
+      "col": 2,
+      "type": "backend",
+      "label": "Validate title",
+      "sublabel": "Independent of criteria",
+      "width": 160,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/openrouter_client.py",
+          "line": 644,
+          "end_line": 661
+        }
+      ]
+    },
+    {
+      "id": "save",
+      "lane": "analysis",
+      "col": 3,
+      "type": "database",
+      "label": "Save topic title",
+      "sublabel": "Owner + active lease",
+      "width": 160,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261019_000020_ai_titles.sql",
+          "line": 8,
+          "end_line": 27
+        }
+      ]
+    },
+    {
+      "id": "queue",
+      "lane": "analysis",
+      "col": 4,
+      "type": "frontend",
+      "label": "Reading queue",
+      "sublabel": "Title + clickable URL",
+      "width": 160,
+      "sources": [
+        {
+          "path": "frontend/src/features/queue/Queue.tsx",
+          "line": 93,
+          "end_line": 108
+        }
+      ]
+    },
+    {
+      "id": "confirm",
+      "lane": "backfill",
+      "col": 0,
+      "type": "frontend",
+      "label": "Generate title",
+      "sublabel": "Confirm budget use",
+      "width": 160,
+      "sources": [
+        {
+          "path": "frontend/src/features/queue/Queue.tsx",
+          "line": 117,
+          "end_line": 122
+        }
+      ]
+    },
+    {
+      "id": "admit",
+      "lane": "backfill",
+      "col": 1,
+      "type": "security",
+      "label": "Admit one call",
+      "sublabel": "Owner, expiry, state; text + cap",
+      "width": 160,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261019_000020_ai_titles.sql",
+          "line": 41,
+          "end_line": 68
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "lane": "backfill",
+      "col": 2,
+      "type": "cloud",
+      "label": "AI title only",
+      "sublabel": "128 output tokens",
+      "width": 160,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/openrouter_client.py",
+          "line": 529,
+          "end_line": 579
+        }
+      ]
+    },
+    {
+      "id": "record",
+      "lane": "backfill",
+      "col": 3,
+      "type": "database",
+      "label": "Save and settle",
+      "sublabel": "Known cost; retain title",
+      "width": 160,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 120,
+          "end_line": 145
+        }
+      ]
+    },
+    {
+      "id": "blocked",
+      "lane": "safety",
+      "col": 1,
+      "type": "security",
+      "label": "Stop before AI",
+      "sublabel": "No content or capacity",
+      "width": 160,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261019_000020_ai_titles.sql",
+          "line": 48,
+          "end_line": 65
+        }
+      ]
+    },
+    {
+      "id": "uncertain",
+      "lane": "safety",
+      "col": 3,
+      "type": "database",
+      "label": "Keep reservation",
+      "sublabel": "No automatic paid retry",
+      "width": 160,
+      "sources": [
+        {
+          "path": "supabase/migrations/20261019_000020_ai_titles.sql",
+          "line": 31,
+          "end_line": 39
+        },
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 134,
+          "end_line": 145
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "text-to-ai",
+      "from": "complete",
+      "to": "assess"
+    },
+    {
+      "id": "ai-to-title",
+      "from": "assess",
+      "to": "validate"
+    },
+    {
+      "id": "title-to-save",
+      "from": "validate",
+      "to": "save"
+    },
+    {
+      "id": "save-to-queue",
+      "from": "save",
+      "to": "queue"
+    },
+    {
+      "id": "consent-admission",
+      "from": "confirm",
+      "to": "admit"
+    },
+    {
+      "id": "admission-ai",
+      "from": "admit",
+      "to": "title"
+    },
+    {
+      "id": "ai-record",
+      "from": "title",
+      "to": "record"
+    },
+    {
+      "id": "record-queue",
+      "from": "record",
+      "to": "queue",
+      "variant": "emphasis"
+    },
+    {
+      "id": "denied",
+      "from": "admit",
+      "to": "blocked",
+      "label": "denied",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "unknown",
+      "from": "record",
+      "to": "uncertain",
+      "label": "unknown cost",
+      "variant": "dashed",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Titles are metadata",
+      "items": [
+        "A valid title survives failed assessment checks.",
+        "Ready still requires the existing valid, settled assessment.",
+        "Meaningful saved titles are preserved."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Cost and source boundaries",
+      "items": [
+        "Backfill uses complete cached primary text; no fetch or assessment rerun.",
+        "Unresolved calls fence duplicate requests; generation IDs reconcile later.",
+        "Deleting content detaches billing metadata without erasing charges."
+      ]
+    }
+  ]
+}
