@@ -1,0 +1,34 @@
+begin;
+select plan(14);
+insert into auth.users(id,email) values
+ ('11111111-1111-4111-8111-111111111111','text-owner@example.test'),
+ ('22222222-2222-4222-8222-222222222222','text-other@example.test');
+select public.get_or_create_account_profile('11111111-1111-4111-8111-111111111111','text-owner@example.test',true);
+select public.get_or_create_account_profile('22222222-2222-4222-8222-222222222222','text-other@example.test',true);
+create temporary table item as select * from public.submit_fetch_items('11111111-1111-4111-8111-111111111111',array['https://example.test/text']);
+create temporary table claim as select * from public.claim_processing_job('11111111-1111-4111-8111-111111111111');
+select is((select count(*)::int from public.save_text_job_source('22222222-2222-4222-8222-222222222222',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array['image'])),0,'foreign owner cannot save scope');
+select is((select count(*)::int from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),gen_random_uuid(),repeat('Complete text. ',30),array['image'])),0,'stale lease cannot save scope');
+select throws_ok($$select * from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array['invented'])$$,'P0001','invalid_media_scope','untrusted media label rejected');
+select is((select count(*)::int from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array['image','video'])),1,'complete text and omitted media saved atomically');
+select is((select omitted_media from public.source_contents where item_id=(select id from item)),array['image','video'],'omission metadata persists');
+select is((select content from public.source_contents where item_id=(select id from item)),repeat('Complete text. ',30),'scope metadata never becomes source evidence');
+update public.items set expires_at=now()-interval '1 second' where id=(select id from item);
+select is((select count(*)::int from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array[]::text[])),0,'expired item cannot change scope');
+update public.items set expires_at=now()+interval '1 day' where id=(select id from item);
+update public.account_profiles set status='rejected' where user_id='11111111-1111-4111-8111-111111111111';
+select is((select count(*)::int from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array[]::text[])),0,'rejected account cannot change scope');
+update public.account_profiles set status='approved' where user_id='11111111-1111-4111-8111-111111111111';
+select is((select count(*)::int from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array[]::text[])),1,'empty media list records known text-only scope');
+select is((select omitted_media from public.source_contents where item_id=(select id from item)),array[]::text[],'empty metadata is distinct from historical NULL');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+select is((select count(*)::int from public.source_contents),0,'RLS prevents another user reading scope');
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+select is((select count(*)::int from public.source_contents),1,'existing RLS allows owner source reads');
+select throws_ok($$select * from public.save_text_job_source('11111111-1111-4111-8111-111111111111',gen_random_uuid(),gen_random_uuid(),repeat('Complete text. ',30),array['image'])$$,'42501',null,'browser cannot write scope');
+reset role;
+delete from public.items where id=(select id from item);
+select is((select count(*)::int from public.save_text_job_source('11111111-1111-4111-8111-111111111111',(select id from claim),(select lease_token from claim),repeat('Complete text. ',30),array['image'])),0,'late write cannot resurrect deleted source');
+select * from finish();
+rollback;

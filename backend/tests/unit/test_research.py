@@ -66,7 +66,7 @@ def test_selected_social_links_are_preserved_for_discussions_without_becoming_ev
 
         async def fetch(url: str) -> FetchResult:
             return (
-                FetchResult(text="Independent article evidence. " * 20)
+                FetchResult(text="Independent article evidence. " * 20, omitted_media=("image",))
                 if url.startswith("https://article.example")
                 else FetchResult(failure=FetchFailure.UNSUPPORTED)
             )
@@ -91,6 +91,7 @@ def test_selected_social_links_are_preserved_for_discussions_without_becoming_ev
             "Primary article about practical testing. " * 20,
         )
         assert context.status == "ready"
+        assert context.sources[0].omitted_media == ["image"]
         assert [source.url for source in context.sources] == ["https://article.example/evidence"]
         assert [source.url for source in context.discussion_sources] == [
             "https://x.com/i/web/status/100",

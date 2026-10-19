@@ -151,16 +151,16 @@ uses the same monthly budget and server key. Apply migration
 `OPENROUTER_MODEL` remains the answer model. See
 [classification rollout](docs/deployment/setup.md#chat-query-classification-migration-000015).
 
-### Full X Articles and static images
+### Text-only source analysis
 
-X ingestion now supports full Article bodies and bounded static image reading.
-Visible text and diagram descriptions are labeled model-extracted and charged
-from the same monthly budget before assessment. Preview-only Articles,
-unreadable images and unsupported media request paste. Image bytes are not
-stored; complete source text is cached. Apply migration
-`20261018_000016_rich_x_sources.sql` **before** deploying the matching backend/UI.
-See [rich-source rollout](docs/deployment/setup.md#rich-x-articles-and-images-migration-000016)
-for limits, uncertain-charge recovery and hosted acceptance.
+X posts, connected threads, full Article bodies/code and ordinary web pages are
+analyzed as text. Images, video, GIFs and audio are not downloaded or read by AI;
+results show known media types and explicitly disclose the text-only scope.
+Missing, short, truncated or otherwise incomplete text still requests paste.
+Migration `20261019_000019_text_only_sources.sql` must follow 000018 before the
+matching backend/UI deployment. Historical analyses are not relabeled or rerun;
+existing uncertain image charges retain their accounting safeguards.
+See [text-only rollout](docs/deployment/setup.md#text-only-operation-migration-000019).
 
 
 Jev selects comparison pages before downloads, using article and candidate

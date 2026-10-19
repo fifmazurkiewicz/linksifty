@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/text-only-workflow.json",
+    "sha256": "08f32caa374ab1c236cee8da4a1fa8141e6d4746a6ab59711846f67409db7f4e",
+    "bytes": 3338
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/text-only-workflow.html",
+    "sha256": "4ee7173221444f3f41ad2c75d8c9f9ba529984c53e4583dcba787206a3f28e42",
+    "bytes": 753050
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/text-only-workflow.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/text-only-workflow.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/text-only-workflow.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/.agent/context/changes/x-rich-sources/text-only-workflow.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 447
+}

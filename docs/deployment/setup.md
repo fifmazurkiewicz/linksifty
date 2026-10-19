@@ -1,5 +1,11 @@
 # Linksifty setup: Supabase, Render, Vercel, OpenRouter and X
 
+Current source policy (2026-10-19): **text-only analysis**, with visible omitted-media
+metadata. Apply migration 000019 after 000018 before deploying the matching code.
+See [current rollout](#text-only-operation-migration-000019). Rich-image sections
+below document historical implementation and existing charge recovery; new jobs
+no longer download or infer media.
+
 Latest local source-selection implementation: **2026-10-18**. Apply migration 000017
 before deploying this backend/UI; see [Jev source selection](#topic-relevant-source-selection-migration-000017).
 
@@ -1210,3 +1216,44 @@ An incomplete or invalid reading still requests manual content; unknown cost
 still blocks automatic retry. Known charges remain settled even on rejection.
 Old traces containing only image_reading_failed cannot establish the cause;
 model changes and live paid retries need separate evidence and authorization.
+
+
+## Text-only operation (migration 000019)
+
+The owner narrowed acquisition to complete text. X posts/connected self-reply
+threads, full Article bodies/code and quoted/embedded text retain completeness,
+identity, size and access checks. Photos, video, GIFs, audio and other attachments
+are only availability metadata. Ordinary HTML tags similarly identify media
+without following their URLs. Media-only/short, truncated, withheld, login or
+unsupported text still requests pasted content. No media content is invented.
+
+Pause new processing and drain existing active calls before replacing old workers.
+Apply [20261019_000019_text_only_sources.sql](../../supabase/migrations/20261019_000019_text_only_sources.sql)
+after 000018, then deploy matching backend/frontend and resume processing. Avoid
+running old workers alongside the new version: they can still initiate vision.
+New processing performs zero CDN downloads, media-expansion-only post lookups,
+vision requests or image-budget reservations. `OPENROUTER_IMAGE_MODEL` is retained
+as an inactive legacy setting; changing it does not re-enable reading. The
+assessment model, X operator opt-in and search/reader-reply costs remain unchanged.
+
+The migration adds nullable `source_contents.omitted_media` and the server-only
+`save_text_job_source` RPC, fenced by verified owner/account, live lease, job state
+and unexpired item. Metadata is atomically saved separately from text/hash;
+[] means a new text-only fetch without known media, NULL preserves unrecorded
+historical/manual scope. Existing owner RLS and client write revocations remain.
+Assessment GET returns scope from owned fetched content; research metadata stays
+in its existing JSON. New results display the scope and known media kinds before
+the summary, with original-source links. Metadata/alt text is not image evidence.
+
+Existing completed assessments and cached old sources are not rewritten or
+relabeled as text-only. Previously billed/reserved vision calls are neither
+refunded nor repeated; existing reconciliation/unknown-cost fences remain. Known
+terminal failures may be retried only explicitly under the current text-only
+policy. An uncertain attempt still requires the existing manual/recovery path.
+There is no automatic paid retry, reassessment or migration backfill.
+
+Local mocked/runtime/SQL/browser evidence is in
+[text-only verification](../../.agent/context/changes/x-rich-sources/evidence.md#text-only-verification--2026-10-19).
+The English [workflow](../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
+and [editable contract](../../.agent/context/changes/x-rich-sources/text-only-workflow.json)
+show the active scope. No hosted migration or paid quality test is implied.

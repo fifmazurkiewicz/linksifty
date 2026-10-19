@@ -190,3 +190,35 @@ difference, not the hosted failure cause. No frontend/database gate is necessary
 for this backend-only maintenance. Toolkit is unavailable. Canonical execution
 status and derived board retain pending hosted diagnosis; no archive or production
 success claim. Existing unrelated admin changes remain untouched.
+
+
+## Text-only scope review — 2026-10-19
+
+Outcome: approve T8 locally. No actionable findings by severity, new Skip or
+unverified dispositions. The earlier RC1 keyboard finding stays verified. Hosted
+text-only acceptance remains pending; no archive or production success claim.
+
+Scope: the user explicitly supersedes full-media completeness with complete text
+plus media availability. Active source adapters do not download bytes or hydrate
+media alone, startup no longer constructs a vision reader, and processing cannot
+reserve/infer images. Metadata/alt text is not text evidence. Source identity,
+thread/quote/Article/code completeness, byte/time bounds and short-text fallback
+remain. Assessment prompt limits claims to supplied text; scoring is unchanged.
+
+Ownership/privacy: new server-only save RPC atomically records text/hash and a
+bounded media-kind array with profile/account lock, owner/job/lease/state/expiry
+checks. Existing RLS permits owner reads and denies foreign reads; no browser
+write privileges are granted. API metadata queries include verified owner/item,
+including admins. Historical/manual NULL is distinguished from [] and research
+metadata remains outside passages/citation offsets. Existing uncertain billing
+and old generation recovery are preserved; no new key, service or dependency.
+
+Acceptance: focused red/green plus no-CDN mutation, 481 backend tests, 81 frontend
+tests, strict mypy/Ruff, frontend lint/build, 14 new pgTAP assertions, all 16 SQL
+files and existing concurrency gates pass. Roman replay is fully captured; Wooden
+uses a clearly labeled synthetic archive response. Native desktop/mobile UI QA
+confirms visible scope and keyboard source expansion. Archify static gates pass,
+browser gate/toolkit unavailable and disclosed. Canonical plan/progress precede
+boards; roadmap statuses remain unchanged while active media scope is corrected.
+Migration ordering and drain/mixed-worker risks are documented. Unrelated admin
+edits remain preserved, including the shared README/App changes outside T8.

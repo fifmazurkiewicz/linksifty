@@ -529,6 +529,7 @@ def main() -> int:
         "image_reading.test.sql",
         "source_selection.test.sql",
         "reader_discussions.test.sql",
+        "text_only_sources.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:

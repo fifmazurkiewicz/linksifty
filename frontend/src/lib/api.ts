@@ -70,10 +70,14 @@ export type Usage = {
   resets_at: string
 }
 
+export type MediaKind = 'image' | 'video' | 'gif' | 'audio' | 'attachment'
+export const mediaLabel: Record<MediaKind, string> = { image: 'Images', video: 'Video', gif: 'GIFs', audio: 'Audio', attachment: 'Other attachments' }
+
 export type Assessment = {
   rubric_snapshot?: import('./rubric').RubricConfig
   research_status?: string
-  research_sources?: { id: string; url: string }[]
+  omitted_media?: MediaKind[] | null
+  research_sources?: { id: string; url: string; omitted_media?: MediaKind[] | null }[]
   note: string
   score: number | null
   verdict: string

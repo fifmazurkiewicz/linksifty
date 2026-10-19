@@ -103,10 +103,28 @@ Reddit integration and broad crawling are outside this change. Database rollout
 must precede deployment; local verification makes no hosted-success claim.
 
 
-- [ ] T7 Hosted image-reading diagnosis: retain safe parser rejection checks in
+- [x] T7 Hosted image-reading diagnosis: retain safe parser rejection checks in
   MediaResult, Render logs and image.reading telemetry; test privacy, accounting,
   coverage, schema, truncation and single-call behavior. Request original-size
   /media/ photos on the existing fixed CDN with no retry or limit increase.
   Local correction/tests complete; actual hosted rejection remains unconfirmed
   until matching diagnostics from an independently authorized attempt are available.
   No model, budget, schema migration or partial-source acceptance change.
+
+
+## Owner-directed text-only operation
+
+- [x] T8 Disable primary media downloads/reading, preserve complete text checks
+  and metadata-only media types across X posts/Articles/quotes and web HTML.
+  Replace obsolete active media expectations with regressions for text with
+  photos/videos/GIFs, missing expansions, zero CDN/vision/budget calls and short
+  or truncated source rejection. Persist primary omission metadata via migration
+  000019 and owner-fenced repository; retain research metadata and expose
+  nullable historical scope in assessment API/UI. Update submission/retry copy,
+  model text-only constraints, setup/architecture/roadmap and English editable
+  workflow. Run all project gates, synthetic database checks and native UI QA.
+  No hosted/paid operation or automatic reprocessing is authorized by this task.
+
+Plan review: scope is the owner's explicit narrowing of the existing ingestion
+flow, not permission to accept incomplete text. Existing image cost settlement
+and uncertain-attempt protections remain. Migration precedes matching deployment.

@@ -2,8 +2,22 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Literal
 
 MAX_SOURCE_IMAGES = 12
+MediaType = Literal["image", "video", "gif", "audio", "attachment"]
+
+
+def media_type(value: str) -> MediaType:
+    kinds: dict[str, MediaType] = {
+        "photo": "image",
+        "image": "image",
+        "video": "video",
+        "animated_gif": "gif",
+        "gif": "gif",
+        "audio": "audio",
+    }
+    return kinds.get(value.lower(), "attachment")
 
 
 class FetchFailure(StrEnum):
@@ -41,3 +55,4 @@ class FetchResult:
     failure: FetchFailure | None = None
     images: tuple[SourceImage, ...] = ()
     readable_text: str | None = None
+    omitted_media: tuple[MediaType, ...] = ()

@@ -31,7 +31,6 @@ from linksifty.infrastructure.discussion_repository import DiscussionRepository
 from linksifty.infrastructure.http_fetcher import fetch_public_text
 from linksifty.infrastructure.langfuse_telemetry import LangfuseTelemetry
 from linksifty.infrastructure.openrouter_client import OpenRouterClient
-from linksifty.infrastructure.openrouter_images import OpenRouterImageReader
 from linksifty.infrastructure.processing_repository import ProcessingRepository
 from linksifty.infrastructure.resend_client import ResendApprovalMailer
 from linksifty.infrastructure.source_selector import JevSourceSelector
@@ -188,13 +187,6 @@ def create_app(
                         secrets=diagnostic_secrets,
                     ).fetch
                     if configuration.x_api_reads_enabled and configuration.x_api_bearer_token
-                    else None,
-                    image_reader=OpenRouterImageReader(
-                        configuration.openrouter_api_key,
-                        configuration.openrouter_image_model,
-                        client,
-                    )
-                    if configuration.openrouter_api_key
                     else None,
                     search=BraveSearch(
                         configuration.brave_search_api_key, client, telemetry=telemetry

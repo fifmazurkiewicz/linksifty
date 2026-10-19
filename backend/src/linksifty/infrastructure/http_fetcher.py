@@ -12,6 +12,7 @@ import httpx
 
 from linksifty.domain.acquisition import FetchFailure as FetchFailure
 from linksifty.domain.acquisition import FetchResult as FetchResult
+from linksifty.domain.acquisition import MediaType
 from linksifty.domain.x_urls import X_HOSTS
 
 
@@ -20,8 +21,18 @@ class _TextParser(HTMLParser):
         super().__init__()
         self.parts: list[str] = []
         self.ignored: list[str] = []
+        self.media: set[MediaType] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if not self.ignored:
+            if tag == "img":
+                source = dict(attrs).get("src") or ""
+                path = source.split("?", 1)[0].split("#", 1)[0]
+                self.media.add("gif" if path.lower().endswith(".gif") else "image")
+            elif tag in {"video", "audio"}:
+                self.media.add("video" if tag == "video" else "audio")
+            elif tag in {"iframe", "object", "embed"}:
+                self.media.add("attachment")
         if tag in {"script", "style", "head", "nav", "footer", "aside", "noscript"}:
             self.ignored.append(tag)
 
@@ -189,5 +200,5 @@ async def _fetch(url: str, transport: httpx.AsyncBaseTransport | None) -> FetchR
             return FetchResult(failure=FetchFailure.TOO_LARGE)
         if "log in" in text.lower() or "sign in" in text.lower():
             return FetchResult(failure=FetchFailure.LOGIN_REQUIRED)
-        return FetchResult(text=text)
+        return FetchResult(text=text, omitted_media=tuple(sorted(parser.media)))
     return FetchResult(failure=FetchFailure.UNAVAILABLE)

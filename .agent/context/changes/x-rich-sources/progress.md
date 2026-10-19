@@ -187,3 +187,61 @@ documentation. Preserve unrelated local admin/App/README/auth-flow work. The
 498-test, typing, lint and format evidence above applies without further product
 code changes. This publication does not claim hosted diagnosis or quality success,
 apply a database migration, change a model, or authorize a paid retry.
+
+
+## T7 diagnosis confirmed; T8 text-only execution
+
+Owner-provided new logs establish finish_length for the two-image vision batch.
+Video fails correctly as unsupported. T7 diagnosis is complete; owner changes
+product scope to text only, with media availability notes. T8 is in progress
+under the reviewed amendment. No need to increase model/token/cost bounds or
+perform another paid diagnostic. Existing unrelated admin edits stay untouched.
+
+
+### T8 complete locally — text-only source analysis
+
+The active X/web flow analyzes complete text and records bounded media-presence
+labels. No CDN download, media-only hydration, vision reader or image reservation
+is reachable from the active processing path. Thread/identity, full Article/code,
+quote/embedded text, source-size and minimum-text guards remain. Missing text
+still requests paste. The configured assessment model and scoring are unchanged.
+
+Migration 000019 persists nullable omission metadata atomically beside owned
+source text, guarded by account/profile lock, live job lease/state, expiry and
+owner. Assessment API/UI exposes the scope before the summary and notes research
+media separately. Historical/manual NULL is not relabeled; [] identifies new
+text-only fetches. Existing image cost recovery and uncertain-retry fences remain.
+No new flag/dependency, hosted migration, paid request, push or deployment.
+
+Evidence: 481 backend tests, 81 frontend tests, strict mypy (50 files), Ruff lint/
+format (128 files), frontend lint/build pass. Six focused pre-change failures
+become green; a deliberate CDN-call mutation fails four new tests. UI scope test
+was red before implementation; historical/empty scope cases pass. New migration
+is red before application and all 14 pgTAP assertions pass afterward. All sixteen
+SQL files and existing concurrency gates pass in a disposable UTF-8 PostgreSQL.
+The temporary database and browser fixtures/server/tab are cleaned up.
+
+Captured Roman replay succeeds with 1653 readable characters, image label and
+three mocked captured X calls, zero media. Wooden lookup succeeds with 275
+characters and video label; its unrecorded archive page is explicitly synthetic
+empty, not evidence of live thread coverage. No raw source is stored in fixtures.
+Native desktop dark/390px mobile light UI checked; screenshots retained. Archify
+specification/delivery/strict artifact checks pass, browser-check skipped (Chrome
+unavailable). agent-toolkit unavailable (attempted exit 127); Graft unavailable.
+
+Apply migration 000019 after 000018 before matching deployment. Drain old workers
+and do not mix old vision-capable workers with text-only processing. Hosted
+acceptance remains pending. T1–T7 are historical deliveries/diagnosis, not a claim
+that media reading remains enabled. README and App submission copy were amended
+without removing pre-existing local admin edits. Scope review approves local T8;
+this change remains active rather than archived as hosted complete.
+
+
+### T8 main publication authorization
+
+The owner explicitly requested “push main” after local acceptance. Publish the
+text-only flow, omission disclosure and migration 000019 with its evidence.
+Exclude pre-existing local admin changes; stage only the new submission copy in
+shared App.tsx and the text-only section in shared README.md. Publication does
+not apply the migration or authorize a live paid retry. Migration 000019 must
+precede use of the matching backend/UI; drain old workers as documented.

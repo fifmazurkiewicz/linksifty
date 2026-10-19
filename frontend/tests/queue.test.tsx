@@ -95,5 +95,5 @@ it('explains rich X failures and never retries uncertain image reading', () => {
   expect(screen.getByText(/attached images could not be read completely/i)).toBeInTheDocument()
   expect(screen.getByText(/image-reading charge is not confirmed/i)).toBeInTheDocument()
   expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(2)
-  expect(screen.getAllByText(/reads attached images.*monthly budget/i)).toHaveLength(2)
+  expect(screen.getAllByText(/text-only analysis.*monthly budget/i)).toHaveLength(2)
 })

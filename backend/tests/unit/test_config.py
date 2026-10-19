@@ -50,14 +50,14 @@ def test_startup_wires_x_debug_and_configured_secrets_without_langfuse() -> None
     assert "test-service-role-key" in adapter.call_args.kwargs["secrets"]
 
 
-def test_image_model_defaults_independently_and_is_wired_at_startup(
+def test_legacy_image_model_setting_does_not_activate_a_reader(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("OPENROUTER_IMAGE_MODEL", raising=False)
     assert Settings.from_environment().openrouter_image_model == "openai/gpt-4.1-mini"
     monkeypatch.setenv("OPENROUTER_IMAGE_MODEL", "openai/gpt-4o-mini")
     assert Settings.from_environment().openrouter_image_model == "openai/gpt-4o-mini"
-    with patch("linksifty.main.OpenRouterImageReader") as reader:
+    with patch("linksifty.infrastructure.openrouter_images.OpenRouterImageReader") as reader:
         with TestClient(create_app(Settings.for_test())):
             pass
-    assert reader.call_args.args[1] == "openai/gpt-4.1-mini"
+    reader.assert_not_called()

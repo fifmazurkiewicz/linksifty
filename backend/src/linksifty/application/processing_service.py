@@ -11,7 +11,6 @@ from uuid import UUID, uuid4
 
 from linksifty.application.discussions import discussion_platform
 from linksifty.application.item_contracts import ItemRecord
-from linksifty.application.media_contracts import ImageReader
 from linksifty.application.processing_contracts import (
     AssessmentProvider,
     AssessmentView,
@@ -50,9 +49,7 @@ class ProcessingService:
         selector: SourceSelector | None = None,
         telemetry: Telemetry | None = None,
         x_fetch: Callable[[str], Awaitable[FetchResult]] | None = None,
-        image_reader: ImageReader | None = None,
     ) -> None:
-        self._image_reader = image_reader
         self._x_fetch = x_fetch
         self._search = search
         self._selector = selector
@@ -337,7 +334,12 @@ class ProcessingService:
                             continue
                         hashes.add(digest)
                         context.sources.append(
-                            EvidenceSource(id=str(uuid4()), url=url, text=passage)
+                            EvidenceSource(
+                                id=str(uuid4()),
+                                url=url,
+                                text=passage,
+                                omitted_media=list(fetched.omitted_media),
+                            )
                         )
                     if context.sources:
                         context.status = "ready"
@@ -437,59 +439,6 @@ class ProcessingService:
             return FetchResult(failure=FetchFailure.X_ATTEMPT_UNCERTAIN)
         return await self._x_fetch(url)
 
-    async def _read_images(self, job: ProcessingJob, fetched: FetchResult) -> str | None:
-        reader = self._image_reader
-        if reader is None:
-            await self._stage(job, "image_reading_not_configured", "awaiting_manual_content")
-            return None
-        try:
-            amount = reader.estimate()
-        except ValueError:
-            await self._stage(job, "image_reading_not_configured", "awaiting_manual_content")
-            return None
-        if not await self._stage(job, "waiting_image_budget"):
-            return None
-        reservation = await self._store.reserve_images(job, amount)
-        if reservation is None:
-            return None
-        if not await self._stage(job, "reading_images"):
-            return None
-        result = await reader.extract(fetched.images)
-        self._event(
-            "image.reading",
-            images=len(fetched.images),
-            failure=result.failure_reason,
-            check=result.failure_check,
-            cost_known=result.cost is not None,
-        )
-        if result.failure_reason:
-            _logger.warning(
-                "image_reading_rejected job_id=%s check=%s cost_known=%s",
-                job.id,
-                result.failure_check or "unspecified",
-                result.cost is not None,
-            )
-        await self._store.record_image_generation(job, reservation, result.generation_id)
-        if result.cost is None:
-            await self._stage(job, "image_reading_uncertain", "awaiting_manual_content")
-            return None
-        await self._store.settle(job.user_id, reservation, result.cost)
-        if result.text is None or result.readable_text is None or result.failure_reason:
-            await self._stage(job, "image_reading_failed", "awaiting_manual_content")
-            return None
-        original_text = (
-            fetched.readable_text if fetched.readable_text is not None else fetched.text or ""
-        )
-        readable = f"{original_text}\n\n{result.readable_text}"
-        if evaluate_content(readable, fetched=False).readiness is not ContentReadiness.READY:
-            await self._stage(job, "too_short", "awaiting_manual_content")
-            return None
-        text = f"{fetched.text or ''}\n\n{result.text}"
-        if len(text.encode("utf-8")) > 100000:
-            await self._stage(job, "too_large", "awaiting_manual_content")
-            return None
-        return text
-
     async def process(self, job: ProcessingJob) -> None:
         provider = self._provider
         if provider is None:
@@ -520,11 +469,6 @@ class ProcessingService:
                 )
                 return
             source_text = fetched.text
-            if fetched.images:
-                complete_text = await self._read_images(job, fetched)
-                if complete_text is None:
-                    return
-                source_text = complete_text
             if not await self._stage(job, "checking_content"):
                 return
             evaluation = evaluate_content(source_text, fetched=True)
@@ -537,7 +481,7 @@ class ProcessingService:
                 )
                 return
             text = source_text
-            saved = await self._store.save_source(job, text)
+            saved = await self._store.save_source(job, text, omitted_media=fetched.omitted_media)
             self._event("source.saved", saved=saved, characters=len(text))
             if not saved:
                 return

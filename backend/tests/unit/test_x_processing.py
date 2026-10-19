@@ -108,7 +108,7 @@ def test_x_content_is_cached_before_model_budget_and_cache_is_reused() -> None:
             cast(ProcessingStore, store), cast(AssessmentProvider, provider), fetch, x_fetch=x_fetch
         )
         await service.process(job)
-        store.save_source.assert_awaited_once_with(job, text)
+        store.save_source.assert_awaited_once_with(job, text, omitted_media=())
         job.source_text = text
         await service.process(job)
         x_fetch.assert_awaited_once()
@@ -147,7 +147,7 @@ def test_runtime_wires_x_only_after_operator_enablement(enabled: bool) -> None:
         assert "test-x-token" not in request.headers.get("authorization", "")
         if request.url.path.endswith("begin_x_fetch"):
             return httpx.Response(200, json=[{"admitted": True}])
-        if request.url.path.endswith("save_job_source"):
+        if request.url.path.endswith("save_text_job_source"):
             saved.append(json.loads(request.content)["p_text"])
         if request.url.path.endswith("reserve_analysis"):
             return httpx.Response(200, json=[])

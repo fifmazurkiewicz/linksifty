@@ -1,0 +1,126 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Text-only Source Analysis Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/x-rich-sources/text-only-workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "text",
+      "label": "Complete text with explicit media omissions"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "fetch",
+      "lane": "text",
+      "col": 1,
+      "yOffset": -280,
+      "type": "backend",
+      "label": "Fetch source text",
+      "sublabel": "X metadata or bounded HTML",
+      "width": 200
+    },
+    {
+      "id": "complete",
+      "lane": "text",
+      "col": 1,
+      "yOffset": -140,
+      "type": "security",
+      "label": "Validate complete text",
+      "sublabel": "Keep thread and Article guards",
+      "width": 200
+    },
+    {
+      "id": "save",
+      "lane": "text",
+      "col": 1,
+      "yOffset": 0,
+      "type": "database",
+      "label": "Cache text and scope",
+      "sublabel": "Owner, lease, account and expiry",
+      "width": 200
+    },
+    {
+      "id": "assess",
+      "lane": "text",
+      "col": 1,
+      "yOffset": 140,
+      "type": "backend",
+      "label": "Assess supplied text",
+      "sublabel": "No media downloads or vision",
+      "width": 200
+    },
+    {
+      "id": "display",
+      "lane": "text",
+      "col": 1,
+      "yOffset": 280,
+      "type": "frontend",
+      "label": "Show text-only result",
+      "sublabel": "Visible omitted-media labels",
+      "width": 200
+    },
+    {
+      "id": "manual",
+      "lane": "text",
+      "col": 2,
+      "yOffset": -140,
+      "type": "frontend",
+      "label": "Request pasted text",
+      "sublabel": "Missing, short or truncated text",
+      "width": 200
+    }
+  ],
+  "edges": [
+    {
+      "from": "fetch",
+      "to": "complete",
+      "label": "text and media types"
+    },
+    {
+      "from": "complete",
+      "to": "save",
+      "label": "complete readable text"
+    },
+    {
+      "from": "complete",
+      "to": "manual",
+      "label": "text unavailable",
+      "variant": "dashed"
+    },
+    {
+      "from": "save",
+      "to": "assess",
+      "label": "cached text only"
+    },
+    {
+      "from": "assess",
+      "to": "display",
+      "label": "saved assessment"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Approved scope",
+      "items": [
+        "Images, videos, GIFs, audio and other attachments are presence metadata, never assessment evidence.",
+        "No CDN download, media-only X hydration, vision request or new image reservation. Text-only posts still require sufficient complete text.",
+        "Quoted and embedded text, full Article bodies, connected threads and existing source/identity limits remain required."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Persistence and recovery",
+      "items": [
+        "Migration 000019 stores omission metadata beside owner-scoped source text. NULL preserves unknown historical/manual scope; an empty list records new text-only scope.",
+        "Research metadata is separate from text passages. Existing analyses and billed image attempts are not rewritten, retried or refunded.",
+        "Apply migration before matching backend/frontend deployment. This is a behavior contract, not a frozen repository map."
+      ]
+    }
+  ]
+}

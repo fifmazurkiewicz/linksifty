@@ -227,3 +227,28 @@ def test_ignored_identity_encoding_and_disguised_pdf_require_manual_content() ->
     )
     assert pdf.text is None
     assert pdf.failure is FetchFailure.UNSUPPORTED
+
+
+def test_web_media_are_presence_metadata_only_and_never_fetched() -> None:
+    calls: list[str] = []
+    text = "Complete readable page text with relevant details. " * 10
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/html"},
+            text=(
+                f'<html><head><img src="logo.jpg"></head><body><p>{text}</p>'
+                '<img src="http://127.0.0.1/private.jpg" alt="Never use this as transcription">'
+                '<img src="https://[broken"><img src="animation.gif"><video src="clip.mp4"></video>'
+                '<audio src="sound.mp3"></audio>'
+                '<iframe src="https://elsewhere.test"></iframe></body></html>'
+            ),
+        )
+
+    result = fetch("https://example.com/article", respond)
+    assert len(calls) == 1
+    assert text.strip() == result.text
+    assert result.omitted_media == ("attachment", "audio", "gif", "image", "video")
+    assert result.images == ()

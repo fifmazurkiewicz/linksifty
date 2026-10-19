@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { api, type Assessment, type Item } from '../../lib/api'
+import { api, mediaLabel, type Assessment, type Item } from '../../lib/api'
 import { isRubric, criterionLabel } from '../../lib/rubric'
 import { AnalysisChat } from './AnalysisChat'
 import { ReaderComments } from './ReaderComments'
@@ -48,7 +48,7 @@ export function AssessmentDetail({ id, item, session, onBack }: {
   const scored = value?.criteria.filter(c => c.score !== null).length ?? 0
   const researchSources = value?.research_sources?.flatMap(s => {
     const url = sourceLink(s.url)
-    return url ? [{ id: s.id, url }] : []
+    return url ? [{ id: s.id, url, omitted_media: s.omitted_media }] : []
   }) ?? []
   const researchStatus = value?.research_status === 'ready'
     ? `${researchSources.length} ${researchSources.length === 1 ? 'page' : 'pages'} fetched`
@@ -70,6 +70,11 @@ export function AssessmentDetail({ id, item, session, onBack }: {
         <strong className="assessment-score">{value.score === null ? 'Not scored' : `${value.score}%`}</strong>
         <span className="assessment-threshold">Valuable threshold at analysis: {value.threshold_snapshot}%</span>
       </div>
+      {Array.isArray(value.omitted_media) && <div className="account-notice" role="region" aria-label="Analysis scope">
+        <strong>Text-only analysis</strong>
+        <p>Only the available text was analyzed. Images, videos, GIFs, audio and other attachments were not analyzed.</p>
+        {value.omitted_media.length > 0 && <p>Available in this source: {value.omitted_media.map(kind => mediaLabel[kind]).join(', ')}. Open the original source to view them.</p>}
+      </div>}
       <div className="assessment-summary" role="region" aria-labelledby="assessment-summary-title">
         <h2 id="assessment-summary-title">Summary</h2>
         <p className="assessment-note">{value.note}</p>
@@ -112,6 +117,7 @@ export function AssessmentDetail({ id, item, session, onBack }: {
           {researchSources.length > 0 && <ul className="research-sources">{researchSources.map(s => <li key={s.id}>
             <a href={s.url.href} target="_blank" rel="noopener noreferrer">{s.url.hostname.replace(/^www\./, '')}</a>
             <small>{s.url.pathname}</small>
+            {s.omitted_media && <p className="hint">Text only.{s.omitted_media.length > 0 && ` Available media, not analyzed: ${s.omitted_media.map(kind => mediaLabel[kind]).join(', ')}.`}</p>}
           </li>)}</ul>}
         </div>
       </details>

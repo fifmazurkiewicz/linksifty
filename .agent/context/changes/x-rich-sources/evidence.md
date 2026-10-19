@@ -304,3 +304,78 @@ and validation receipts are retained without postprocessing.
   `agent-toolkit check`: unavailable (exit 127). No frontend/database change.
 - No live model call, automatic paid retry, secret access, push, deployment or
   migration was performed. Hosted success/root cause is not claimed.
+
+
+## Text-only verification — 2026-10-19
+
+The owner's new request explicitly narrows source scope to text. This supersedes
+prior media-completeness acceptance criteria; incomplete text still fails closed.
+The new supplied trace establishes `image.reading.check=finish_length` with two
+images and known cost. Wooden is `x_media_unsupported/non_static_image`. No
+speculative model replacement or higher output/token/cost bound is introduced.
+
+- Initial focused text-only regressions: 6 failed, 1 passed. Green cases cover
+  photos/video/GIFs/missing expansions, no media request, real text minimum and
+  no image reservation. Known malformed/unsafe media URLs are never requested.
+  Injecting a CDN GET deliberately -> 4 focused failures; restored before final
+  runs. Full Article bodies/code, referenced text, withheld/partial/cycle/identity
+  checks remain tested. Old byte-download/vision-execution expectations were
+  removed/replaced because they assert behavior the owner explicitly disabled;
+  legacy reader unit tests and billing SQL/races remain.
+- UI red: new scope region assertion fails (1 failed, 9 passed). Green verifies
+  always-visible scope/media labels, independent collapsed analysis, [] versus
+  NULL/missing historical metadata. Historical/manual results are not relabeled.
+  Research metadata is stored outside source passages. A malformed ignored HTML
+  media URL initially caused a fetch error; its regression failed, then passed
+  after metadata classification stopped parsing that URL as a fetch destination.
+- Backend final: `uv run --package linksifty pytest backend/tests -q --tb=short`
+  -> 481 passed, existing Starlette/httpx deprecation warning. Strict mypy -> 50
+  files pass; Ruff check -> pass; Ruff format --check -> 128 formatted files.
+  uv commands use UV_CACHE_DIR=/private/tmp/linksifty-uv-cache and UV_OFFLINE=true.
+- `frontend/: npm test -- --run` -> 81 passed, including three pre-existing local
+  admin tests; `npm run lint` passes; TypeScript/Vite build passes. No dependency
+  or lockfile changes. Unrelated admin source/tests remain separate local work.
+- Fresh disposable PostgreSQL 17: apply 1–18, new test fails on missing RPC; apply
+  000019 -> 14 assertions pass. Full gate passes 16 pgTAP files and every existing
+  budget/admission/deletion concurrency check, including legacy image accounting.
+  Tests cover foreign owner, stale lease, rejected/expired account, unknown labels,
+  atomic text/scope, [] semantics, owner RLS reads, forbidden client writes and
+  deletion/late-write fencing. The first test incorrectly expected all browser
+  reads revoked; corrected to existing owner RLS (foreign=0, owner=1), without
+  changing permissions. Locale/UTF-8 startup fixes affect only the disposable
+  test launcher. Final run passes and cluster is stopped/deleted in finally.
+- Offline replays use actual captured JSON from the three owner attachments and
+  mocked transport only. Roman: 1653 readable characters, image omission label,
+  zero image bytes, three fully captured X calls. Wooden: actual lookup gives
+  275 readable characters and video label, zero image bytes; the second call is
+  a synthetic empty archive page because that response was never captured. This
+  does not prove current live availability or complete live Wooden thread coverage.
+  Raw source/body content is neither printed nor committed as fixtures.
+- Native in-app browser with synthetic session/assessment and mocked fetch:
+  desktop dark and 390px mobile light show a visible scope notice before Summary.
+  Return opens Source checking and reveals the research-media note, preserving
+  keyboard focus. Screenshots: [desktop](text-only-desktop.png),
+  [mobile](text-only-mobile.png). Main notice wraps without clipping. Temporary
+  fixtures, browser tab and localhost Vite server removed/stopped afterward.
+- English Archify contract JSON/HTML retained with receipts. Finalize exits 2:
+  validate/deliver/strict artifact check PASS; browser-check SKIPPED because Chrome
+  is unavailable. Update check unavailable/cache unavailable; no notice required.
+  Product browser QA is independent and is not a passing diagram browser gate.
+- `agent-toolkit check` attempted -> unavailable, exit 127. Graft unavailable;
+  focused source/documentation exploration used. Neither is counted passed.
+- Rollout: migration 000019 after 000018, drain old workers, then matching backend/
+  frontend. No live media/model/X request, migration, push or deployment performed.
+  No automatic retry, refund, assessment rewrite or reclassification of old cache.
+
+
+### T8 publication snapshot
+
+Owner explicitly requested main push. Origin/main equals local base 87c9fea
+before publication. Exact staged frontend export, excluding the three local
+admin tests/changes, passes 78 tests, oxlint and TypeScript/Vite build. The earlier
+81-test working tree includes those three unrelated admin tests. Only text-only
+submission copy from App.tsx and the text-only README section are staged in
+shared files. Other admin changes remain local. Staged source whitespace check
+passes excluding preserved Archify-generated HTML blank-line spaces; original
+artifact bytes and validation receipts are unchanged. No hosted migration or
+paid retry is part of publication.

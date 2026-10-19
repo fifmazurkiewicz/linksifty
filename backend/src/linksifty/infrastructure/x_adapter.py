@@ -8,16 +8,15 @@ from typing import Annotated
 from uuid import uuid4
 
 import httpx
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from linksifty.application.discussions import DiscussionReply, DiscussionResult
-from linksifty.domain.acquisition import FetchFailure, FetchResult
+from linksifty.domain.acquisition import FetchFailure, FetchResult, MediaType, media_type
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.x_urls import x_post_id
 from linksifty.infrastructure.redaction import redact
 from linksifty.infrastructure.x_content import XContentFailure as _Failure
 from linksifty.infrastructure.x_content import XMedia, parse_article
-from linksifty.infrastructure.x_images import fetch_images, validate_media
 
 _logger = logging.getLogger(__name__)
 _MAX_POSTS = 100
@@ -58,21 +57,12 @@ class _Post(BaseModel):
     article: dict[str, object] | None = None
     withheld: dict[str, object] | None = None
 
+    @field_validator("attachments", mode="before")
+    @classmethod
+    def attachment_metadata(cls, value: object) -> object:
+        return value if value is None or isinstance(value, dict) else {"unknown": True}
+
     def content(self) -> str:
-        if self.attachments:
-            if self.attachments.get("poll_ids") or set(self.attachments) - {
-                "media_keys",
-                "poll_ids",
-                "media_source_tweet_id",
-            }:
-                raise _Failure(FetchFailure.X_MEDIA_UNSUPPORTED, "unsupported_attachment")
-            keys = self.attachments.get("media_keys")
-            if (
-                not isinstance(keys, list)
-                or not keys
-                or any(not isinstance(key, str) for key in keys)
-            ):
-                raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_media_keys")
         if self.withheld:
             raise _Failure(FetchFailure.PARTIAL, "withheld_content")
         if self.article is not None:
@@ -105,36 +95,40 @@ class _Post(BaseModel):
             *(_Reference(id=identifier, type="embedded") for identifier in embedded),
         ]
 
-    def media(self, available: dict[str, XMedia]) -> list[XMedia]:
-        result: list[XMedia] = []
-        keys = (self.attachments or {}).get("media_keys", [])
-        if not isinstance(keys, list):
-            raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_media_keys")
-        for key in keys:
-            if not isinstance(key, str) or key not in available:
-                raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_expanded_media")
-            result.append(available[key])
+    def media_types(self, available: dict[str, XMedia]) -> set[MediaType]:
+        result: set[MediaType] = set()
+        if self.attachments:
+            keys = self.attachments.get("media_keys")
+            if isinstance(keys, list):
+                for key in keys:
+                    item = available.get(key) if isinstance(key, str) else None
+                    result.add(media_type(item.type) if item else "attachment")
+            if not keys or set(self.attachments) - {"media_keys", "media_source_tweet_id"}:
+                result.add("attachment")
         if self.article is not None:
-            for media in parse_article(self.article).media:
-                resolved = available.get(media.media_key, media)
-                if media.url and resolved.url != media.url:
-                    raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "conflicting_media_versions")
-                result.append(resolved)
-        missing = False
-        for media in result:
-            if media.type != "photo":
-                raise _Failure(FetchFailure.X_MEDIA_UNSUPPORTED, "non_static_image")
-            if not media.url and media.media_key:
-                missing = True
-            else:
-                validate_media(media)
-        if missing:
-            raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "missing_article_media_expansion")
+            for item in parse_article(self.article).media:
+                resolved = available.get(item.media_key, item)
+                result.add(media_type(resolved.type))
         return result
 
 
 class _Includes(BaseModel):
     media: list[XMedia] = Field(default_factory=list, max_length=100)
+
+    @field_validator("media", mode="before")
+    @classmethod
+    def media_metadata(cls, value: object) -> object:
+        if not isinstance(value, list):
+            return []
+        return [
+            {"media_key": item.get("media_key", ""), "type": item.get("type", "attachment")}
+            for item in value
+            if isinstance(item, dict)
+            and isinstance(item.get("media_key", ""), str)
+            and len(item.get("media_key", "")) <= 2000
+            and isinstance(item.get("type", "attachment"), str)
+        ]
+
     posts: list[_Post] = Field(
         default_factory=list,
         validation_alias=AliasChoices("posts", "tweets"),
@@ -325,7 +319,7 @@ class XAdapter:
                 "referenced_tweets.id.attachments.media_keys,"
                 "article.cover_media,article.media_entities"
             ),
-            "media.fields": "media_key,type,url,width,height,alt_text",
+            "media.fields": "media_key,type",
             **params,
         }
         self._log_debug("request", request_id, {"method": "GET", "url": url, "params": parameters})
@@ -409,7 +403,6 @@ class XAdapter:
         available: dict[str, _Post] = {}
         media: dict[str, XMedia] = {}
         selected = await self._lookup(client, identifier, available, media)
-        looked_up = {identifier}
         reposts: set[str] = set()
         while True:
             selected.parent()
@@ -432,8 +425,6 @@ class XAdapter:
             if selected.conversation_id == identifier
             else await self._lookup(client, selected.conversation_id, available, media)
         )
-        if root is not selected:
-            looked_up.add(root.id)
         if (
             root.conversation_id != root.id
             or root.author_id != selected.author_id
@@ -442,7 +433,7 @@ class XAdapter:
             raise _Failure(FetchFailure.PARTIAL, "invalid_conversation_root")
         posts = {root.id: root}
         # Validate before requesting more potentially billed resources.
-        await self._resolve_sources(client, [root, selected], available, media, looked_up)
+        self._source_posts([root, selected], available)
         token: str | None = None
         seen_tokens: set[str] = set()
         for _ in range(_MAX_PAGES):
@@ -503,19 +494,13 @@ class XAdapter:
                 raise _Failure(FetchFailure.PARTIAL, "disconnected_thread")
         if identifier not in visited:
             raise _Failure(FetchFailure.PARTIAL, "selected_post_outside_thread")
-        sources = await self._resolve_sources(client, ordered, available, media, looked_up)
+        sources = self._source_posts(ordered, available)
         # Labels, URLs and RT previews must not make short sources pass the minimum.
         readable_text = "\n\n".join(post.content() for post in sources)
-        required_media = [
-            (item, f"https://x.com/i/web/status/{post.id}")
-            for post in sources
-            for item in post.media(media)
-        ]
-        if (
-            not required_media
-            and evaluate_content(readable_text, fetched=False).readiness
-            is not ContentReadiness.READY
-        ):
+        omitted_media = tuple(
+            sorted({kind for post in sources for kind in post.media_types(media)})
+        )
+        if evaluate_content(readable_text, fetched=False).readiness is not ContentReadiness.READY:
             raise _Failure(FetchFailure.TOO_SHORT, "minimum_text_length")
         text = "\n\n".join(
             f"https://x.com/i/web/status/{post.id}\nauthor_id={post.author_id}\n{post.content()}"
@@ -529,40 +514,16 @@ class XAdapter:
             text = f"Submitted repost: https://x.com/i/web/status/{submitted_id}\n\n{text}"
         if len(text.encode("utf-8")) > _MAX_TEXT_BYTES:
             raise _Failure(FetchFailure.TOO_LARGE, "text_size_limit")
-        async with httpx.AsyncClient(transport=self._transport, trust_env=False) as media_client:
-            images = await fetch_images(media_client, required_media)
-        return FetchResult(text=text, images=images, readable_text=readable_text)
-
-    async def _resolve_sources(
-        self,
-        client: httpx.AsyncClient,
-        ordered: list[_Post],
-        available: dict[str, _Post],
-        media: dict[str, XMedia],
-        looked_up: set[str],
-    ) -> list[_Post]:
-        while True:
-            sources = self._source_posts(ordered, available)
-            target = None
-            for source in sources:
-                try:
-                    source.media(media)
-                except _Failure as failure:
-                    if failure.check != "missing_article_media_expansion" or source.id in looked_up:
-                        raise
-                    target = target or source
-            if target is None:
-                return sources
-            # Complete a quoted Article's expansions once; never repeat an already-read post.
-            looked_up.add(target.id)
-            await self._lookup(client, target.id, available, media)
+        return FetchResult(text=text, readable_text=readable_text, omitted_media=omitted_media)
 
     @staticmethod
     def _remember_media(available: dict[str, XMedia], media: list[XMedia]) -> None:
         for item in media:
             key = item.media_key or item.url
-            if not key or (key in available and available[key] != item):
-                raise _Failure(FetchFailure.X_MEDIA_UNAVAILABLE, "conflicting_media_versions")
+            if not key:
+                continue
+            if key in available and available[key].type != item.type:
+                item = XMedia(media_key=key, type="attachment")
             available[key] = item
             if len(available) > 100:
                 raise _Failure(FetchFailure.TOO_LARGE, "expanded_media_limit")

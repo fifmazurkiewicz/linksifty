@@ -16,6 +16,7 @@ from linksifty.application.processing_contracts import (
     UsageSummary,
     UserSettings,
 )
+from linksifty.domain.acquisition import MediaType
 from linksifty.infrastructure.supabase_repository import RepositoryUnavailable, SupabaseRepository
 
 
@@ -164,9 +165,17 @@ class ProcessingRepository(SupabaseRepository):
             )
         )
 
-    async def save_source(self, job: ProcessingJob, text: str) -> bool:
+    async def save_source(
+        self, job: ProcessingJob, text: str, *, omitted_media: tuple[MediaType, ...] = ()
+    ) -> bool:
         return bool(
-            await self._rpc("save_job_source", job.user_id, **self._job_values(job), p_text=text)
+            await self._rpc(
+                "save_text_job_source",
+                job.user_id,
+                **self._job_values(job),
+                p_text=text,
+                p_media_types=list(omitted_media),
+            )
         )
 
     async def reserve(self, job: ProcessingJob, amount: Decimal) -> Reservation | None:
@@ -248,11 +257,25 @@ class ProcessingRepository(SupabaseRepository):
             if jobs
             else ResearchContext()
         )
+        contents = await self._profile_request(
+            "GET",
+            "source_contents",
+            params={
+                "user_id": f"eq.{user_id}",
+                "item_id": f"eq.{item_id}",
+                "select": "acquisition_method,omitted_media",
+                "limit": "1",
+            },
+        )
         return AssessmentView.model_validate(
             {
+                "omitted_media": contents[0].get("omitted_media")
+                if contents and contents[0].get("acquisition_method") == "fetch"
+                else None,
                 "research_status": context.status,
                 "research_sources": [
-                    {"id": source.id, "url": source.url} for source in context.sources
+                    {"id": source.id, "url": source.url, "omitted_media": source.omitted_media}
+                    for source in context.sources
                 ],
                 **rows[0],
                 "citations": [CitationView.model_validate(citation) for citation in citations],

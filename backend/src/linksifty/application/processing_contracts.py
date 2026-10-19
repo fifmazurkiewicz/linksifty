@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from linksifty.application.item_contracts import ItemRecord
+from linksifty.domain.acquisition import MediaType
 from linksifty.domain.models import Criterion, CriterionName
 from linksifty.domain.rubric import AssessmentRubric, RubricCriterion, default_rubric
 
@@ -74,11 +75,13 @@ class EvidenceSource(BaseModel):
     id: str
     url: str
     text: str
+    omitted_media: list[MediaType] | None = Field(default=None, max_length=5)
 
 
 class ResearchSourceView(BaseModel):
     id: str
     url: str
+    omitted_media: list[MediaType] | None = Field(default=None, max_length=5)
 
 
 class ResearchContext(BaseModel):
@@ -173,6 +176,7 @@ class CitationView(BaseModel):
 
 
 class AssessmentView(BaseModel):
+    omitted_media: list[MediaType] | None = Field(default=None, max_length=5)
     rubric_snapshot: RubricConfig = Field(default_factory=lambda: RubricConfig.default(version=1))
     research_status: str = "not_requested"
     research_sources: list[ResearchSourceView] = Field(default_factory=list)
@@ -214,7 +218,9 @@ class ProcessingStore(Protocol):
     async def assessment(self, user_id: UUID, item_id: UUID) -> AssessmentView | None: ...
     async def claim(self, user_id: UUID) -> ProcessingJob | None: ...
     async def stage(self, job: ProcessingJob, stage: str, status: str = "processing") -> bool: ...
-    async def save_source(self, job: ProcessingJob, text: str) -> bool: ...
+    async def save_source(
+        self, job: ProcessingJob, text: str, *, omitted_media: tuple[MediaType, ...] = ()
+    ) -> bool: ...
     async def reserve(self, job: ProcessingJob, amount: Decimal) -> Reservation | None: ...
     async def settings(self, user_id: UUID) -> UserSettings: ...
     async def record_result(self, job: ProcessingJob, result: ModelResult) -> bool: ...

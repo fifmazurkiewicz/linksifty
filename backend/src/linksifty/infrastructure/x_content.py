@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from linksifty.domain.acquisition import FetchFailure
 
@@ -50,17 +50,20 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
     code_blocks: list[tuple[str, str]] = []
 
     def add_media(value: object) -> None:
+        # Media are presence metadata only; their bytes/URLs are outside text scope.
         if isinstance(value, str):
             value = {"media_key": value}
         if not isinstance(value, dict):
-            raise _invalid("article_media_invalid")
-        try:
-            item = XMedia.model_validate(value)
-        except ValidationError as error:
-            raise _invalid("article_media_invalid") from error
-        if not (item.media_key or item.url):
-            raise _invalid("article_media_invalid")
-        media.append(item)
+            media.append(XMedia(type="attachment"))
+            return
+        key = value.get("media_key", value.get("id", value.get("media_id", "")))
+        kind = value.get("type", "photo")
+        media.append(
+            XMedia(
+                media_key=key if isinstance(key, str) and len(key) <= 2000 else "",
+                type=kind if isinstance(kind, str) else "attachment",
+            )
+        )
 
     def add_entities(value: object) -> None:
         if not isinstance(value, dict) or set(value) - {
@@ -76,6 +79,9 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
         for key in ("media", "posts"):
             values = value.get(key, [])
             if not isinstance(values, list):
+                if key == "media":
+                    add_media(None)
+                    continue
                 raise _invalid("article_entity_list_invalid")
             for entity in values:
                 if key == "media":
@@ -114,7 +120,7 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
         add_media(article["cover_media"])
     media_values = article.get("media_entities", [])
     if not isinstance(media_values, list):
-        raise _invalid("article_media_list_invalid")
+        media_values = [None]
     for value in media_values:
         add_media(value)
     if "entities" in article:
@@ -160,13 +166,19 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
                 raise _invalid("article_entity_ranges_invalid")
             for span in ranges:
                 entity = entity_map.get(str(span.get("key"))) if isinstance(span, dict) else None
-                if not isinstance(entity, dict) or not isinstance(entity.get("data"), dict):
+                if not isinstance(entity, dict):
+                    raise _invalid("article_entity_invalid")
+                entity_type = entity.get("type")
+                if entity_type in {"IMAGE", "MEDIA", "VIDEO", "GIF", "AUDIO"}:
+                    data = entity.get("data")
+                    if isinstance(data, dict) and entity_type in {"VIDEO", "GIF", "AUDIO"}:
+                        data = {**data, "type": entity_type.lower()}
+                    add_media(data)
+                    continue
+                if not isinstance(entity.get("data"), dict):
                     raise _invalid("article_entity_invalid")
                 data = entity["data"]
-                entity_type = entity.get("type")
-                if entity_type in {"IMAGE", "MEDIA"}:
-                    add_media(data)
-                elif entity_type in {"TWEET", "POST"}:
+                if entity_type in {"TWEET", "POST"}:
                     posts.append(
                         _post_id(data.get("post_id", data.get("tweet_id", data.get("id"))))
                     )

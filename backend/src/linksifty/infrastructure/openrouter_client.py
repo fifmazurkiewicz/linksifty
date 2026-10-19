@@ -75,6 +75,8 @@ _CALIBRATED_SYSTEM = (
     "substantive weakness; positive rationales must not accompany unexplained low scores. "
     "Established information can have high learning value. Do not assume personal prior knowledge. "
     "State the evaluation uses general learning value, not a personal knowledge profile. "
+    "Assess supplied text only. Images, video, GIFs, audio and other attachments are not analyzed. "
+    "Never infer their contents or claim to have viewed them. "
     "Use status assessed with integer score 1–5 when there is enough evidence; not_verified "
     "with score null when evidence or verification is unavailable. Only replicability permits "
     "not_applicable with score null, for explainers without a reproducible method/result. "

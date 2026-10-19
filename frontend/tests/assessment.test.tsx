@@ -122,3 +122,25 @@ it('announces loading and errors and retains navigation back to the queue', asyn
   fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }))
   expect(onBack).toHaveBeenCalledOnce()
 })
+
+it('shows text-only scope and omitted media before the summary without relabeling history', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...saved, omitted_media: ['image', 'video', 'gif'] })))
+  render(<AssessmentDetail id="text-only" session={session} onBack={vi.fn()} />)
+  const scope = await screen.findByRole('region', { name: 'Analysis scope' })
+  expect(scope).toBeVisible()
+  expect(scope).toHaveTextContent('Text-only analysis')
+  expect(scope).toHaveTextContent('Images, Video, GIFs')
+  expect(scope).toHaveTextContent('not analyzed')
+  expect(screen.getByText('Analysis').closest('details')).not.toHaveAttribute('open')
+})
+
+it.each([[], null, undefined])('distinguishes known text-only scope from unknown historical scope: %j', async omitted_media => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...saved, omitted_media })))
+  render(<AssessmentDetail id="scope" session={session} onBack={vi.fn()} />)
+  await screen.findByText(saved.note)
+  const scope = screen.queryByRole('region', { name: 'Analysis scope' })
+  if (Array.isArray(omitted_media)) {
+    expect(scope).toBeVisible()
+    expect(scope).not.toHaveTextContent('Available in this source:')
+  } else expect(scope).not.toBeInTheDocument()
+})

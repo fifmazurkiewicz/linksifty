@@ -124,3 +124,61 @@ def test_settings_write_is_one_owner_scoped_rpc_with_complete_rubric() -> None:
             assert result.valuable_threshold == 75
 
     asyncio.run(run())
+
+
+def test_source_scope_write_and_read_are_owner_scoped_and_preserve_historical_null() -> None:
+    item_id = UUID("22222222-2222-4222-8222-222222222222")
+    job = ProcessingJob(id=USER, item_id=item_id, user_id=USER, lease_token=item_id)
+
+    async def run() -> None:
+        for method, media, expected in (
+            ("fetch", None, None),
+            ("fetch", [], []),
+            ("fetch", ["image", "video"], ["image", "video"]),
+            ("paste", ["image"], None),
+        ):
+
+            def respond(
+                request: httpx.Request, media: object = media, method: str = method
+            ) -> httpx.Response:
+                if request.url.path.endswith("/save_text_job_source"):
+                    assert json.loads(request.content) == {
+                        "p_user_id": str(USER),
+                        "p_job_id": str(USER),
+                        "p_lease": str(item_id),
+                        "p_text": "Complete source text",
+                        "p_media_types": ["image", "video"],
+                    }
+                    return httpx.Response(200, json=[{}])
+                assert request.url.params["user_id"] == f"eq.{USER}"
+                if request.url.path.endswith("/assessments"):
+                    assert request.url.params["item_id"] == f"eq.{item_id}"
+                    return httpx.Response(
+                        200,
+                        json=[
+                            {
+                                "id": str(USER),
+                                "note": "Saved summary",
+                                "criteria": [],
+                                "score": None,
+                                "verdict": "to_review",
+                                "threshold_snapshot": 60,
+                            }
+                        ],
+                    )
+                if request.url.path.endswith("/source_contents"):
+                    assert request.url.params["item_id"] == f"eq.{item_id}"
+                    return httpx.Response(
+                        200, json=[{"acquisition_method": method, "omitted_media": media}]
+                    )
+                return httpx.Response(200, json=[])
+
+            async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+                repo = ProcessingRepository("https://supabase.example", "test-server-key", client)
+                assert await repo.save_source(
+                    job, "Complete source text", omitted_media=("image", "video")
+                )
+                view = await repo.assessment(USER, item_id)
+                assert view is not None and view.omitted_media == expected
+
+    asyncio.run(run())

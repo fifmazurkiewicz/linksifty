@@ -46,3 +46,15 @@ same URL with name=orig serves 1055×1491, matching API dimensions. Fine text is
 dense. Prefer original bytes under existing bounds, and expose safe fixed
 rejection checks before proposing another model or weakening source completeness.
 This improves input quality but does not prove resolution caused the failure.
+
+
+## Owner-directed text-only scope — 2026-10-19
+
+New logs establish T7: two-image reading ends with finish_length (truncated
+model output), while the Wooden video is explicitly unsupported. The owner now
+asks to omit images/videos/GIFs and analyze text, with visible media availability.
+This intentionally supersedes the earlier requirement that every media artifact
+be read before assessment. Text completeness, owner isolation, explicit paid
+reads and uncertain-charge fencing remain required. Success is complete readable
+text analysis with durable honest scope, zero media downloads/vision calls and
+manual fallback for short/truncated/missing text, including media-only posts.

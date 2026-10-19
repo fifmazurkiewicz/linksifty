@@ -90,3 +90,22 @@ Keep raw model/provider messages, image/base64 bytes, source text, keys and
 generation IDs out of the new logs/events. Preserve known-cost settlement and
 unknown-cost fencing before assessment/source caching. This is diagnostic
 maintenance in the existing acquisition path, with no new integration or model.
+
+
+## T8 approved scope: text only
+
+The owner's explicit request authorizes assessment of complete text while
+ignoring media. No runtime opt-in toggle or alternate model is introduced. Keep
+full Article bodies/code, connected threads and quoted/embedded text validation.
+Media metadata may identify image/video/GIF/audio/other attachments but cannot
+block text because bytes/expansions are missing. Do not fetch CDN media or hydrate
+a quoted post solely for media. Keep legacy image accounting/reconciliation for
+already billed attempts; disable new vision admission in the active service.
+
+Persist nullable omitted_media metadata alongside cached source text using a
+server-only owner/lease/account/expiry-fenced RPC (migration 000019). NULL means
+legacy or manual scope not recorded; [] marks new text-only fetch with no known
+media. Save selected research media metadata in existing bounded JSON. Return
+these fields through assessment DTOs and show a visible text-only scope notice
+and media labels without hiding them in collapsed sections. No false complete
+multimedia claim, backfill, automatic retry, model migration or content rewrite.

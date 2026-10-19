@@ -75,36 +75,6 @@ def test_preview_only_articles_never_return_assessment_source(article: object) -
     assert result.failure == "x_article_incomplete"
 
 
-def test_static_image_is_acquired_without_x_credentials_and_without_lowering_minimum() -> None:
-    calls: list[str] = []
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        calls.append(request.url.host or "")
-        if request.url.host == "pbs.twimg.com":
-            assert "authorization" not in request.headers and "cookie" not in request.headers
-            return httpx.Response(200, content=png(), headers={"content-type": "image/png"})
-        if request.url.path == "/2/tweets/100":
-            assert "attachments.media_keys" in request.url.params["expansions"]
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(text="Short caption", attachments={"media_keys": ["3_image"]}),
-                    "includes": {
-                        "media": [{"media_key": "3_image", "type": "photo", "url": IMAGE_URL}]
-                    },
-                },
-            )
-        return httpx.Response(200, json={"meta": {"result_count": 0}})
-
-    result = acquire(respond)
-    assert result.failure is None
-    assert len(result.images) == 1
-    assert result.images[0].data == png()
-    assert result.images[0].url == IMAGE_URL + "?name=orig"
-    assert result.images[0].source_url == "https://x.com/i/web/status/100"
-    assert calls.count("pbs.twimg.com") == 1
-
-
 @pytest.mark.parametrize(
     "url",
     [
@@ -116,7 +86,7 @@ def test_static_image_is_acquired_without_x_credentials_and_without_lowering_min
         "https://127.0.0.1/a.png",
     ],
 )
-def test_untrusted_media_url_is_rejected_before_any_media_request(url: str) -> None:
+def test_ignored_media_url_never_reaches_any_media_host(url: str) -> None:
     calls: list[str] = []
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -132,14 +102,15 @@ def test_untrusted_media_url_is_rejected_before_any_media_request(url: str) -> N
         return httpx.Response(200, json={"meta": {"result_count": 0}})
 
     result = acquire(respond)
-    assert result.text is None
-    assert result.failure == "x_media_unavailable"
+    assert TEXT in (result.text or "")
+    assert result.images == ()
+    assert result.failure is None
     assert all(host == "api.x.com" for host in calls)
 
 
 @pytest.mark.parametrize("kind", ["video", "animated_gif"])
 @pytest.mark.parametrize("url", [IMAGE_URL, None])
-def test_video_is_explicitly_unsupported_not_silently_omitted(kind: str, url: str | None) -> None:
+def test_video_is_explicitly_marked_as_omitted(kind: str, url: str | None) -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/2/tweets/100":
             return httpx.Response(
@@ -152,45 +123,10 @@ def test_video_is_explicitly_unsupported_not_silently_omitted(kind: str, url: st
         return httpx.Response(200, json={"meta": {"result_count": 0}})
 
     result = acquire(respond)
-    assert result.text is None
-    assert result.failure == "x_media_unsupported"
-
-
-@pytest.mark.parametrize(
-    "status,body,mime",
-    [
-        (302, b"", "image/png"),
-        (206, b"prefix", "image/png"),
-        (200, b"not-an-image", "image/png"),
-        (200, png()[:-15], "image/png"),
-        (200, png(), "text/html"),
-    ],
-)
-def test_incomplete_or_invalid_image_never_returns_text(
-    status: int, body: bytes, mime: str
-) -> None:
-    def respond(request: httpx.Request) -> httpx.Response:
-        if request.url.host == "pbs.twimg.com":
-            return httpx.Response(
-                status,
-                content=body,
-                headers={"content-type": mime, "location": "https://evil.test/image.png"},
-            )
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(attachments={"media_keys": ["image"]}),
-                    "includes": {
-                        "media": [{"media_key": "image", "type": "photo", "url": IMAGE_URL}]
-                    },
-                },
-            )
-        return httpx.Response(200, json={"meta": {"result_count": 0}})
-
-    result = acquire(respond)
-    assert result.text is None
-    assert result.failure == "x_media_unavailable"
+    assert TEXT in (result.text or "")
+    assert result.images == ()
+    assert result.failure is None
+    assert result.omitted_media == (("gif",) if kind == "animated_gif" else ("video",))
 
 
 def test_quoted_article_includes_its_body_cover_and_embedded_post() -> None:
@@ -234,8 +170,8 @@ def test_quoted_article_includes_its_body_cover_and_embedded_post() -> None:
     assert "Full article" in (result.text or "")
     assert "Embedded evidence" in (result.text or "")
     assert "Preview…" not in (result.text or "")
-    assert len(result.images) == 1
-    assert result.images[0].source_url.endswith("/90")
+    assert result.images == ()
+    assert result.omitted_media == ("image",)
 
 
 @pytest.mark.parametrize(
@@ -280,75 +216,6 @@ def test_missing_article_embedded_source_never_returns_outer_post() -> None:
     assert result.failure == "partial_content"
 
 
-def test_image_count_and_declared_size_are_checked_before_reading_large_bytes() -> None:
-    def respond(request: httpx.Request) -> httpx.Response:
-        if request.url.host == "pbs.twimg.com":
-            return httpx.Response(
-                200, content=b"", headers={"content-type": "image/png", "content-length": "6000000"}
-            )
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(attachments={"media_keys": ["image"]}),
-                    "includes": {
-                        "media": [{"media_key": "image", "type": "photo", "url": IMAGE_URL}]
-                    },
-                },
-            )
-        return httpx.Response(200, json={"meta": {"result_count": 0}})
-
-    assert acquire(respond).text is None
-
-
-@pytest.mark.parametrize("kind", ["pixels", "animation", "count"])
-def test_image_decode_and_count_bounds_require_manual_content(kind: str) -> None:
-    import io
-
-    from PIL import Image
-
-    if kind == "pixels":
-        data = png(5000, 4001)
-    elif kind == "animation":
-        buffer = io.BytesIO()
-        Image.new("RGB", (2, 2), "red").save(
-            buffer,
-            format="PNG",
-            save_all=True,
-            append_images=[Image.new("RGB", (2, 2), "blue")],
-        )
-        data = buffer.getvalue()
-    else:
-        data = png()
-    media_count = 13 if kind == "count" else 1
-    media_calls: list[str] = []
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        if request.url.host == "pbs.twimg.com":
-            media_calls.append(str(request.url))
-            return httpx.Response(200, content=data, headers={"content-type": "image/png"})
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(attachments={"media_keys": [str(i) for i in range(media_count)]}),
-                    "includes": {
-                        "media": [
-                            {"media_key": str(i), "type": "photo", "url": f"{IMAGE_URL}?id={i}"}
-                            for i in range(media_count)
-                        ]
-                    },
-                },
-            )
-        return httpx.Response(200, json={"meta": {"result_count": 0}})
-
-    result = acquire(respond)
-    assert result.text is None and not result.images
-    assert result.failure == ("too_large" if kind == "count" else "x_media_unavailable")
-    if kind == "count":
-        assert not media_calls
-
-
 @pytest.mark.parametrize(
     "article,check",
     [
@@ -359,10 +226,6 @@ def test_image_decode_and_count_bounds_require_manual_content(kind: str) -> None
         (
             {"title": "private-title", "text": TEXT, "preview_text": TEXT},
             "article_body_preview",
-        ),
-        (
-            {"title": "private-title", "text": TEXT, "cover_media": {"private-key": "secret"}},
-            "article_media_invalid",
         ),
         (
             {
@@ -394,9 +257,7 @@ def test_article_failure_logs_exact_check_without_content(
 
 @pytest.mark.parametrize("field", ["cover_media", "media_entities"])
 @pytest.mark.parametrize("expanded", [True, False])
-def test_article_media_key_references_require_expanded_valid_image(
-    field: str, expanded: bool
-) -> None:
+def test_article_media_presence_does_not_require_expansion(field: str, expanded: bool) -> None:
     media_key = "3_400"
     article = {
         "title": "Article",
@@ -424,17 +285,12 @@ def test_article_media_key_references_require_expanded_valid_image(
         return httpx.Response(200, json={"meta": {"result_count": 0}})
 
     result = acquire(respond)
-    if expanded:
-        assert result.failure is None and TEXT in (result.text or "")
-        assert len(result.images) == 1 and result.images[0].data == png()
-        assert image_requests == [IMAGE_URL + "?name=orig"]
-    else:
-        assert result.text is None and not result.images
-        assert result.failure == "x_media_unavailable"
-        assert not image_requests
+    assert result.failure is None and TEXT in (result.text or "")
+    assert result.images == () and result.omitted_media == ("image",)
+    assert not image_requests
 
 
-def test_quoted_article_hydrates_media_and_preserves_eleven_images_and_code() -> None:
+def test_quoted_article_preserves_code_without_hydrating_or_downloading_media() -> None:
     calls: list[str] = []
     snippets = ["print('exact code')", "def agent():\n    return 42", "git clone example"]
     article = {
@@ -497,59 +353,14 @@ def test_quoted_article_hydrates_media_and_preserves_eleven_images_and_code() ->
 
     result = acquire(respond)
     assert result.failure is None
-    assert len(result.images) == 11
-    assert sum(image.source_url.endswith("/90") for image in result.images) == 10
+    assert result.images == ()
+    assert set(result.omitted_media) == {"image"}
     assert "position unspecified" in (result.text or "")
     for code in snippets:
         assert code in (result.text or "")
-    assert calls.count("https://api.x.com/2/tweets/90") == 1
-    assert sum("api.x.com" in call for call in calls) == 3
-
-
-@pytest.mark.parametrize("outcome", ["missing", "denied", "changed"])
-def test_quoted_article_lookup_failure_never_retries_or_returns_partial_source(
-    outcome: str,
-) -> None:
-    calls: list[str] = []
-    quoted = post(
-        id="90",
-        conversation_id="90",
-        article={
-            "title": "Article",
-            "plain_text": TEXT,
-            "cover_media": "missing",
-        },
-    )
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        calls.append(request.url.path)
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(referenced_tweets=[{"id": "90", "type": "quoted"}]),
-                    "includes": {"tweets": [quoted]},
-                },
-            )
-        assert request.url.path == "/2/tweets/90"
-        return httpx.Response(
-            403 if outcome == "denied" else 200,
-            json={
-                "data": {**quoted, "text": "changed"} if outcome == "changed" else quoted,
-            },
-        )
-
-    result = acquire(respond)
-    assert result.text is None and not result.images
-    assert (
-        result.failure
-        == {
-            "missing": "x_media_unavailable",
-            "denied": "x_access_denied",
-            "changed": "partial_content",
-        }[outcome]
-    )
-    assert calls == ["/2/tweets/100", "/2/tweets/90"]
+    assert calls.count("https://api.x.com/2/tweets/90") == 0
+    assert sum("api.x.com" in call for call in calls) == 2
+    assert all("api.x.com" in call for call in calls)
 
 
 @pytest.mark.parametrize(
@@ -584,131 +395,3 @@ def test_article_code_already_present_in_body_is_not_duplicated() -> None:
         }
     )
     assert result.text.count("print(42)") == 1
-
-
-def test_quoted_article_hydration_and_search_share_twelve_request_cap(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    calls: list[str] = []
-    quotes = [
-        post(
-            id=identifier,
-            conversation_id=identifier,
-            referenced_tweets=[{"type": "quoted", "id": "80"}] if identifier == "90" else [],
-            article={"title": "Article", "plain_text": TEXT, "cover_media": identifier},
-        )
-        for identifier in ("90", "80")
-    ]
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        calls.append(request.url.path)
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(referenced_tweets=[{"type": "quoted", "id": "90"}]),
-                    "includes": {"tweets": quotes},
-                },
-            )
-        if request.url.path in {"/2/tweets/90", "/2/tweets/80"}:
-            identifier = request.url.path.rsplit("/", 1)[1]
-            return httpx.Response(
-                200,
-                json={
-                    "data": next(quote for quote in quotes if quote["id"] == identifier),
-                    "includes": {
-                        "media": [
-                            {
-                                "media_key": identifier,
-                                "type": "photo",
-                                "url": f"{IMAGE_URL}?id={identifier}",
-                            }
-                        ]
-                    },
-                },
-            )
-        assert request.url.path == "/2/tweets/search/all"
-        return httpx.Response(
-            200, json={"meta": {"result_count": 0, "next_token": str(len(calls))}}
-        )
-
-    result = acquire(respond)
-    assert result.failure == "partial_content"
-    assert len(calls) == 12
-    assert "check=request_limit" in caplog.text
-
-
-def test_unsafe_known_media_stops_before_billable_quoted_article_lookup() -> None:
-    calls: list[str] = []
-    quoted = post(
-        id="90",
-        conversation_id="90",
-        article={
-            "title": "Article",
-            "plain_text": TEXT,
-            "cover_media": "missing",
-        },
-    )
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        calls.append(request.url.path)
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(
-                        attachments={"media_keys": ["unsafe"]},
-                        referenced_tweets=[{"id": "90", "type": "quoted"}],
-                    ),
-                    "includes": {
-                        "tweets": [quoted],
-                        "media": [
-                            {
-                                "media_key": "unsafe",
-                                "type": "photo",
-                                "url": "https://evil.test/image",
-                            }
-                        ],
-                    },
-                },
-            )
-        return httpx.Response(200, json={"data": quoted})
-
-    result = acquire(respond)
-    assert result.failure == "x_media_unavailable" and result.text is None
-    assert calls == ["/2/tweets/100"]
-
-
-@pytest.mark.parametrize(
-    "url",
-    [
-        IMAGE_URL,
-        IMAGE_URL + "?name=small",
-        "https://pbs.twimg.com/media/example?format=png&name=small",
-    ],
-)
-def test_text_bearing_photos_request_original_size_once(url: str) -> None:
-    requests: list[httpx.Request] = []
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        if request.url.host == "pbs.twimg.com":
-            requests.append(request)
-            assert request.url.params["name"] == "orig"
-            if "format=" in url:
-                assert request.url.params["format"] == "png"
-            assert "authorization" not in request.headers and "cookie" not in request.headers
-            return httpx.Response(200, content=png(), headers={"content-type": "image/png"})
-        if request.url.path == "/2/tweets/100":
-            return httpx.Response(
-                200,
-                json={
-                    "data": post(attachments={"media_keys": ["photo"]}),
-                    "includes": {"media": [{"media_key": "photo", "type": "photo", "url": url}]},
-                },
-            )
-        return httpx.Response(200, json={"meta": {"result_count": 0}})
-
-    result = acquire(respond)
-    assert result.failure is None and len(result.images) == 1
-    assert len(requests) == 1
-    assert httpx.URL(result.images[0].url).params["name"] == "orig"

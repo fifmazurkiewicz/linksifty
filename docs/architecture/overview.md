@@ -1,5 +1,9 @@
 # Linksifty architecture
 
+Current source policy (2026-10-19): complete **text only**, with durable metadata
+for omitted media. The rich-media acquisition/vision sections below are historical;
+see [the active text-only flow](#text-only-analysis--migration-000019).
+
 Updated 2026-10-16. The repository is a monorepo: `backend/` is the uv-managed FastAPI package, `frontend/` is React/TypeScript/Vite with npm. Root documentation and `uv.lock` are shared.
 
 ## Implemented request path
@@ -387,3 +391,33 @@ image.reading telemetry. Raw response/image/source text is excluded. Provider
 admission, prompt/model, accounting, unknown-cost fencing and complete-source
 requirements remain unchanged. This is an existing adapter/service correction,
 with no new integration or data-flow stage.
+
+
+## Text-only analysis — migration 000019
+
+The X adapter validates full text, thread identity/connections, Article bodies/code
+and quoted/embedded text. Media presence maps to bounded image/video/GIF/audio/
+other labels. Missing byte URLs/expansions do not block otherwise complete text;
+media metadata cannot satisfy minimum text length. No media-only hydration or
+CDN request occurs. The public HTML adapter records visible media tags without
+fetching them or treating alt text as a transcription.
+
+ProcessingService caches validated text with omission metadata, then follows
+existing research/assessment admission. Its active image-reader branch and startup
+wiring are removed. Existing legacy image adapters/accounting stay inactive for
+new acquisition; generation reconciliation and uncertain billing safeguards remain.
+The assessment prompt explicitly restricts claims to supplied text. Metadata is
+not source evidence and does not enter citation offsets or domain scoring.
+
+Migration 000019 saves primary media types atomically alongside text/hash through
+an owner/account/lease/state/expiry-fenced server-only RPC. Assessment GET reads
+owned metadata; NULL distinguishes unrecorded legacy/manual scope from [] on new
+text-only fetches. Research source types are stored in existing JSON, outside the
+text passage. The UI shows a visible scope notice before summary plus per-research
+source notes; historical analyses are not relabeled. No new service/dependency.
+
+[Workflow HTML](../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
+· [editable contract](../../.agent/context/changes/x-rich-sources/text-only-workflow.json).
+This is the owner's behavior contract, not a frozen repository snapshot. Static
+Archify checks pass; its browser check is skipped (Chrome unavailable). Native
+product QA with synthetic desktop/mobile fixtures is recorded separately.

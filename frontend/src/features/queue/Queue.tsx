@@ -99,7 +99,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, busy }: {
           <p role={item.status === 'processing' ? 'status' : item.status === 'failed' ? 'alert' : undefined} aria-atomic="true">{paused ? 'Processing paused; waiting to resume' : stageLabel}{!paused && stage === 'fetching' && host ? ` from ${host}` : ''}.</p>
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
-          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source again, reads attached images and starts analysis using your monthly budget. X reads may incur separate charges.</p>}
+          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source text again and starts a text-only analysis using your monthly budget. Media is not analyzed. X reads may incur separate charges.</p>}
           {item.updated_at && <p className="hint">Updated {new Date(item.updated_at).toLocaleTimeString()}</p>}
           {stage === 'invalid_model_output' && item.failure_reason && modelReasons[item.failure_reason] && <p>{modelReasons[item.failure_reason]}</p>}
           {stage === 'cost_unknown' && <p>The amount remains reserved. This paid request will not be repeated.</p>}

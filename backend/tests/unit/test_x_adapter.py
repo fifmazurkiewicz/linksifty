@@ -429,7 +429,6 @@ def test_transport_and_decode_errors_log_type_without_exception_details(
 @pytest.mark.parametrize(
     "extra,check",
     [
-        ({"attachments": {"media_keys": ["private-media"]}}, "missing_expanded_media"),
         ({"article": {"title": "private-article"}}, "article_body_missing"),
         ({"withheld": {"country_codes": ["private-country"]}}, "withheld_content"),
         ({"note_post": None}, "missing_long_text"),
@@ -623,7 +622,6 @@ def test_missing_reference_never_returns_outer_post_or_retries(
 @pytest.mark.parametrize(
     "extra",
     [
-        {"attachments": {"media_keys": ["image"]}},
         {"article": {}},
         {"text": "preview…"},
         {"referenced_posts": [{"type": "quoted", "id": "80"}]},
