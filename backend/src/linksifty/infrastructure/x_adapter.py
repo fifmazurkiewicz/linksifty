@@ -11,7 +11,13 @@ import httpx
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from linksifty.application.discussions import DiscussionReply, DiscussionResult
-from linksifty.domain.acquisition import FetchFailure, FetchResult, MediaType, media_type
+from linksifty.domain.acquisition import (
+    MAX_PARTIAL_TEXT,
+    FetchFailure,
+    FetchResult,
+    MediaType,
+    media_type,
+)
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.x_urls import x_post_id
 from linksifty.infrastructure.redaction import redact
@@ -154,6 +160,43 @@ class _Search(BaseModel):
 
 
 class XAdapter:
+    @staticmethod
+    def _partial_text(available: dict[str, _Post], identifier: str) -> str | None:
+        pending = [identifier]
+        visited: set[str] = set()
+        fragments: list[str] = []
+        while pending and len(visited) < _MAX_POSTS:
+            post = available.get(pending.pop())
+            if post is None or post.id in visited or post.withheld:
+                continue
+            visited.add(post.id)
+            try:
+                content = post.content()
+            except _Failure:
+                # Fragments are preview-only; no claim of complete Article structure.
+                article = post.article or {}
+                content = "\n".join(
+                    value
+                    for key in ("title", "plain_text", "text", "preview_text")
+                    if isinstance(value := article.get(key), str) and "\x00" not in value
+                ) or (post.note.text if post.note else post.text)
+            if not content.strip():
+                content = post.text
+            if content and "\x00" not in content:
+                fragments.append(content)
+            pending.extend(
+                ref.id
+                for ref in post.references
+                if ref.type in {"quoted", "retweeted", "replied_to"}
+            )
+            if post.article is not None:
+                try:
+                    pending.extend(parse_article(post.article).post_ids)
+                except _Failure:
+                    pass
+        text = "\n\n".join(fragments)[:MAX_PARTIAL_TEXT].strip()
+        return text or None
+
     def __init__(
         self,
         token: str,
@@ -280,6 +323,7 @@ class XAdapter:
         if identifier is None:
             return FetchResult(failure=FetchFailure.UNSAFE_URL)
         request_count = 0
+        available: dict[str, _Post] = {}
 
         async def count_request(request: httpx.Request) -> None:
             nonlocal request_count
@@ -296,18 +340,25 @@ class XAdapter:
                     timeout=10,
                     event_hooks={"request": [count_request]},
                 ) as client:
-                    return await self._thread(client, identifier)
+                    return await self._thread(client, identifier, available)
         except _Failure as failure:
             _logger.warning("x_fetch_failed reason=%s check=%s", failure.reason, failure.check)
-            return FetchResult(failure=failure.reason)
+            return FetchResult(
+                failure=failure.reason, partial_text=self._partial_text(available, identifier)
+            )
         except (ValidationError, ValueError, UnicodeError) as error:
             _logger.warning(
                 "x_fetch_failed reason=partial_content error_type=%s", type(error).__name__
             )
-            return FetchResult(failure=FetchFailure.PARTIAL)
+            return FetchResult(
+                failure=FetchFailure.PARTIAL, partial_text=self._partial_text(available, identifier)
+            )
         except (httpx.HTTPError, TimeoutError) as error:
             _logger.warning("x_fetch_failed reason=unavailable error_type=%s", type(error).__name__)
-            return FetchResult(failure=FetchFailure.UNAVAILABLE)
+            return FetchResult(
+                failure=FetchFailure.UNAVAILABLE,
+                partial_text=self._partial_text(available, identifier),
+            )
 
     async def _get(self, client: httpx.AsyncClient, path: str, **params: str) -> dict[str, object]:
         request_id = uuid4().hex if self._debug else ""
@@ -374,7 +425,9 @@ class XAdapter:
                 if not isinstance(payload, dict):
                     raise _Failure(FetchFailure.PARTIAL, "invalid_response_shape")
                 if payload.get("errors"):
-                    raise _Failure(FetchFailure.PARTIAL, "provider_partial_errors")
+                    raise _Failure(
+                        FetchFailure.PARTIAL, "provider_partial_errors", partial_payload=payload
+                    )
                 return payload
         except (httpx.HTTPError, TimeoutError) as error:
             self._log_debug("transport_error", request_id, {"error_type": type(error).__name__})
@@ -387,7 +440,19 @@ class XAdapter:
         available: dict[str, _Post],
         media: dict[str, XMedia],
     ) -> _Post:
-        payload = await self._get(client, identifier)
+        try:
+            payload = await self._get(client, identifier)
+        except _Failure as failure:
+            # A 200 partial API response can supply preview text, never complete source.
+            if failure.partial_payload is not None:
+                try:
+                    partial = _Lookup.model_validate(failure.partial_payload)
+                except ValidationError:
+                    pass
+                else:
+                    if partial.data.id == identifier:
+                        self._remember(available, [partial.data, *partial.includes.posts])
+            raise
         try:
             lookup = _Lookup.model_validate(payload)
         except ValidationError as error:
@@ -398,9 +463,10 @@ class XAdapter:
         self._remember_media(media, lookup.includes.media)
         return lookup.data
 
-    async def _thread(self, client: httpx.AsyncClient, identifier: str) -> FetchResult:
+    async def _thread(
+        self, client: httpx.AsyncClient, identifier: str, available: dict[str, _Post]
+    ) -> FetchResult:
         submitted_id = identifier
-        available: dict[str, _Post] = {}
         media: dict[str, XMedia] = {}
         selected = await self._lookup(client, identifier, available, media)
         reposts: set[str] = set()

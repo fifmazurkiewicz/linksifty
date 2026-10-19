@@ -51,6 +51,8 @@ export async function api<T>(path: string, session: Session, init: RequestInit =
 export type Item = {
   id: string
   title: string
+  partial_overview?: string | null
+  preview_charge_pending?: boolean
   status: string
   score: number | null
   verdict: string | null

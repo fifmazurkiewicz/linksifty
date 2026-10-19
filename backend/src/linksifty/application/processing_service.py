@@ -27,7 +27,7 @@ from linksifty.application.processing_contracts import (
     UserSettings,
 )
 from linksifty.application.research_contracts import SearchCandidate, SearchProvider, SourceSelector
-from linksifty.domain.acquisition import FetchFailure, FetchResult
+from linksifty.domain.acquisition import MAX_PARTIAL_TEXT, FetchFailure, FetchResult
 from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 from linksifty.domain.models import AssessmentDraft, Criterion, CriterionName, HypeSignal
 from linksifty.domain.scoring import complete_assessment
@@ -74,10 +74,14 @@ class ProcessingService:
     def selection_max_price(self) -> Decimal | None:
         return self._selector.estimate(20) if self._selector is not None else None
 
-    async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
+    async def submit_search(
+        self, user_id: UUID, urls: list[str], *, allow_partial_preview: bool = False
+    ) -> list[ItemRecord]:
         if not self.search_available:
             raise ValueError("Web search is not configured")
-        records = await self._store.submit_search(user_id, urls)
+        records = await self._store.submit_search(
+            user_id, urls, **({"allow_partial_preview": True} if allow_partial_preview else {})
+        )
         self.wake(user_id)
         return records
 
@@ -107,8 +111,12 @@ class ProcessingService:
             self.wake(user_id)
         return record
 
-    async def resume(self, user_id: UUID, item_id: UUID) -> ItemRecord | None:
-        record = await self._store.resume(user_id, item_id)
+    async def resume(
+        self, user_id: UUID, item_id: UUID, *, allow_partial_preview: bool = False
+    ) -> ItemRecord | None:
+        record = await self._store.resume(
+            user_id, item_id, **({"allow_partial_preview": True} if allow_partial_preview else {})
+        )
         if record is not None:
             self.wake(user_id)
         return record
@@ -466,6 +474,23 @@ class ProcessingService:
             return FetchResult(failure=FetchFailure.X_ATTEMPT_UNCERTAIN)
         return await self._x_fetch(url)
 
+    async def _partial_preview(self, job: ProcessingJob, text: str | None) -> None:
+        if not text or not text.strip() or self._provider is None:
+            return
+        try:
+            if not await self._stage(job, "previewing_partial"):
+                return
+            reservation = await self._store.reserve_preview(job, self._provider.estimate(""))
+            if reservation is None:
+                return
+            result = await self._provider.preview(text[:MAX_PARTIAL_TEXT])
+            await self._store.record_preview(job, reservation, result)
+            if result.cost is not None:
+                await self._store.settle(job.user_id, reservation, result.cost)
+        except Exception as error:
+            # Preview is best effort; a failed admitted call is never automatically resent.
+            _logger.warning("partial_preview_unavailable error_type=%s", type(error).__name__)
+
     async def process(self, job: ProcessingJob) -> None:
         provider = self._provider
         if provider is None:
@@ -484,13 +509,14 @@ class ProcessingService:
             self._event(
                 "source.fetched", url=job.original_url, text=fetched.text, failure=fetched.failure
             )
-            if fetched.text is None:
+            if fetched.failure is not None or fetched.text is None:
                 _logger.warning(
                     "source_fetch_failed job_id=%s provider=%s reason=%s",
                     job.id,
                     "x" if is_x_url(job.original_url or "") else "web",
                     fetched.failure or "unavailable",
                 )
+                await self._partial_preview(job, fetched.partial_text or fetched.text)
                 await self._stage(
                     job, str(fetched.failure or "unavailable"), "awaiting_manual_content"
                 )
@@ -503,6 +529,7 @@ class ProcessingService:
                 "source.validated", readiness=evaluation.readiness, reason=evaluation.reason
             )
             if evaluation.readiness is not ContentReadiness.READY:
+                await self._partial_preview(job, source_text)
                 await self._stage(
                     job, str(evaluation.reason or "incomplete"), "awaiting_manual_content"
                 )

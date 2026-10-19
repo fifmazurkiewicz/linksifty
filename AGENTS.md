@@ -26,7 +26,7 @@
 - Use `uv` for Python dependencies and commands (`uv run --package linksifty` from the root). The approved monorepo uses npm only inside `frontend/`. Do not use `pip install`, manually edit `uv.lock`, or create another virtual environment.
 - Python is 3.11+; use FastAPI and Pydantic v2 APIs only. All functions carry full type annotations and mypy runs in strict mode.
 - HTTP routes contain transport concerns only. Domain services do not depend on FastAPI types. The value score and verdict are pure, deterministic code with one source of truth.
-- A failed or partial fetch must never create a summary or assessment. It must stop as an explicit request for manually pasted content.
+- A failed or partial fetch must never create an assessment or score. It may create a clearly labeled one-sentence partial preview from readable fetched text, with disclosed budget use and once-only admission. The item still requests manually pasted content; partial text must never be cached as complete assessment input.
 - Scope every link, note, assessment, and chat operation to the authenticated user's ID, including for administrators. Admin features may manage accounts but not other users' content.
 - Keep Supabase, OpenRouter, and X credentials server-only. Commit only `.env.example`, never actual values.
 - Tests must mock paid or remote integrations. Before completing a change, run the relevant tests, `uv run --package linksifty mypy --strict backend/src`, `uv run --package linksifty ruff check .`, `uv run --package linksifty ruff format --check .`, and `agent-toolkit check`. Frontend changes also require its tests and build.

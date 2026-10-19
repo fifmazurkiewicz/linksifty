@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Automatic Partial Preview Contract",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".agent/context/changes/partial-previews/workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "processing",
+      "label": "Complete assessment or explicitly incomplete preview"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "fetch",
+      "lane": "processing",
+      "col": 1,
+      "yOffset": -280,
+      "type": "backend",
+      "label": "Fetch and resolve text",
+      "sublabel": "Safe web or official X reads",
+      "width": 220
+    },
+    {
+      "id": "validate",
+      "lane": "processing",
+      "col": 1,
+      "yOffset": -140,
+      "type": "security",
+      "label": "Validate complete text",
+      "sublabel": "Keep source and dependency guards",
+      "width": 220
+    },
+    {
+      "id": "cache",
+      "lane": "processing",
+      "col": 1,
+      "yOffset": 0,
+      "type": "database",
+      "label": "Cache complete source",
+      "sublabel": "No partial fragments in source cache",
+      "width": 220
+    },
+    {
+      "id": "assess",
+      "lane": "processing",
+      "col": 1,
+      "yOffset": 140,
+      "type": "backend",
+      "label": "Assess complete text",
+      "sublabel": "Existing budget and scoring",
+      "width": 220
+    },
+    {
+      "id": "complete",
+      "lane": "processing",
+      "col": 1,
+      "yOffset": 280,
+      "type": "frontend",
+      "label": "Ready assessment",
+      "sublabel": "Existing result and citations",
+      "width": 220
+    },
+    {
+      "id": "admit",
+      "lane": "processing",
+      "col": 2,
+      "yOffset": -140,
+      "type": "security",
+      "label": "Admit partial preview",
+      "sublabel": "Readable text, consent, budget, lease",
+      "width": 220
+    },
+    {
+      "id": "preview",
+      "lane": "processing",
+      "col": 2,
+      "yOffset": 0,
+      "type": "backend",
+      "label": "Generate one sentence",
+      "sublabel": "Once-only call; no scoring",
+      "width": 220
+    },
+    {
+      "id": "manual",
+      "lane": "processing",
+      "col": 2,
+      "yOffset": 140,
+      "type": "frontend",
+      "label": "Needs action",
+      "sublabel": "Labeled preview, Paste or Delete",
+      "width": 220
+    }
+  ],
+  "edges": [
+    {
+      "from": "fetch",
+      "to": "validate",
+      "label": "available text"
+    },
+    {
+      "from": "validate",
+      "to": "cache",
+      "label": "complete"
+    },
+    {
+      "from": "cache",
+      "to": "assess",
+      "label": "validated source"
+    },
+    {
+      "from": "assess",
+      "to": "complete",
+      "label": "saved assessment"
+    },
+    {
+      "from": "validate",
+      "to": "admit",
+      "label": "incomplete"
+    },
+    {
+      "from": "admit",
+      "to": "preview",
+      "label": "admitted once"
+    },
+    {
+      "from": "preview",
+      "to": "manual",
+      "label": "preview or unavailable"
+    },
+    {
+      "from": "admit",
+      "to": "manual",
+      "label": "not admitted",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "right",
+      "route": "outside-right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Preview scope",
+      "items": [
+        "Only readable text fetched from safe web responses or reachable non-withheld X posts; no media inference or extra fetch. Input is bounded to 6,000 characters and stays in memory.",
+        "The model describes the fragment in one sentence. Only preview metadata is stored; partial text never becomes complete source, research evidence, assessment or score.",
+        "Approved behavior contract, not a frozen repository snapshot."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Budget and recovery",
+      "items": [
+        "Updated Submit and Retry actions disclose monthly-budget use and send strict consent, stored atomically with job submission or Retry. Older jobs/clients default off. No extra Generate button.",
+        "Reserve up to USD 0.14848 under the owner budget lock. One admitted attempt per job, 192 output tokens and 400 preview characters; unknown charges stay held and disable Retry.",
+        "Migration 000021 precedes matching deployment. Owner, account, expiry, current lease and late-generation guards apply; no automatic paid resend or hosted success claim."
+      ]
+    }
+  ]
+}

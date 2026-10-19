@@ -337,11 +337,19 @@ class SupabaseRepository:
         )
         return records[0] if records else None
 
-    async def create_items(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
+    async def create_items(
+        self, user_id: UUID, urls: list[str], *, allow_partial_preview: bool = False
+    ) -> list[ItemRecord]:
         if not 1 <= len(urls) <= 5:
             raise ValueError("submit between one and five links")
         return await self._request(
-            "POST", "rpc/submit_fetch_items", payload={"p_user_id": str(user_id), "p_urls": urls}
+            "POST",
+            "rpc/submit_fetch_items",
+            payload={
+                "p_user_id": str(user_id),
+                "p_urls": urls,
+                **({"p_allow_partial_preview": True} if allow_partial_preview else {}),
+            },
         )
 
     async def delete_item(self, user_id: UUID, item_id: UUID) -> bool:

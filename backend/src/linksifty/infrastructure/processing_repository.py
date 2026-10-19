@@ -22,6 +22,26 @@ from linksifty.infrastructure.supabase_repository import RepositoryUnavailable, 
 
 
 class ProcessingRepository(SupabaseRepository):
+    async def reserve_preview(self, job: ProcessingJob, amount: Decimal) -> UUID | None:
+        rows = await self._rpc(
+            "reserve_partial_preview", job.user_id, **self._job_values(job), p_amount=str(amount)
+        )
+        return UUID(str(rows[0]["id"])) if rows else None
+
+    async def record_preview(
+        self, job: ProcessingJob, reservation_id: UUID, result: ModelResult
+    ) -> bool:
+        return bool(
+            await self._rpc(
+                "record_partial_preview",
+                job.user_id,
+                **self._job_values(job),
+                p_reservation=str(reservation_id),
+                p_overview=result.overview,
+                p_generation=result.generation_id,
+            )
+        )
+
     async def reserve_title(
         self, user_id: UUID, item_id: UUID, amount: Decimal
     ) -> TitleReservation | None:
@@ -82,10 +102,17 @@ class ProcessingRepository(SupabaseRepository):
         rows = await self._rpc("begin_x_fetch", job.user_id, **self._job_values(job))
         return bool(rows and rows[0].get("admitted") is True)
 
-    async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
+    async def submit_search(
+        self, user_id: UUID, urls: list[str], *, allow_partial_preview: bool = False
+    ) -> list[ItemRecord]:
         return [
             ItemRecord.model_validate(row)
-            for row in await self._rpc("submit_search_items", user_id, p_urls=urls)
+            for row in await self._rpc(
+                "submit_search_items",
+                user_id,
+                p_urls=urls,
+                **({"p_allow_partial_preview": True} if allow_partial_preview else {}),
+            )
         ]
 
     async def reserve_search(self, job: ProcessingJob, amount: Decimal) -> Reservation | None:
@@ -110,7 +137,8 @@ class ProcessingRepository(SupabaseRepository):
             "usage_reservations",
             params={
                 "user_id": f"eq.{user_id}",
-                "or": "(job_id.is.null,purpose.in.(image_extraction,source_selection))",
+                "or": "(job_id.is.null,purpose.in."
+                "(image_extraction,source_selection,partial_preview))",
                 "state": "eq.reserved",
                 "generation_id": "not.is.null",
                 "select": "id,generation_id",
@@ -243,8 +271,15 @@ class ProcessingRepository(SupabaseRepository):
         )
         return ItemRecord.model_validate(rows[0]) if rows else None
 
-    async def resume(self, user_id: UUID, item_id: UUID) -> ItemRecord | None:
-        rows = await self._rpc("resume_processing_item", user_id, p_item_id=str(item_id))
+    async def resume(
+        self, user_id: UUID, item_id: UUID, *, allow_partial_preview: bool = False
+    ) -> ItemRecord | None:
+        rows = await self._rpc(
+            "resume_processing_item",
+            user_id,
+            p_item_id=str(item_id),
+            **({"p_allow_partial_preview": True} if allow_partial_preview else {}),
+        )
         return ItemRecord.model_validate(rows[0]) if rows else None
 
     async def assessment(self, user_id: UUID, item_id: UUID) -> AssessmentView | None:

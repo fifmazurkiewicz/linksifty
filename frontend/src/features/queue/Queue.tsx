@@ -3,6 +3,7 @@ import type { Item } from '../../lib/api'
 import { sourceLink } from '../../lib/urls'
 
 const stages: Record<string, string> = {
+  previewing_partial: 'Preparing a preview from incomplete text',
   queued: 'Waiting for processing', fetching: 'Fetching the page', checking_content: 'Checking readable content',
   searching_sources: 'Searching additional sources with Brave', checking_sources: 'Fetching and checking additional pages',
   selecting_sources: 'Selecting relevant sources with Jev',
@@ -88,7 +89,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTi
       const stage = item.processing_stage === 'queued' && item.status !== 'queued' ? item.status : item.processing_stage || item.status
       const stageLabel = stages[stage] || (item.status === 'awaiting_manual_content' ? 'Paste readable content to continue' : stage.replaceAll('_', ' '))
       const paused = item.status === 'processing' && item.worker_active === false
-      const uncertainFetch = ['x_attempt_uncertain', 'image_reading_uncertain'].includes(item.failure_reason || '') || ['x_attempt_uncertain', 'image_reading_uncertain'].includes(stage)
+      const uncertainFetch = item.preview_charge_pending || ['x_attempt_uncertain', 'image_reading_uncertain'].includes(item.failure_reason || '') || ['x_attempt_uncertain', 'image_reading_uncertain'].includes(stage)
       const canRetryFetch = item.status === 'awaiting_manual_content' && !uncertainFetch
       const source = sourceLink(item.original_url || item.title)
       const missingTitle = !item.title || item.title === item.original_url || item.title === source?.href || item.title === 'Pasted content'
@@ -107,7 +108,13 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTi
           <p role={item.status === 'processing' ? 'status' : item.status === 'failed' ? 'alert' : undefined} aria-atomic="true">{paused ? 'Processing paused; waiting to resume' : stageLabel}{!paused && stage === 'fetching' && host ? ` from ${host}` : ''}.</p>
           {paused && <p>Last confirmed stage: {stageLabel}. Work resumes after the interrupted lease expires.</p>}
           {item.status === 'awaiting_manual_content' && <p>{reasons[item.failure_reason || ''] || 'The source could not be read completely.'}</p>}
-          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source text again and starts a text-only analysis using your monthly budget. Media is not analyzed. X reads may incur separate charges.</p>}
+          {item.status === 'awaiting_manual_content' && item.preview_charge_pending && <p className="hint">A partial-preview charge is unconfirmed. Retry is unavailable until it is reconciled; paste complete text to continue.</p>}
+          {item.status === 'awaiting_manual_content' && item.partial_overview && <section aria-label="Partial preview">
+            <p className="meta">Partial preview</p>
+            <p>{item.partial_overview}</p>
+            <p className="hint">Based only on incomplete fetched text; this is not an assessment.</p>
+          </section>}
+          {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source text again and starts a text-only analysis using your monthly budget. If text is incomplete, an automatic one-sentence preview may use that budget instead. Media is not analyzed. X reads may incur separate charges.</p>}
           {item.updated_at && <p className="hint">Updated {new Date(item.updated_at).toLocaleTimeString()}</p>}
           {stage === 'invalid_model_output' && item.failure_reason && modelReasons[item.failure_reason] && <p>{modelReasons[item.failure_reason]}</p>}
           {stage === 'cost_unknown' && <p>The amount remains reserved. This paid request will not be repeated.</p>}

@@ -10,9 +10,9 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 
+from linksifty.domain.acquisition import MAX_PARTIAL_TEXT, MediaType
 from linksifty.domain.acquisition import FetchFailure as FetchFailure
 from linksifty.domain.acquisition import FetchResult as FetchResult
-from linksifty.domain.acquisition import MediaType
 from linksifty.domain.x_urls import X_HOSTS
 
 
@@ -155,12 +155,8 @@ async def _fetch(url: str, transport: httpx.AsyncBaseTransport | None) -> FetchR
                         return FetchResult(failure=FetchFailure.UNSAFE_URL)
                     url = next_url
                     continue
-                if response.status_code != 200:
-                    return FetchResult(
-                        failure=FetchFailure.PARTIAL
-                        if response.status_code == 206
-                        else FetchFailure.UNAVAILABLE
-                    )
+                if response.status_code not in {200, 206}:
+                    return FetchResult(failure=FetchFailure.UNAVAILABLE)
                 mime = response.headers.get("content-type", "").split(";")[0].lower().strip()
                 if mime and mime not in {"text/html", "text/plain", "application/xhtml+xml"}:
                     return FetchResult(failure=FetchFailure.UNSUPPORTED)
@@ -175,30 +171,39 @@ async def _fetch(url: str, transport: httpx.AsyncBaseTransport | None) -> FetchR
                 if length and int(length) > 500000:
                     return FetchResult(failure=FetchFailure.TOO_LARGE)
                 body = bytearray()
-                async for chunk in response.aiter_bytes():
-                    body.extend(chunk)
-                    if len(body) > 500000:
-                        return FetchResult(failure=FetchFailure.TOO_LARGE)
+                partial = response.status_code == 206
+                oversized = False
+                try:
+                    async for chunk in response.aiter_bytes():
+                        body.extend(chunk[: 500001 - len(body)])
+                        if len(body) > 500000:
+                            oversized = True
+                            break
+                except httpx.HTTPError:
+                    partial = True
                 if (
                     length
                     and "content-encoding" not in response.headers
                     and len(body) != int(length)
                 ):
-                    return FetchResult(failure=FetchFailure.PARTIAL)
+                    partial = True
                 if body.startswith((b"%PDF-", b"PK\x03\x04")):
                     return FetchResult(failure=FetchFailure.UNSUPPORTED)
                 raw = bytes(body).decode(response.encoding or "utf-8", errors="strict")
                 if "\x00" in raw:
                     return FetchResult(failure=FetchFailure.UNSUPPORTED)
         if "<html" in raw.lower() and "</html>" not in raw.lower():
-            return FetchResult(failure=FetchFailure.PARTIAL)
+            partial = True
         parser = _TextParser()
         parser.feed(raw)
         parser.close()
         text = " ".join(" ".join(parser.parts).split())
-        if len(text.encode("utf-8")) > 100000:
-            return FetchResult(failure=FetchFailure.TOO_LARGE)
+        fragment = text[:MAX_PARTIAL_TEXT].strip() or None
+        if oversized or len(text.encode("utf-8")) > 100000:
+            return FetchResult(failure=FetchFailure.TOO_LARGE, partial_text=fragment)
+        if partial:
+            return FetchResult(failure=FetchFailure.PARTIAL, partial_text=fragment)
         if "log in" in text.lower() or "sign in" in text.lower():
-            return FetchResult(failure=FetchFailure.LOGIN_REQUIRED)
+            return FetchResult(failure=FetchFailure.LOGIN_REQUIRED, partial_text=fragment)
         return FetchResult(text=text, omitted_media=tuple(sorted(parser.media)))
     return FetchResult(failure=FetchFailure.UNAVAILABLE)

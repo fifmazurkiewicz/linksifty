@@ -476,6 +476,64 @@ def concurrent_source_selection(environment: dict[str, str], same_job: bool = Fa
         execute(f"delete from auth.users where id='{user}';", environment)
 
 
+def concurrent_partial_previews(environment: dict[str, str], same_job: bool = False) -> None:
+    user = str(uuid4())
+    try:
+        execute(
+            f"""insert into auth.users(id,email)
+                values ('{user}','preview-race@example.test');
+                select public.get_or_create_account_profile(
+                    '{user}','preview-race@example.test',true);
+                select public.set_user_budget('{user}',{1 if same_job else 0.2});
+                select public.submit_fetch_items('{user}',
+                    array['https://selection-one.example','https://selection-two.example']);""",
+            environment,
+        )
+        jobs = [
+            json.loads(
+                execute(
+                    f"select row_to_json(j) from public.claim_processing_job('{user}') j;",
+                    environment,
+                )
+            )
+            for _ in range(2)
+        ]
+        for job in jobs:
+            execute(
+                f"""select public.allow_partial_previews('{user}',
+                        array['{job["item_id"]}'::uuid],true);
+                    select public.set_processing_stage('{user}','{job["id"]}',
+                        '{job["lease_token"]}','fetching','processing');""",
+                environment,
+            )
+        barrier = Barrier(2)
+
+        def reserve(index: int) -> str:
+            job = jobs[0 if same_job else index]
+            barrier.wait(timeout=10)
+            return execute(
+                f"""begin; select id from public.reserve_partial_preview('{user}',
+                    '{job["id"]}','{job["lease_token"]}',0.14848);
+                    select pg_sleep(0.25); commit;""",
+                environment,
+            ).strip()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = pool.submit(reserve, 0), pool.submit(reserve, 1)
+            assert sum(bool(value) for value in (first.result(), second.result())) == 1
+        held = Decimal(
+            execute(
+                f"select reserved_usd from public.get_usage_summary('{user}');",
+                environment,
+            ).strip()
+        )
+        assert held == Decimal("0.14848")
+        label = "same-job admission" if same_job else "shared monthly budget"
+        print(f"PASS: concurrent partial preview {label}")
+    finally:
+        execute(f"delete from auth.users where id='{user}';", environment)
+
+
 def concurrent_discussions(environment: dict[str, str]) -> None:
     user = str(uuid4())
     try:
@@ -579,6 +637,7 @@ def main() -> int:
         "reader_discussions.test.sql",
         "text_only_sources.test.sql",
         "ai_titles.test.sql",
+        "partial_previews.test.sql",
     ):
         output = execute((ROOT / "supabase" / "tests" / name).read_text(), environment)
         if "not ok" in output or "Looks like" in output or "1.." not in output:
@@ -593,6 +652,8 @@ def main() -> int:
     concurrent_source_selection(environment, same_job=True)
     concurrent_source_selection(environment)
     concurrent_discussions(environment)
+    concurrent_partial_previews(environment, same_job=True)
+    concurrent_partial_previews(environment)
     return 0
 
 

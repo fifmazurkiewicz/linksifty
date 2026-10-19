@@ -50,11 +50,14 @@ class SourceInput(BaseModel):
 class SubmitItems(BaseModel):
     sources: list[SourceInput] = Field(min_length=1, max_length=5)
     web_search: bool = False
+    allow_partial_preview: bool = Field(default=False, strict=True)
 
 
 class ItemResponse(BaseModel):
     id: str
     title: str
+    partial_overview: str | None = None
+    preview_charge_pending: bool = False
     status: str
     score: float | None = None
     verdict: str | None = None
@@ -74,6 +77,8 @@ def _response(item: ItemRecord) -> ItemResponse:
     return ItemResponse(
         id=str(item.id),
         title=item.title or item.original_url or "Pasted content",
+        partial_overview=item.partial_overview,
+        preview_charge_pending=item.preview_charge_pending,
         status=item.status,
         score=item.score,
         verdict=item.verdict,
@@ -350,11 +355,15 @@ def create_app(
                 if processor is None or not processor.search_available:
                     raise HTTPException(503, "Brave search is not configured")
                 records = await processor.submit_search(
-                    user_id, [str(source.url) for source in submission.sources]
+                    user_id,
+                    [str(source.url) for source in submission.sources],
+                    **({"allow_partial_preview": True} if submission.allow_partial_preview else {}),
                 )
             else:
                 records = await service.submit(
-                    user_id, [str(source.url) for source in submission.sources]
+                    user_id,
+                    [str(source.url) for source in submission.sources],
+                    **({"allow_partial_preview": True} if submission.allow_partial_preview else {}),
                 )
             processor = app.state.processing
             if processor is not None:

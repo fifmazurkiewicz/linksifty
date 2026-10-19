@@ -59,6 +59,11 @@ class TitleResponse(BaseModel):
     title: str
 
 
+class ResumeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allow_partial_preview: bool = Field(default=False, strict=True)
+
+
 class ContentInput(BaseModel):
     text: str = Field(min_length=200, max_length=100000)
 
@@ -141,8 +146,14 @@ async def paste_content(
 
 
 @router.post("/v1/items/{item_id}/resume", status_code=202)
-async def resume_item(item_id: UUID, request: Request, user_id: CurrentUser) -> ItemRecord:
-    record = await _service(request).resume(user_id, item_id)
+async def resume_item(
+    item_id: UUID, request: Request, user_id: CurrentUser, consent: ResumeInput | None = None
+) -> ItemRecord:
+    record = await _service(request).resume(
+        user_id,
+        item_id,
+        **({"allow_partial_preview": True} if consent and consent.allow_partial_preview else {}),
+    )
     if record is None:
         raise HTTPException(
             409, "This link cannot be safely resumed; unresolved calls remain reserved"

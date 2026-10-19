@@ -145,7 +145,7 @@ function AuthenticatedApp() {
     setBusy(true); setMessage(null)
     try {
       await api(inputMode === 'links' ? '/v1/items' : '/v1/items/paste', session, {
-        method: 'POST', body: JSON.stringify(inputMode === 'links' ? { sources: urls.map(url => ({ url })), web_search: webSearch && searchPrice !== null } : { text }),
+        method: 'POST', body: JSON.stringify(inputMode === 'links' ? { sources: urls.map(url => ({ url })), web_search: webSearch && searchPrice !== null, allow_partial_preview: true } : { text }),
       })
       setLinks(''); setText(''); setScreen('Inbox'); setView(null)
       await loadItems(); await refreshAccount()
@@ -164,7 +164,7 @@ function AuthenticatedApp() {
   }
   const resume = async (id: string) => {
     setBusy(true); setMessage(null)
-    try { await api(`/v1/items/${id}/resume`, session, { method: 'POST' }); await loadItems() }
+    try { await api(`/v1/items/${id}/resume`, session, { method: 'POST', body: JSON.stringify({ allow_partial_preview: true }) }); await loadItems() }
     catch (error) { setMessage(report(error)) }
     finally { setBusy(false) }
   }
@@ -255,7 +255,7 @@ function AuthenticatedApp() {
           <label className="search-consent"><input type="checkbox" checked={webSearch && searchPrice !== null} disabled={searchPrice === null || busy} onChange={event => setWebSearch(event.target.checked)} /> Search additional sources with Brave and Jev</label>
           <p className="hint">{searchPrice !== null ? `One Brave search per link (${searchPrice} USD at the configured plan rate), Jev source selection (up to ${selectionPrice} USD reserved; actual cost charged), and AI analysis use your monthly budget. A short public-article query is sent to Brave; bounded article text and candidate URLs, titles and snippets are sent to Jev. Only confidently relevant candidates are fetched, up to 20 pages; fetched excerpts are used for comparison.` : 'Brave search is not configured. Analysis uses only your submitted text.'}</p>
         </>}
-        <p className="hint">Submitting starts a text-only analysis using your monthly budget. Images, videos, GIFs and audio are not analyzed. X API reads may incur separate charges.</p>
+        <p className="hint">Submitting starts a text-only analysis using your monthly budget. If only partial text is available, an automatic one-sentence preview may use that budget instead; the link will still need complete content for assessment. Images, videos, GIFs and audio are not analyzed. X API reads may incur separate charges.</p>
         <button className="primary" disabled={busy || duplicateLinks || maxLinks === 0 || (inputMode === 'links' ? !urls.length || urls.length > maxLinks : !validText)}>{busy ? 'Submitting…' : inputMode === 'links' ? 'Submit links' : 'Analyze pasted content'}</button>
       </form>}
       {screen === 'Settings' && <><SettingsPanel session={session} /><UsagePanel usage={usage} error={usageError} /></>}

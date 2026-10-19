@@ -2,6 +2,14 @@
 
 Canonical product roadmap · updated 2026-10-19. [Derived Kanban](roadmap-kanban.html). Detailed coding cards: [completion plan](superpowers/plans/2026-10-13-linksifty-completion.md).
 
+Automatic partial-preview update (2026-10-19): M5/M6 now include a labeled
+one-sentence overview from readable fragments on failed fetches, under disclosed
+Submit/Retry consent and the shared budget. Items remain Needs action; no partial
+assessment or score. Migration 000021 precedes matching deployment. Local checks
+and [canonical progress](../.agent/context/changes/partial-previews/progress.md)
+track delivery; hosted quality acceptance remains separate and milestone states
+are unchanged. [Preview workflow](../.agent/context/changes/partial-previews/workflow.html).
+
 | Milestone | Status | Current evidence | Remaining deliverable | Completion cards |
 | --- | --- | --- | --- | --- |
 | M1 Foundation | Done (local foundation) | Monorepo, API health/config, pure scoring, frontend shell; local tests/build | Deployment is M7 | D1, D2 |

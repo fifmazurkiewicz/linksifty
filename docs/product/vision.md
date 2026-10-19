@@ -16,6 +16,10 @@ Filip saves more links than he can read. Valuable material becomes mixed with pr
 - The default input is any ordinary web URL. X is a dedicated source adapter using the official X API; all other standard web pages use the generic web fetcher.
 - A submission accepts up to five links. Filip can instead choose to paste content immediately.
 - Paywalls, login walls, JavaScript-only pages, PDFs, videos, newsletters, partial retrieval, and unsupported pages never produce an assessment. They explain the problem and offer pasted content.
+- If readable text was fetched, a labeled one-sentence Partial preview may describe
+  that fragment automatically, using disclosed monthly-budget admission. It is
+  not an assessment or score; the item still needs complete content. No extra
+  Generate button or automatic paid resend is introduced.
 - A completed item has a concise note, eight explained criteria, scored 1–5 where verifiable, with explicit unscored states, supporting source excerpts, a deterministic weighted score, and one verdict: `valuable`, `to_review`, or `hype`.
 - With opt-in source checking, the assessment can inspect the submitted source and bounded excerpts from up to 20 additional pages. It does not claim research beyond the provided source material and those cited links.
 - The inbox opens first. It orders unread items before read items, then by score, and filters by verdict. Each item shows a truthful processing status.

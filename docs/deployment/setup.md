@@ -1305,6 +1305,39 @@ Local mocked/runtime/SQL/browser evidence is in
 The English [workflow](../../.agent/context/changes/x-rich-sources/text-only-workflow.html)
 and [editable contract](../../.agent/context/changes/x-rich-sources/text-only-workflow.json)
 show the active scope. No hosted migration or paid quality test is implied.
+## Automatic partial previews (migration 000021)
+
+Apply `20261019_000021_partial_previews.sql` after 000020, before deploying the
+matching backend/frontend. No new key, dependency or model is required. The owner
+approved automatic previews from any readable fetched fragment, including short
+text or an Article title/body whose dependencies could not be completed. Only
+safe decoded web text or reachable, non-withheld X text is eligible; media are
+still not read. Partial text stays in memory, bounded to 6,000 characters, and
+never enters the complete-source cache, research, assessment or scoring.
+
+The existing Submit/Retry actions disclose this monthly-budget use and send a
+strict `allow_partial_preview=true` field. Consent is saved in the same database
+transaction as owned job submission/Retry, before another worker can claim it;
+older jobs/clients default off. When a fetch fails with readable
+text, one budgeted `openai/gpt-4o-mini` call describes only that fragment in one
+sentence, capped at 400 characters and 192 output tokens. The existing conservative
+full-context estimate reserves at most USD 0.14848; actual provider cost settles
+separately. Budget denial, empty text or invalid output leave the manual fallback.
+
+New server-only RPCs enforce owner/account/lease/expiry checks, share the monthly
+budget lock and keep a durable once-only preview reservation pointer. Reclaims
+and source retries do not resend the preview. Late generation IDs remain
+reconcilable even after lease loss/deletion; unknown charges remain reserved and
+disable Retry while Paste remains available, subject to existing budget rules.
+The owned item stores only the sentence; normal retention/deletion applies.
+
+The queue displays **Partial preview** with an incomplete-source disclaimer and
+keeps **Needs action**, Paste and Delete. Completed items do not display stale
+previews. Existing failed items have no retained fragment: they require explicit
+fetch Retry through the updated app. No backfill or live paid retry is part of
+local verification. [Workflow](../../.agent/context/changes/partial-previews/workflow.html)
+· [editable contract](../../.agent/context/changes/partial-previews/workflow.json)
+· [progress and evidence](../../.agent/context/changes/partial-previews/progress.md).
 ## AI topic titles (migration 000020)
 
 Apply `supabase/migrations/20261019_000020_ai_titles.sql` after 000019, then deploy

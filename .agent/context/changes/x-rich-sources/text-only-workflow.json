@@ -153,6 +153,15 @@
         "Embedded lookups and thread search share twelve requests, one hundred posts and sixty seconds. Failed requests, cycles, conflicting versions and incomplete text request paste, never partial assessment.",
         "Missing ordinary quote/repost expansions still request paste. Extra X reads use existing submission or Retry consent; media remain metadata."
       ]
+    },
+    {
+      "dot": "amber",
+      "title": "Automatic partial previews \u2014 migration 000021",
+      "items": [
+        "Readable incomplete fragments can receive one automatic sentence under explicit Submit/Retry cost disclosure, consent and shared-budget admission. No extra Generate button.",
+        "The preview is owned item metadata, not complete source or assessment input. Needs action, pasted-content recovery and no-score rules remain. Unknown charges disable Retry until reconciled.",
+        "The Automatic Partial Preview Contract documents admission, one-attempt recovery and empty/failure paths; older jobs default to no preview consent."
+      ]
     }
   ]
 }

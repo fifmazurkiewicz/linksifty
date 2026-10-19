@@ -165,6 +165,11 @@ X posts, connected threads, full Article bodies/code and ordinary web pages are
 analyzed as text. Images, video, GIFs and audio are not downloaded or read by AI;
 results show known media types and explicitly disclose the text-only scope.
 Missing, short, truncated or otherwise incomplete text still requests paste.
+With migration 000021 and the matching app, readable partial text also gets an
+automatic one-sentence **Partial preview**, using the monthly AI budget disclosed
+at submission or Retry. It carries no score and does not unlock assessment.
+Old jobs default off; old failures need an explicit Retry. No extra button or
+automatic paid resend is introduced. [Preview rollout](docs/deployment/setup.md#automatic-partial-previews-migration-000021).
 Article embeds accept both X field names (`tweets` and `posts`). Missing embedded
 text is fetched once and deduplicated within the shared twelve-request,
 hundred-post and sixty-second acquisition limits. Unavailable embedded text still

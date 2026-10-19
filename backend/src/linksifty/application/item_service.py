@@ -17,8 +17,12 @@ class ItemService:
     async def detail(self, user_id: UUID, item_id: UUID) -> ItemRecord | None:
         return await self._repository.get_item(user_id, item_id)
 
-    async def submit(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]:
-        return await self._repository.create_items(user_id, urls)
+    async def submit(
+        self, user_id: UUID, urls: list[str], *, allow_partial_preview: bool = False
+    ) -> list[ItemRecord]:
+        return await self._repository.create_items(
+            user_id, urls, **({"allow_partial_preview": True} if allow_partial_preview else {})
+        )
 
     async def delete(self, user_id: UUID, item_ids: list[UUID]) -> list[UUID]:
         return await self._repository.delete_items(user_id, item_ids)

@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Literal
 
 MAX_SOURCE_IMAGES = 12
+MAX_PARTIAL_TEXT = 6000
 MediaType = Literal["image", "video", "gif", "audio", "attachment"]
 
 
@@ -56,3 +57,4 @@ class FetchResult:
     images: tuple[SourceImage, ...] = ()
     readable_text: str | None = None
     omitted_media: tuple[MediaType, ...] = ()
+    partial_text: str | None = field(default=None, repr=False)

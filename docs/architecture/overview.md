@@ -428,6 +428,23 @@ a known full post map stops another lookup before spending. Any lookup failure
 ends acquisition, and ordinary quote/repost references still require expansions.
 No media-only lookup or partial-source assessment is introduced.
 
+Migration 000021 adds an explicitly disclosed automatic **Partial preview** on
+failed/incomplete acquisition. `FetchResult.partial_text` is separate from complete
+`text`; safe readable fragments are bounded to 6,000 characters and remain in
+memory. X previews traverse only returned reachable references and exclude
+withheld/unrelated text; HTML previews strip scripts/navigation and retain the
+existing target/MIME/byte guards. They never enter source caching or research.
+
+Processing reserves one preview call under the existing shared budget before
+using the current OpenRouter model with a sentence-only schema. Only its bounded
+sentence becomes owner-scoped item metadata; there is no assessment, score or
+status promotion. A durable per-job slot, current lease, consent/account/expiry
+guards and late generation recording preserve existing recovery protections.
+Unknown preview costs remain held and suppress Retry until reconciliation. Old
+jobs default to no preview consent; updated submission/Retry disclosure authorizes
+it without an extra button. [Preview contract](../../.agent/context/changes/partial-previews/workflow.html)
+· [editable JSON](../../.agent/context/changes/partial-previews/workflow.json).
+
 ProcessingService caches validated text with omission metadata, then follows
 existing research/assessment admission. Its active image-reader branch and startup
 wiring are removed. Existing legacy image adapters/accounting stay inactive for

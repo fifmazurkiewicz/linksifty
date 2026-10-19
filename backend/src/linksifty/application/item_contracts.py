@@ -14,6 +14,8 @@ class ItemRecord(BaseModel):
     user_id: UUID
     original_url: str | None = None
     title: str | None = None
+    partial_overview: str | None = None
+    preview_charge_pending: bool = False
     status: JobStatus
     unread: bool
     processing_stage: str = "queued"
@@ -29,7 +31,9 @@ class ItemRepository(Protocol):
 
     async def get_item(self, user_id: UUID, item_id: UUID) -> ItemRecord | None: ...
 
-    async def create_items(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]: ...
+    async def create_items(
+        self, user_id: UUID, urls: list[str], *, allow_partial_preview: bool = False
+    ) -> list[ItemRecord]: ...
 
     async def delete_items(self, user_id: UUID, item_ids: list[UUID]) -> list[UUID]: ...
 

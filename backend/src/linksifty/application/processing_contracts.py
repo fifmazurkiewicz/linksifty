@@ -141,11 +141,24 @@ class TitleReservation(BaseModel):
     text: str
 
 
+class PreviewDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    overview: str = Field(min_length=1, max_length=400)
+
+    @field_validator("overview")
+    @classmethod
+    def readable_sentence(cls, value: str) -> str:
+        if not value.strip() or any(ord(char) < 32 or ord(char) == 127 for char in value):
+            raise ValueError("Preview must be a readable single line")
+        return value.strip()
+
+
 class TitleGenerationError(Exception):
     """A title could not be generated safely; the existing analysis is unchanged."""
 
 
 class ModelResult(BaseModel):
+    overview: str | None = Field(default=None, max_length=400)
     title: str | None = Field(default=None, max_length=160)
     failure_reason: str | None = None
     input_tokens: int | None = None
@@ -213,6 +226,10 @@ class AssessmentView(BaseModel):
 
 
 class ProcessingStore(Protocol):
+    async def reserve_preview(self, job: ProcessingJob, amount: Decimal) -> UUID | None: ...
+    async def record_preview(
+        self, job: ProcessingJob, reservation_id: UUID, result: ModelResult
+    ) -> bool: ...
     async def reserve_title(
         self, user_id: UUID, item_id: UUID, amount: Decimal
     ) -> TitleReservation | None: ...
@@ -228,7 +245,9 @@ class ProcessingStore(Protocol):
         self, job: ProcessingJob, reservation_id: UUID, generation_id: str | None
     ) -> None: ...
     async def begin_x_fetch(self, job: ProcessingJob) -> bool: ...
-    async def submit_search(self, user_id: UUID, urls: list[str]) -> list[ItemRecord]: ...
+    async def submit_search(
+        self, user_id: UUID, urls: list[str], *, allow_partial_preview: bool = False
+    ) -> list[ItemRecord]: ...
     async def reserve_search(self, job: ProcessingJob, amount: Decimal) -> Reservation | None: ...
     async def save_research(self, job: ProcessingJob, context: ResearchContext) -> bool: ...
     async def heartbeat(self, job: ProcessingJob) -> bool: ...
@@ -242,7 +261,9 @@ class ProcessingStore(Protocol):
     async def paste(
         self, user_id: UUID, text: str, item_id: UUID | None = None
     ) -> ItemRecord | None: ...
-    async def resume(self, user_id: UUID, item_id: UUID) -> ItemRecord | None: ...
+    async def resume(
+        self, user_id: UUID, item_id: UUID, *, allow_partial_preview: bool = False
+    ) -> ItemRecord | None: ...
     async def assessment(self, user_id: UUID, item_id: UUID) -> AssessmentView | None: ...
     async def claim(self, user_id: UUID) -> ProcessingJob | None: ...
     async def stage(self, job: ProcessingJob, stage: str, status: str = "processing") -> bool: ...
@@ -258,6 +279,7 @@ class ProcessingStore(Protocol):
 
 
 class AssessmentProvider(Protocol):
+    async def preview(self, text: str) -> ModelResult: ...
     def estimate(self, text: str) -> Decimal: ...
     async def title(self, text: str) -> ModelResult: ...
     async def assess(

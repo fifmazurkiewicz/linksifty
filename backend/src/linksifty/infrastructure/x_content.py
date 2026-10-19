@@ -9,9 +9,12 @@ from linksifty.domain.acquisition import FetchFailure
 
 
 class XContentFailure(Exception):
-    def __init__(self, reason: FetchFailure, check: str) -> None:
+    def __init__(
+        self, reason: FetchFailure, check: str, *, partial_payload: dict[str, object] | None = None
+    ) -> None:
         self.reason = reason
         self.check = check
+        self.partial_payload = partial_payload
 
 
 class XMedia(BaseModel):
