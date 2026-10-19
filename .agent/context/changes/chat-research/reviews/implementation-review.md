@@ -29,4 +29,5 @@ findings require a disposition or Skip.
 Final independent pass: APPROVE. Reviewer reran 48 scoped backend checks,
 verified JSON/HTML hashes and byte counts against the delivery receipt, matched
 the pinned source revision and workflow semantics, and reconciled canonical
-progress with its derived board. Publication remains the only execution step.
+progress with its derived board. Source and artifacts were subsequently published
+to origin/main; publication evidence is in the canonical execution record.

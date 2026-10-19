@@ -40,3 +40,11 @@ Final verification after additional uncertainty/deadline coverage:
 - Final fresh reviewer outcome: APPROVE, no actionable findings; 48 scoped
   backend checks rerun, artifact hashes/bytes/source revision and board sync
   independently verified. Temporary test PostgreSQL cluster stopped afterward.
+
+Publication: normal `git push origin main` succeeded, advancing 0562356 to
+f7d4435 (source commit 1306e64 plus reviewed artifacts). Unrelated admin files
+and their README hunk remain unstaged. No hosted database migration or paid
+quality test was performed. The generated, receipt-bound Archify HTML contains
+15 trailing-whitespace lines from its renderer; retained byte-for-byte so its
+independently checked artifact hash stays valid. Source diff whitespace passes;
+no clean whole-artifact whitespace claim is made.

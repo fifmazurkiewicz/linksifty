@@ -9,7 +9,7 @@ focused source inspection used. Preserve unrelated uncommitted admin work.
 - [x] Implement durable slots, evidence-gap prompt and cost disclosure.
 - [x] Update deployment documentation and editable/validated workflow diagram.
 - [x] Run required verification and fresh independent implementation review.
-- [ ] Commit relevant chat changes and push main; report deployment requirements.
+- [x] Commit relevant chat changes and push main; report deployment requirements.
 
 Scope includes the existing related chat-quality work (independent model and
 reply language) already in the working tree. Paid evaluation and hosted database
@@ -20,4 +20,6 @@ strict typing, lint/format, frontend build, 51 SQL assertions and seven concurre
 gates pass. Independent code review reports no substantive findings. Workflow
 schema/delivery/strict checks pass; browser QA and agent-toolkit unavailable.
 Final independent artifact review approved with no actionable findings.
-Source publication remains next; no hosted quality claim.
+Source 1306e64 and verified artifacts f7d4435 pushed to origin/main successfully.
+Unrelated admin edits remain local. Migration 000022 still requires hosted
+application before matching deployment; no hosted quality claim.
