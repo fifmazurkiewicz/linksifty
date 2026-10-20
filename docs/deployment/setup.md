@@ -1017,14 +1017,24 @@ Deploy the matching backend; no new flag or migration is required. Previous
 questions cannot be backfilled. Failed turns also log `chat_failed` with opaque
 turn ID and stable reason in backend logs, without question or owner identity.
 
-For the generic failure message, inspect the owner's chat API response `error`
-or `chat_turns.error`. `classification_uncertain` means the classifier returned
-scope confidence below 0.8; neither the answer model nor search runs. Repeating
-the same wording may fail again. A question naming the analysis topic and the
-comparison explicitly may clarify the intended scope. The cutoff remains
-unchanged. Consult the owner-scoped reservation ledger for actual charges:
-known classification cost can already be settled even when the turn fails;
-the generic UI text alone does not establish an outstanding reservation.
+Chat relevance recovery uses the selected scope probability with a cutoff of
+0.8, rather than Jev's normalized confidence statistic. The reported
+relevant/off-topic/unsafe distribution 0.86/0.13/0.01 has confidence 0.79 and
+now reaches the existing evidence-check/answer/search flow. Classifier context
+uses the saved summary directly, plus bounded original excerpts and history;
+the rubric JSON cannot crowd out the summary. Clear topical questions missing
+factual evidence must request search when available, within the existing
+two-search limit. Unknown/malformed choices and provider failures still stop;
+valid choices below the probability cutoff return a fixed Polish/English
+clarification without an answer or search call.
+
+Deploy matching backend and frontend; no migration or new configuration is
+required. Existing failed rows are preserved. The UI explains that historical
+`classification_uncertain` failures stopped before answering/searching; their
+wording does not blame the question or imply an outstanding charge.
+Consult the owner-scoped reservation ledger for actual charges: known
+classification cost can already be settled even when the turn fails. Neither
+an error message nor a reported telemetry cost proves an outstanding reservation.
 
 Local gates include `supabase/tests/analysis_chat.test.sql` and
 `backend/tests/integration/check_chat_database.py` using the explicit disposable
@@ -1053,15 +1063,16 @@ $0.042/M input, zero output/request charges and no fallback. The conservative
 reservation is $0.002688 (two full 32K contexts); reported actual cost settles into
 the existing monthly ledger. Price changes above these ceilings cause rejection.
 
-Only a valid relevant/safe result with scope confidence >= 0.8 continues to the
-answer model and optional one-search flow. Off-topic/unsafe messages receive a
+Only a valid relevant/safe result with selected scope probability >= 0.8 continues
+to the answer model and optional bounded search flow. Off-topic/unsafe messages receive a
 fixed Polish/English reply with no citations or research. English is the fallback
-for other languages. Low confidence or classifier failure stops the turn; there
-is no bypass or automatic retry. Unknown costs stay reserved. Generation IDs are
+for other languages. Valid choices below the probability cutoff return a fixed
+clarification; classifier failures stop the turn. There is no bypass or automatic
+retry. Unknown costs stay reserved. Generation IDs are
 retained for existing reconciliation; verify Decisions generation lookup during
 hosted acceptance, and retain the reservation if lookup is unavailable.
 
-The confidence cutoff is a provisional conservative policy, not a measured model
+The probability cutoff is a provisional routing policy, not a measured model
 quality guarantee. Under a separately approved live-test budget, check IKE/analysis
 questions, typo/contextual follow-ups, standalone `siema`, unrelated questions,
 unsafe requests, prompt injection and greetings with relevant questions. Verify
@@ -1095,8 +1106,9 @@ sentence, usually 2–4 sentences for a simple follow-up, no summary repetition,
 and a clarifying question when a comparison name is ambiguous. This is a model
 instruction, not deterministic proof of language or answer quality. Passage-ID
 validation, owner scope, shared budget, bounded searches and duplicate fencing
-remain enforced. Earlier `classification_uncertain` failures are still stopped
-at the unchanged confidence gate; changing the answer model does not bypass it.
+remain enforced. The relevance recovery above supersedes the original confidence
+gate with a selected-probability cutoff. Changing the answer model alone does
+not change that routing policy or re-run historical failed turns.
 
 Published API details checked 2026-10-19:
 [Sonnet model/context/prices/schema support](https://openrouter.ai/anthropic/claude-sonnet-5.5),

@@ -53,6 +53,8 @@ def test_jev_uses_decisions_api_with_bounded_topic_history_and_cost_caps(categor
             assert "unsafe takes precedence" in body["questions"]["scope"]["instructions"]
             assert body["state"]["question"] == "gdzie mogę założyć ike?"
             assert "IKE" in body["state"]["original"]
+            assert body["state"]["analysis"] == "IKE: zasady oszczędzania."
+            assert "rubric_snapshot" not in body["state"]["analysis"]
             assert body["state"]["history"][0]["content"] == "Co to jest IKE?"
             assert "foreign.test" not in json.dumps(body["state"])
             assert len(request.content) < 32000
@@ -60,12 +62,13 @@ def test_jev_uses_decisions_api_with_bounded_topic_history_and_cost_caps(categor
 
         payload = ChatInput(
             question="gdzie mogę założyć ike?",
+            analysis_summary="IKE: zasady oszczędzania.",
             passages={
                 "primary:1": ChatCitation(
                     passage_id="primary:1", excerpt="IKE to konto emerytalne. " * 1000
                 ),
                 "analysis:1": ChatCitation(
-                    passage_id="analysis:1", excerpt="Saved analysis of IKE"
+                    passage_id="analysis:1", excerpt='{"rubric_snapshot": "Scoring instructions"}'
                 ),
                 "chat1:1": ChatCitation(
                     passage_id="chat1:1",
@@ -92,7 +95,6 @@ def test_jev_uses_decisions_api_with_bounded_topic_history_and_cost_caps(categor
     [
         {"choice": "other"},
         {"type": "noul"},
-        {"confidence": 0.1},
         {"confidence": True},
         {"probabilities": {"relevant": 1}},
         {"probabilities": {"relevant": -1, "off_topic": 1, "unsafe": 1}},
@@ -118,6 +120,38 @@ def test_invalid_or_uncertain_classification_preserves_charge_and_never_retries(
                 ChatInput(question="Why?", passages={}, history=[])
             )
         assert result.classification is None and result.failure_reason
+        assert result.cost == Decimal("0.00002") and result.generation_id == "gen-dec-test"
+        assert len(calls) == 1
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("category", ["relevant", "off_topic", "unsafe"])
+@pytest.mark.parametrize("language", ["pl", "en"])
+@pytest.mark.parametrize("probability", [0.799, 0.8, 0.86])
+def test_valid_uncertain_scope_requests_clarification_without_admitting_an_answer(
+    category: str, language: str, probability: float
+) -> None:
+    async def run() -> None:
+        calls = []
+        body = decision_body(category, language)
+        body["answers"]["scope"]["confidence"] = (3 * probability - 1) / 2
+        body["answers"]["scope"]["probabilities"] = {
+            key: probability if key == category else (1 - probability) / 2
+            for key in ("relevant", "off_topic", "unsafe")
+        }
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            calls.append(request)
+            return httpx.Response(200, json=body)
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            result = await OpenRouterClient("test", "openai/gpt-4o-mini", client).classify(
+                ChatInput(question="Ile mogę wpłacić?", passages={}, history=[])
+            )
+        assert result.classification is not None and result.failure_reason is None
+        assert result.classification.category == ("uncertain" if probability < 0.8 else category)
+        assert result.classification.language == language
         assert result.cost == Decimal("0.00002") and result.generation_id == "gen-dec-test"
         assert len(calls) == 1
 

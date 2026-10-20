@@ -90,6 +90,27 @@ it('keeps the draft when a persisted provider failure returns', async () => {
   expect(input).toHaveValue('Explain the evidence')
 })
 
+it('explains historical uncertain relevance failures without encouraging an unchanged retry', async () => {
+  const turn = { ...completed, status: 'failed', answer: [], error: 'classification_uncertain' }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...empty, turns: [turn] })))
+  render(<AnalysisChat id="item" session={session} />)
+  expect(await screen.findByText(/stopped by the relevance check/i)).toBeVisible()
+  expect(screen.getByText(/before an answer or search could run/i)).toBeVisible()
+  expect(screen.queryByText(/submit the question again|charge remains reserved/i)).not.toBeInTheDocument()
+})
+
+it('restores a clarification and lets the reader send a more specific follow-up', async () => {
+  const clarification = 'Jakiego tematu dotyczy Twoje pytanie?'
+  const turn = { ...completed, search_status: 'not_needed', answer: [{ text: clarification, citations: [] }] }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...empty, turns: [turn] })))
+  render(<AnalysisChat id="item" session={session} />)
+  expect(await screen.findByText(clarification)).toBeVisible()
+  expect(screen.queryByText(/Web research|not enough verified|could not be completed/)).not.toBeInTheDocument()
+  const input = screen.getByRole('textbox', { name: 'Your question' })
+  fireEvent.change(input, { target: { value: 'Pytam o limit wpłat na IKE.' } })
+  expect(screen.getByRole('button', { name: 'Send question' })).toBeEnabled()
+})
+
 it('renders and restores a polite refusal without source or research badges', async () => {
   const refusal = 'Chętnie pomogę z pytaniem dotyczącym tej analizy lub jej tematu.'
   const turn = { ...completed, question: 'siema', search_status: 'not_needed',

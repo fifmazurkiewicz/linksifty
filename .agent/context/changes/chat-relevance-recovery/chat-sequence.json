@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Chat Relevance and Research Recovery",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1000,
+      620
+    ],
+    "output": ".agent/context/changes/chat-relevance-recovery/chat-sequence.html"
+  },
+  "participants": [
+    {
+      "id": "reader",
+      "type": "frontend",
+      "label": "Reader",
+      "sublabel": "Saved chat"
+    },
+    {
+      "id": "chat",
+      "type": "backend",
+      "label": "ChatService",
+      "sublabel": "Owner scoped"
+    },
+    {
+      "id": "ledger",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "Turns and budget"
+    },
+    {
+      "id": "router",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "Jev and answers"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 235,
+      "label": "Authorize and claim once"
+    },
+    {
+      "from": 240,
+      "to": 375,
+      "label": "Classify before answering"
+    },
+    {
+      "from": 380,
+      "to": 520,
+      "label": "Answer, clarify or refuse"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message-1",
+      "from": "reader",
+      "to": "chat",
+      "y": 166,
+      "label": "Question + request UUID",
+      "variant": "default"
+    },
+    {
+      "id": "message-2",
+      "from": "chat",
+      "to": "ledger",
+      "y": 194,
+      "label": "Check owner and claim",
+      "variant": "security"
+    },
+    {
+      "id": "message-3",
+      "from": "ledger",
+      "to": "chat",
+      "y": 222,
+      "label": "Claim or saved duplicate",
+      "variant": "return"
+    },
+    {
+      "id": "message-4",
+      "from": "chat",
+      "to": "ledger",
+      "y": 250,
+      "label": "Reserve classifier once",
+      "variant": "emphasis"
+    },
+    {
+      "id": "message-5",
+      "from": "ledger",
+      "to": "chat",
+      "y": 278,
+      "label": "Admitted or stop",
+      "variant": "return"
+    },
+    {
+      "id": "message-6",
+      "from": "chat",
+      "to": "router",
+      "y": 306,
+      "label": "Jev 1.13: scope + language",
+      "variant": "security"
+    },
+    {
+      "id": "message-7",
+      "from": "router",
+      "to": "chat",
+      "y": 334,
+      "label": "Validated choice or failure",
+      "variant": "return"
+    },
+    {
+      "id": "message-8",
+      "from": "chat",
+      "to": "ledger",
+      "y": 362,
+      "label": "Record ID; settle known cost",
+      "variant": "default"
+    },
+    {
+      "id": "message-9",
+      "from": "chat",
+      "to": "ledger",
+      "y": 390,
+      "label": "Relevant: reserve decision",
+      "variant": "emphasis"
+    },
+    {
+      "id": "message-10",
+      "from": "chat",
+      "to": "router",
+      "y": 418,
+      "label": "Relevant only: existing answer/search flow",
+      "variant": "emphasis"
+    },
+    {
+      "id": "message-11",
+      "from": "router",
+      "to": "chat",
+      "y": 446,
+      "label": "Grounded result; at most two searches",
+      "variant": "return"
+    },
+    {
+      "id": "message-12",
+      "from": "chat",
+      "to": "ledger",
+      "y": 474,
+      "label": "Save reply or failure",
+      "variant": "default"
+    },
+    {
+      "id": "message-13",
+      "from": "chat",
+      "to": "reader",
+      "y": 502,
+      "label": "Persisted reply or failure",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Relevance and safety",
+      "items": [
+        "Topic context uses saved summary and original excerpts, without rubric metadata.",
+        "Relevant with selected probability >=0.8 reaches evidence checking; missing facts request available search.",
+        "Lower probabilities clarify; off-topic/unsafe choices refuse. Invalid or failed calls remain failures."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Spending and recovery",
+      "items": [
+        "Unique per-turn slots share the owner budget; fixed scope replies make no answer/search call.",
+        "Actual costs settle; unknown costs remain reserved. No automatic retry or fallback.",
+        "This is the behavior contract; mock tests do not establish hosted model quality."
+      ]
+    }
+  ]
+}

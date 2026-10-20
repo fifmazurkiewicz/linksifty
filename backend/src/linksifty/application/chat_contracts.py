@@ -44,7 +44,7 @@ class ChatModelResult(BaseModel):
 
 
 class ChatClassification(BaseModel):
-    category: Literal["relevant", "off_topic", "unsafe"]
+    category: Literal["relevant", "off_topic", "unsafe", "uncertain"]
     language: Literal["pl", "en"]
 
 
@@ -92,6 +92,7 @@ class ChatInput(BaseModel):
     question: str
     passages: dict[str, ChatCitation]
     history: list[dict[str, str]]
+    analysis_summary: str = ""
     reply_language: Literal["pl", "en"] | None = None
     search_queries: list[str] = Field(default_factory=list, max_length=2)
 

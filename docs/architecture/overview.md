@@ -353,10 +353,18 @@ Before answer generation or research, ChatService reserves the unique
 about the latest message. It receives bounded original/analysis excerpts and
 recent conversation; saved research does not expand the original topic's scope.
 The provider returns scope and refusal language, never generated refusal text.
-Only a valid, sufficiently confident relevant classification reaches the existing
+Only a valid relevant classification with selected probability >=0.8 reaches the existing
 answer/search flow. Off-topic/unsafe messages use fixed Polish or English replies
 with no citations or further provider/search calls. English is the fallback for
-other languages; malformed, low-confidence and failed classifications stop.
+other languages. Valid choices below 0.8 return a fixed clarification in the
+selected language, with no answer/search call. Malformed and failed
+classifications still stop. Topic classification uses the saved summary and
+original excerpts; scoring rubric metadata does not displace the summary.
+Clear topical questions with missing factual evidence request the existing
+bounded search before returning an insufficient answer. Probability and Jev's
+normalized confidence are distinct; the selected-probability cutoff supersedes
+the original confidence cutoff. See the
+[updated contract](../../.agent/context/changes/chat-relevance-recovery/chat-sequence.html).
 
 The existing OpenRouter adapter owns HTTP and validation; application orchestration
 and owner-scoped persistence remain in their established layers. Classification

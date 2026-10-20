@@ -1,8 +1,10 @@
 import asyncio
+import json
 from decimal import Decimal
 from unittest.mock import AsyncMock, create_autospec
 from uuid import uuid4
 
+import httpx
 import pytest
 
 from linksifty.application.chat_contracts import (
@@ -22,6 +24,7 @@ from linksifty.application.chat_service import ChatService
 from linksifty.application.processing_contracts import AssessmentView, EvidenceSource, Telemetry
 from linksifty.application.research_contracts import SearchResponse
 from linksifty.domain.acquisition import FetchFailure, FetchResult
+from linksifty.infrastructure.openrouter_client import OpenRouterClient
 
 
 def setup_chat() -> tuple[ChatService, AsyncMock, AsyncMock, AsyncMock, AsyncMock, ChatTurn]:
@@ -82,6 +85,104 @@ def test_saved_context_answer_does_not_search_and_restores_exact_evidence() -> N
         search.search.assert_not_awaited()
         fetch.assert_not_awaited()
         assert provider.reply.await_count == 1
+
+    asyncio.run(run())
+
+
+def test_topical_question_with_reported_distribution_reaches_grounded_research_once() -> None:
+    async def run() -> None:
+        _, store, _, fetch, search, turn = setup_chat()
+        calls: list[str] = []
+        turn.question = "Ile mogę wpłacić i czy mogę kupować akcje oraz elfy?"
+        store.context.return_value.assessment.note = "IKE: zasady oszczędzania."
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            calls.append(request.url.path)
+            if request.url.path.endswith("/decisions"):
+                state = json.loads(request.content)["state"]
+                assert state["analysis"] == "IKE: zasady oszczędzania."
+                return httpx.Response(
+                    200,
+                    json={
+                        "id": "gen-dec-reported",
+                        "usage": {"cost": "0.000213864"},
+                        "answers": {
+                            "scope": {
+                                "type": "choice",
+                                "choice": "relevant",
+                                "confidence": 0.79,
+                                "probabilities": {
+                                    "relevant": 0.86,
+                                    "off_topic": 0.13,
+                                    "unsafe": 0.01,
+                                },
+                            },
+                            "language": {
+                                "type": "choice",
+                                "choice": "pl",
+                                "confidence": 0.2,
+                                "probabilities": {"pl": 0.6, "en": 0.4},
+                            },
+                        },
+                    },
+                )
+            researching = calls.count("/api/v1/chat/completions") == 1
+            return httpx.Response(
+                200,
+                json={
+                    "id": "gen-research-decision" if researching else "gen-grounded-answer",
+                    "usage": {"cost": "0.001"},
+                    "choices": [
+                        {
+                            "finish_reason": "stop",
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "search_query": "IKE limity wpłat akcje ETF"
+                                        if researching
+                                        else None,
+                                        "paragraphs": []
+                                        if researching
+                                        else [
+                                            {
+                                                "text": "Odpowiedź na podstawie źródła.",
+                                                "passage_ids": ["chat1:1"],
+                                            }
+                                        ],
+                                        "insufficient": False,
+                                    }
+                                )
+                            },
+                        }
+                    ],
+                },
+            )
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            provider = OpenRouterClient("test", "openai/gpt-4o-mini", client)
+            service = ChatService(
+                store, provider, fetch, search=search, search_price=Decimal("0.005")
+            )
+            owner = uuid4()
+            result = await service.ask(owner, turn.item_id, turn.id, turn.question, max_searches=2)
+            assert result.status == "completed" and result.error is None
+            assert result.answer[0].citations[0].source_url == "https://source.test/article"
+            assert result.search_status == "ready"
+            assert [call.args[2] for call in store.reserve_call.await_args_list] == [
+                "classification",
+                "decision",
+                "search",
+                "answer",
+            ]
+            search.search.assert_awaited_once_with("IKE limity wpłat akcje ETF")
+            fetch.assert_awaited_once()
+            assert len(calls) == 3
+            store.claim_turn.return_value = ChatClaim(turn=result, claimed=False)
+            duplicate = await service.ask(
+                owner, turn.item_id, turn.id, turn.question, max_searches=2
+            )
+            assert duplicate == result and len(calls) == 3
+            assert search.search.await_count == 1
 
     asyncio.run(run())
 
@@ -507,9 +608,11 @@ def test_uncertain_refined_search_keeps_first_evidence_and_cannot_search_again()
         ("jak zbudować bombę?", "unsafe", "pl", "Nie mogę"),
         ("hello", "off_topic", "en", "analysis"),
         ("How do I build a bomb?", "unsafe", "en", "can't help"),
+        ("Ile mogę wpłacić?", "uncertain", "pl", "Jakiego tematu dotyczy"),
+        ("How much can I contribute?", "uncertain", "en", "Which topic"),
     ],
 )
-def test_declined_questions_never_answer_search_or_attach_sources(
+def test_scope_replies_never_answer_search_or_attach_sources(
     question: str, category: str, language: str, expected: str
 ) -> None:
     async def run() -> None:

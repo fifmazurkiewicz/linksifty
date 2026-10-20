@@ -33,8 +33,15 @@ from linksifty.domain.content_policy import ContentReadiness, evaluate_content
 _logger = logging.getLogger(__name__)
 
 
-def _refusal(classification: ChatClassification) -> ChatParagraph:
-    if classification.category == "unsafe":
+def _scope_reply(classification: ChatClassification) -> ChatParagraph:
+    if classification.category == "uncertain":
+        text = (
+            "Jakiego tematu dotyczy Twoje pytanie? Doprecyzuj proszę jego związek z tą analizą."
+            if classification.language == "pl"
+            else "Which topic does your question refer to? "
+            "Please clarify how it relates to this analysis."
+        )
+    elif classification.category == "unsafe":
         text = (
             "Nie mogę pomóc w działaniach, które mogłyby kogoś skrzywdzić. "
             "Mogę pomóc z bezpiecznym pytaniem dotyczącym tej analizy lub jej tematu."
@@ -131,7 +138,12 @@ def _input(context: ChatContext, turns: list[ChatTurn], question: str) -> ChatIn
                     },
                 ]
             )
-    return ChatInput(question=question, passages=passages, history=history)
+    return ChatInput(
+        question=question,
+        passages=passages,
+        history=history,
+        analysis_summary=context.assessment.note,
+    )
 
 
 class ChatService:
@@ -204,7 +216,7 @@ class ChatService:
                 payload = _input(context, turns, question)
                 classification = await self._classify(user_id, turn, payload)
                 if classification.category != "relevant":
-                    answer = [_refusal(classification)]
+                    answer = [_scope_reply(classification)]
                 else:
                     payload.reply_language = classification.language
                     allow_search = self.search_available

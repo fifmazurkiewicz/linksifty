@@ -128,6 +128,8 @@ def test_chat_request_constrains_search_grounding_output_and_cost(allow_search: 
             assert "search_queries" in prompt
             assert "Never replace an unanswered question with a summary" in prompt
             assert ("ONE" if allow_search else "search_query MUST be null") in prompt
+            if allow_search:
+                assert "MUST request search before returning an insufficient answer" in prompt
             assert body["provider"]["allow_fallbacks"] is False
             assert body["max_tokens"] == 4096
             assert body["response_format"]["json_schema"]["strict"] is True

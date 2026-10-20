@@ -19,6 +19,7 @@ function safeSource(value: string | null): string | null {
 
 function failureMessage(reason: string | null): string {
   if (reason === 'budget_exhausted') return 'Your monthly budget has insufficient available funds. Your question is saved.'
+  if (reason === 'classification_uncertain') return 'This question was stopped by the relevance check before an answer or search could run. Your question is saved.'
   if (reason === 'interrupted') return 'This answer was interrupted. No request was automatically repeated. You can submit the question again; uncertain charges remain reserved.'
   if (reason === 'invalid_evidence' || reason === 'invalid_answer') return 'The answer could not be verified against its sources. You can submit the question again.'
   if (reason === 'input_too_large') return 'This conversation is too large to answer safely. Try a shorter, more specific question.'

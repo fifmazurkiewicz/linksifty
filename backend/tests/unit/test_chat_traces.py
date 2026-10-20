@@ -49,6 +49,13 @@ def test_chat_generations_capture_diagnostics_without_secrets_or_retries(
                         ("language", "en", ("pl", "en")),
                     )
                 }
+                if outcome == "uncertain":
+                    body["answers"]["scope"]["probabilities"] = {
+                        "relevant": 0.6,
+                        "off_topic": 0.3,
+                        "unsafe": 0.1,
+                    }
+                    body["answers"]["scope"]["confidence"] = 0.4
             else:
                 body["choices"] = [
                     {
@@ -101,7 +108,9 @@ def test_chat_generations_capture_diagnostics_without_secrets_or_retries(
                 assert "Explain this" in exported
                 assert "private-test-key" not in exported and "reader@example.test" not in exported
                 assert len(calls) == 1
-                if outcome == "success":
+                if outcome == "success" or (
+                    outcome == "uncertain" and operation == "classification"
+                ):
                     assert result.failure_reason is None
                     assert "gen-chat-test" in exported
                     assert (
@@ -117,11 +126,17 @@ def test_chat_generations_capture_diagnostics_without_secrets_or_retries(
                         (generation.attributes or {})["langfuse.observation.output"]
                     )
                     assert (
-                        output == {"category": "relevant", "language": "en"}
+                        output
+                        == {
+                            "category": "uncertain" if outcome == "uncertain" else "relevant",
+                            "language": "en",
+                        }
                         if operation == "classification"
                         else output
                         == {"search_query": None, "paragraphs": [], "insufficient": True}
                     )
+                    if outcome == "uncertain":
+                        assert "0.4" in exported and "probabilities" in exported
                 else:
                     assert result.failure_reason and result.failure_reason in exported
                     assert (generation.attributes or {})["langfuse.observation.level"] == "ERROR"
@@ -129,9 +144,6 @@ def test_chat_generations_capture_diagnostics_without_secrets_or_retries(
                         assert "401" in exported and "No allowed provider" in exported
                     if outcome == "invalid":
                         assert "Malformed result" in exported
-                    if outcome == "uncertain" and operation == "classification":
-                        assert result.failure_reason == "classification_uncertain"
-                        assert "0.5" in exported and "probabilities" in exported
             finally:
                 telemetry.close()
 
