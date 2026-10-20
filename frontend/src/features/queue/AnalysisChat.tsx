@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { api, money } from '../../lib/api'
 
@@ -15,6 +15,47 @@ function safeSource(value: string | null): string | null {
     const url = new URL(value ?? '')
     return ['https:', 'http:'].includes(url.protocol) ? url.href : null
   } catch { return null }
+}
+
+function citationKey(citation: Citation): string {
+  return safeSource(citation.source_url) ?? citation.source_url ?? citation.passage_id.split(':')[0]
+}
+
+function CitedAnswer({ paragraphs }: { paragraphs: Turn['answer'] }) {
+  const id = useId()
+  const sources = new Map<string, { number: number; citation: Citation; excerpts: Set<string> }>()
+  for (const paragraph of paragraphs) {
+    for (const citation of paragraph.citations) {
+      const key = citationKey(citation)
+      const existing = sources.get(key)
+      if (existing) existing.excerpts.add(citation.excerpt)
+      else sources.set(key, { number: sources.size + 1, citation, excerpts: new Set([citation.excerpt]) })
+    }
+  }
+  return <>
+    {paragraphs.map((paragraph, i) => <p key={i}>
+      {paragraph.text}
+      {paragraph.citations.length > 0 && <sup className="chat-citations">
+        {[...new Set(paragraph.citations.map(citation => sources.get(citationKey(citation))!.number))].map(number =>
+          <a key={number} href={`#${id}-source-${number}`} aria-label={`Source ${number}`}>[{number}]</a>)}
+      </sup>}
+    </p>)}
+    {sources.size > 0 && <section className="chat-sources" aria-labelledby={`${id}-sources`}>
+      <h3 id={`${id}-sources`}>Sources</h3>
+      <ol aria-labelledby={`${id}-sources`}>
+        {[...sources.values()].map(({ number, citation, excerpts }) => {
+          const url = safeSource(citation.source_url)
+          return <li key={number} id={`${id}-source-${number}`} tabIndex={-1}>
+            {url ? <a href={url} target="_blank" rel="noopener noreferrer">{url} ↗</a> : citation.label}
+            <details className="assessment-evidence">
+              <summary>Quoted passages ({excerpts.size})</summary>
+              {[...excerpts].map(excerpt => <blockquote key={excerpt}><p>{excerpt}</p></blockquote>)}
+            </details>
+          </li>
+        })}
+      </ol>
+    </section>}
+  </>
 }
 
 function failureMessage(reason: string | null): string {
@@ -117,16 +158,7 @@ export function AnalysisChat({ id, session }: { id: string; session: Session }) 
         <div className="chat-question"><strong>You</strong><p>{turn.question}</p></div>
         {turn.status === 'completed' && <div className="chat-answer">
           <strong>Linksifty</strong>
-          {turn.answer.map((paragraph, i) => <div key={i}>
-            <p>{paragraph.text}</p>
-            {paragraph.citations.map((citation, j) => {
-              const source = safeSource(citation.source_url)
-              return <details className="assessment-evidence" key={`${citation.passage_id}-${j}`}>
-                <summary>{citation.label} {j + 1}</summary>
-                <blockquote><p>{citation.excerpt}</p>{source && <a href={source} target="_blank" rel="noopener noreferrer">Open source ↗</a>}</blockquote>
-              </details>
-            })}
-          </div>)}
+          <CitedAnswer paragraphs={turn.answer} />
           {turn.insufficient && <p className="hint">There is not enough verified evidence to fully answer this question.</p>}
           {turn.search_status === 'ready' && <p className="chat-research-note">Web research · fetched source excerpts checked</p>}
           {turn.search_status === 'no_sources' && <p className="chat-research-note">The latest web search found no new readable sources. This answer uses available evidence.</p>}

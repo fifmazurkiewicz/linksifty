@@ -8,6 +8,14 @@ The user can discuss a completed analysis and investigate its topic. They explic
 
 Add a Chat about this analysis section below the result. Load its saved conversation. The user enters a question and sends it with a button or Ctrl/Cmd+Enter. Disclose that answering uses the existing AI budget and may send a short public-topic query to Brave when evidence is missing. The send action consents to that bounded operation. Show pending, failed, insufficient-evidence, and completed states. Preserve a question after a failed request; do not silently repeat paid work. Use safe plain-text rendering, accessible labels/statuses and responsive layout.
 
+Answer paragraphs display numbered source references inline. Numbers follow first
+appearance within each answer and link to one list of unique sources below it;
+repeated source URLs reuse their number. Each source retains its distinct exact
+quoted passages in an expandable disclosure. Saved analysis/context without a URL
+keeps its label and excerpts. Fragment destinations are unique across answers and
+keyboard-focusable; unsafe source URLs never become external links. This changes
+presentation only and also applies when restoring existing conversation history.
+
 ## Answering and sources
 
 Use the stored assessment (including its original rules), original source, saved research, recent conversation and sources from previous chat turns. Existing answers are conversational context, never independent evidence. The model must answer from supplied passages or request exactly one targeted search if fresh/external evidence is necessary. Every substantive answer paragraph selects real passage IDs. The application restores exact text and URLs; unknown IDs fail closed. An insufficient-evidence answer explains the gap without invented facts.

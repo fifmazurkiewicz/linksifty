@@ -325,6 +325,12 @@ restores exact excerpts and source URLs. Search snippets are never evidence.
 Saved analysis describes its historical assessment, rather than independently
 verifying article claims. Model grounding/necessity still needs live evaluation.
 
+Chat renders paragraph-level citations as numbered inline references, reusing
+numbers for the same source URL within an answer. A single source list below the
+answer keeps each external link once and groups its exact quoted passages in a
+native disclosure. Saved-analysis citations retain their label/excerpts without
+an external URL. No API, provenance or model-output contract changes are needed.
+
 Migration 000013 adds RLS-protected `chat_turns` with a composite item/owner
 foreign key. Browser writes are revoked. A client request UUID admits one
 executor, one active turn per item, and unique decision/search/answer billing

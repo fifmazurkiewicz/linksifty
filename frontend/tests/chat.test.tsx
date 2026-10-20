@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { AnalysisChat } from '../src/features/queue/AnalysisChat'
 
@@ -31,10 +31,60 @@ it('sends one question with a request ID and displays saved evidence', async () 
   expect(body.request_id).toMatch(/^[a-f\d-]{36}$/)
   expect(init.headers).toMatchObject({ Authorization: 'Bearer test-token' })
   expect(screen.getByText('Exact supporting passage.')).not.toBeVisible()
-  fireEvent.click(screen.getByText(/Research source 1/))
+  fireEvent.click(screen.getByText(/Quoted passages/))
   expect(screen.getByText('Exact supporting passage.')).toBeVisible()
-  expect(screen.getByRole('link', { name: /Open source/ })).toHaveAttribute('rel', 'noopener noreferrer')
+  expect(screen.getByRole('link', { name: /https:\/\/source.test\/evidence/ })).toHaveAttribute('rel', 'noopener noreferrer')
   expect(input).toHaveValue('')
+})
+
+it('numbers inline references consistently and lists each source link once below the answer', async () => {
+  const first = completed.answer[0].citations[0]
+  const second = { ...first, passage_id: 'chat1:2', excerpt: 'Another exact passage.' }
+  const other = { ...first, passage_id: 'chat2:1', source_url: 'https://other.test/article', excerpt: 'Independent passage.' }
+  const turn = { ...completed, answer: [
+    { text: 'First claim.', citations: [first, first] },
+    { text: 'Second claim.', citations: [second, other] },
+    { text: 'Third claim.', citations: [other, first] },
+  ] }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...empty, turns: [turn] })))
+  render(<AnalysisChat id="item" session={session} />)
+  const paragraph = await screen.findByText('First claim.')
+  expect(within(paragraph).getAllByRole('link')).toHaveLength(1)
+  const sourceOne = within(paragraph).getByRole('link', { name: 'Source 1' })
+  expect(sourceOne).toHaveTextContent('[1]')
+  expect(within(screen.getByText('Second claim.')).getByRole('link', { name: 'Source 1' })).toHaveAttribute('href', sourceOne.getAttribute('href'))
+  expect(within(screen.getByText('Second claim.')).getByRole('link', { name: 'Source 2' })).toHaveTextContent('[2]')
+  const sources = screen.getByRole('list', { name: 'Sources' })
+  const entries = within(sources).getAllByRole('listitem')
+  expect(entries).toHaveLength(2)
+  expect(within(sources).getAllByRole('link')).toHaveLength(2)
+  expect(document.getElementById(sourceOne.getAttribute('href')!.slice(1))).toBe(entries[0])
+  expect(within(entries[0]).getByRole('link')).toHaveAttribute('href', first.source_url)
+  expect(within(entries[1]).getByRole('link')).toHaveAttribute('href', other.source_url)
+  expect(screen.getByText('Third claim.').compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  fireEvent.click(within(entries[0]).getByText(/Quoted passages/))
+  expect(screen.getAllByText(first.excerpt)).toHaveLength(1)
+  expect(screen.getByText(first.excerpt)).toBeVisible()
+  expect(screen.getByText(second.excerpt)).toBeVisible()
+})
+
+it('keeps reference destinations separate for each saved answer and retains evidence without URLs', async () => {
+  const saved = { ...completed, id: 'request-2', answer: [{ text: 'Saved context.', citations: [
+    { passage_id: 'analysis:1', label: 'Saved analysis', excerpt: 'Saved analysis passage.', source_url: null },
+    { passage_id: 'analysis:2', label: 'Saved analysis', excerpt: 'Second saved passage.', source_url: null },
+  ] }] }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...empty, turns: [completed, saved] })))
+  render(<AnalysisChat id="item" session={session} />)
+  await screen.findByText('Saved context.')
+  const references = screen.getAllByRole('link', { name: 'Source 1' })
+  expect(references).toHaveLength(2)
+  expect(references[0].getAttribute('href')).not.toBe(references[1].getAttribute('href'))
+  const lists = screen.getAllByRole('list', { name: 'Sources' })
+  expect(within(lists[1]).getAllByRole('listitem')).toHaveLength(1)
+  expect(within(lists[1]).queryByRole('link')).not.toBeInTheDocument()
+  fireEvent.click(within(lists[1]).getByText(/Quoted passages/))
+  expect(screen.getByText('Saved analysis passage.')).toBeVisible()
+  expect(screen.getByText('Second saved passage.')).toBeVisible()
 })
 
 it('preserves the question and reuses the same request ID after a network failure', async () => {
@@ -63,7 +113,8 @@ it('restores conversation and explains insufficient evidence without unsafe link
   expect(await screen.findByText('A grounded explanation.')).toBeVisible()
   expect(screen.getByText(/not enough verified evidence/i)).toBeVisible()
   expect(screen.getByText(/search outcome is uncertain/i)).toBeVisible()
-  expect(screen.queryByRole('link', { name: /Open source/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /javascript:/ })).not.toBeInTheDocument()
+  expect(screen.getAllByRole('link').every(link => link.getAttribute('href')?.startsWith('#'))).toBe(true)
 })
 
 it('disables submission for pending saved questions and cannot double-send', async () => {
@@ -120,6 +171,7 @@ it('renders and restores a polite refusal without source or research badges', as
   expect(await screen.findByText(refusal)).toBeVisible()
   expect(screen.getByText('siema')).toBeVisible()
   expect(screen.queryByText(/Original source|Research source|One web search|not enough verified/)).not.toBeInTheDocument()
+  expect(screen.queryByRole('list', { name: 'Sources' })).not.toBeInTheDocument()
   const input = screen.getByRole('textbox', { name: 'Your question' })
   expect(input).toBeEnabled()
   fireEvent.change(input, { target: { value: 'Why this verdict?' } })
