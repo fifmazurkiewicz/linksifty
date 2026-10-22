@@ -1,0 +1,309 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Linksifty · CI and operator release",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/delivery.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "763e0824ae20d089de1103e1d5fa746a4f4859bd",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "ci",
+      "label": "GitHub Actions"
+    },
+    {
+      "id": "parallel",
+      "label": "Independent checks"
+    },
+    {
+      "id": "release",
+      "label": "Operator release"
+    },
+    {
+      "id": "accept",
+      "label": "Verify and recover"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "event",
+      "lane": "ci",
+      "col": 0,
+      "type": "external",
+      "label": "Push / PR / manual",
+      "sublabel": "No path or branch filter",
+      "width": 175,
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 1,
+          "end_line": 91
+        }
+      ]
+    },
+    {
+      "id": "backend",
+      "lane": "parallel",
+      "col": 0,
+      "type": "backend",
+      "label": "Backend checks",
+      "sublabel": "pytest · mypy · Ruff",
+      "width": 175,
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 17,
+          "end_line": 40
+        }
+      ]
+    },
+    {
+      "id": "frontend",
+      "lane": "parallel",
+      "col": 1,
+      "type": "frontend",
+      "label": "Frontend checks",
+      "sublabel": "lint · tests · build",
+      "width": 175,
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 42,
+          "end_line": 65
+        }
+      ]
+    },
+    {
+      "id": "container",
+      "lane": "parallel",
+      "col": 2,
+      "type": "backend",
+      "label": "Container smoke",
+      "sublabel": "PORT · health · UID · auth",
+      "width": 175,
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 67,
+          "end_line": 91
+        }
+      ]
+    },
+    {
+      "id": "gate",
+      "lane": "release",
+      "col": 2,
+      "type": "security",
+      "label": "Operator gate",
+      "sublabel": "CI + SQL + release review",
+      "width": 175,
+      "sources": [
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 614,
+          "end_line": 677
+        }
+      ]
+    },
+    {
+      "id": "database",
+      "lane": "release",
+      "col": 3,
+      "type": "database",
+      "label": "Apply migrations",
+      "sublabel": "Only missing; file order",
+      "width": 175,
+      "sources": [
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 76,
+          "end_line": 98
+        }
+      ]
+    },
+    {
+      "id": "render",
+      "lane": "accept",
+      "col": 3,
+      "type": "backend",
+      "label": "Deploy API",
+      "sublabel": "Render builds Dockerfile",
+      "width": 175,
+      "sources": [
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 135,
+          "end_line": 270
+        },
+        {
+          "path": "Dockerfile",
+          "line": 1,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "vercel",
+      "lane": "accept",
+      "col": 2,
+      "type": "frontend",
+      "label": "Deploy UI",
+      "sublabel": "Vite build on Vercel",
+      "width": 175,
+      "sources": [
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 135,
+          "end_line": 270
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "lane": "accept",
+      "col": 1,
+      "type": "security",
+      "label": "Hosted acceptance",
+      "sublabel": "Auth · scope · costs · SSE",
+      "width": 175,
+      "sources": [
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 573,
+          "end_line": 632
+        },
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 715,
+          "end_line": 731
+        }
+      ]
+    },
+    {
+      "id": "record",
+      "lane": "accept",
+      "col": 0,
+      "type": "database",
+      "label": "Record release",
+      "sublabel": "Revisions + verified gates",
+      "width": 175,
+      "sources": [
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 614,
+          "end_line": 632
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "event-to-backend",
+      "from": "event",
+      "to": "backend",
+      "variant": "default"
+    },
+    {
+      "id": "event-to-frontend",
+      "from": "event",
+      "to": "frontend",
+      "variant": "default"
+    },
+    {
+      "id": "event-to-container",
+      "from": "event",
+      "to": "container",
+      "variant": "default"
+    },
+    {
+      "id": "backend-to-gate",
+      "from": "backend",
+      "to": "gate",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "frontend-to-gate",
+      "from": "frontend",
+      "to": "gate",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "channelY": 285
+    },
+    {
+      "id": "container-to-gate",
+      "from": "container",
+      "to": "gate",
+      "label": "all checks",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gate-to-database",
+      "from": "gate",
+      "to": "database",
+      "label": "approved",
+      "variant": "security"
+    },
+    {
+      "id": "database-to-render",
+      "from": "database",
+      "to": "render",
+      "variant": "default"
+    },
+    {
+      "id": "render-to-vercel",
+      "from": "render",
+      "to": "vercel",
+      "variant": "default"
+    },
+    {
+      "id": "vercel-to-verify",
+      "from": "vercel",
+      "to": "verify",
+      "variant": "default"
+    },
+    {
+      "id": "verify-to-record",
+      "from": "verify",
+      "to": "record",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Implemented CI",
+      "items": [
+        "Three independent jobs run on ubuntu-latest, each with a 15-minute timeout.",
+        "No provider secrets, image publication, deployment job or migration runner.",
+        "Agent-toolkit and database gates are separate from the current GitHub workflow."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Operator procedure, not automated CD",
+      "items": [
+        "Select a revision and verify host auto-deploy settings before coordinating schema and code.",
+        "Render and Vercel dashboard settings are not evidenced by repository configuration.",
+        "Record release is the documented operator handoff, not an implemented workflow job."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Failure handling",
+      "items": [
+        "Stop a release if a required gate fails. Health alone proves only process liveness.",
+        "Restore compatible API/UI versions after an application failure.",
+        "No automated down-migrations exist; preserve data and unresolved cost reservations."
+      ]
+    }
+  ]
+}

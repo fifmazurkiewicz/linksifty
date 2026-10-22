@@ -2,7 +2,8 @@
 
 Follow the [complete setup guide](setup.md) for account creation, compatible API
 keys, Auth settings, migrations, Render/Vercel environment variables and staging
-checks. This page is the short Supabase reference.
+checks. This page is the short Supabase reference. See also the [release runbook](README.md)
+and [CI/CD verification boundaries](ci-cd.md).
 
 The server repository adapter accepts either a legacy `service_role` JWT or a
 new `sb_secret_...` key. Legacy keys are sent in `apikey` and `Authorization:
@@ -10,7 +11,9 @@ Bearer`; new secret keys are sent only in `apikey`, as required by Supabase.
 The browser key may be a publishable `sb_publishable_...` key or legacy `anon`
 JWT. See the complete guide for official sources.
 
-Apply the files in `supabase/migrations/` in filename order. The second migration restricts RPC execution to the server service role and adds transactional submission of items and jobs. No migration has been executed on a hosted project by this agent.
+Apply the files in `supabase/migrations/` in filename order (currently 000001–000022,
+ending in `20261020_000022_chat_research.sql`). On an existing database apply only
+missing files; do not stop at the historical rollout notes below. The second migration restricts RPC execution to the server service role and adds transactional submission of items and jobs. No migration has been executed on a hosted project by this agent.
 
 Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` on the backend. The backend validates each bearer token with `/auth/v1/user` before using its verified UUID for repository queries. Service-role credentials remain server-only.
 

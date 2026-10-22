@@ -1,5 +1,10 @@
 # Linksifty setup: Supabase, Render, Vercel, OpenRouter and X
 
+Current repository guide (2026-10-22): start with the [deployment runbook](README.md)
+and [CI/CD contract](ci-cd.md). This page retains detailed service setup and
+feature-specific rollout history. Repository state does not prove hosted activation.
+Fresh installations require **all migrations 000001–000022** in filename order.
+
 Current source policy (2026-10-19): **text-only analysis**, with visible omitted-media
 metadata. Apply migration 000019 after 000018 before deploying the matching code.
 See [current rollout](#text-only-operation-migration-000019). Rich-image sections
@@ -22,11 +27,11 @@ service. Mock tests and local UI checks do not certify RLS or provider behavior.
 
 | Component | Local implementation | Release gate |
 | --- | --- | --- |
-| Supabase | Owner-scoped records, fenced processing, exact USD reservations, settings/admin budget RPCs | Apply migration 000005, run SQL/RLS/concurrency gate, enable retention schedule |
+| Supabase | Owner-scoped records, fenced processing, exact USD reservations, settings/admin budget RPCs | Apply all migrations through 000022, run SQL/RLS/concurrency gate, enable retention schedule |
 | Render API | Authentication, resumable bounded runner, OpenRouter, progress SSE and recovery routes | Hosted restart/streaming and verified provider cost |
 | Vercel frontend | Google session, queue, live progress, detail/citations, paste, settings and admin limits | Rebuild with matching API, hosted two-account check |
 | OpenRouter | Actual-cost adapter and strict source-citation validation | Server key and verified model; explicitly approved paid acceptance |
-| X | Official posts, threads, full Article bodies and static image reading implemented locally | Migrations 000012 and 000016, server token, archive access and approved hosted acceptance |
+| X | Text from official posts, threads and full Article bodies; media omitted | All migrations through 000022, server token/read approval, required API access and approved hosted acceptance |
 
 Setup order: **Supabase → Render → Vercel → final CORS/Auth URLs → optional
 provider credentials → staging checks → release verification after coding**.
@@ -75,14 +80,21 @@ explains the key formats and migration timeline.
 
 ### 3.3 Apply the development schema
 
-On a **fresh staging project**, open **SQL Editor → New query**. Paste the entire
-contents of each migration and run them in this order:
+On a **fresh staging project**, apply every file from
+[`supabase/migrations/`](../../supabase/migrations/) in filename order. The current
+set is 000001 through 000022; the last file is
+[`20261020_000022_chat_research.sql`](../../supabase/migrations/20261020_000022_chat_research.sql).
+The older five-migration bootstrap is insufficient for the current application.
 
-1. [`20261012_000001_personal_mvp.sql`](../../supabase/migrations/20261012_000001_personal_mvp.sql)
-2. [`20261013_000002_submission_rpc.sql`](../../supabase/migrations/20261013_000002_submission_rpc.sql)
-3. [`20261014_000003_account_approval.sql`](../../supabase/migrations/20261014_000003_account_approval.sql)
-4. [`20261014_000004_account_notifications.sql`](../../supabase/migrations/20261014_000004_account_notifications.sql)
-5. [`20261015_000005_processing_usage.sql`](../../supabase/migrations/20261015_000005_processing_usage.sql)
+List the authoritative order locally:
+
+```sh
+rg --files supabase/migrations | sort
+```
+
+Use the SQL Editor or your controlled migration procedure to execute each complete
+script, stopping on errors. On an existing project apply only missing migrations.
+Keep the old image-reading migrations: later text-only migrations depend on them.
 
 These scripts are not all rerunnable. If a migration has already succeeded,
 do not run it again or delete existing tables to silence an error. Check the
@@ -201,7 +213,7 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `OPENROUTER_API_KEY` | Server-only OpenRouter inference key | Required for assessment; missing key yields an explicit not-configured state |
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
 | `OPENROUTER_CHAT_MODEL` | `anthropic/claude-sonnet-5.5` | Independent chat answer model; `openai/gpt-4o-mini` is the verified rollback |
-| `OPENROUTER_IMAGE_MODEL` | `openai/gpt-4.1-mini` | Independent image-reading model; defaults to this value; legacy `openai/gpt-4o-mini` accepts at most four images |
+| `OPENROUTER_IMAGE_MODEL` | `openai/gpt-4.1-mini` | Historical setting; inactive for new jobs in current text-only operation |
 | `X_API_BEARER_TOKEN` | Official X app-only bearer token | Server-only; post lookup and full-archive search access required |
 | `X_API_READS_ENABLED` | Explicit operator approval for potentially billed X reads | Defaults false; token alone does not enable reads |
 | `X_API_DEBUG` | Redacted X request/response diagnostics in Render logs | Defaults false; includes source content; disable after diagnosis |
@@ -323,7 +335,7 @@ After these settings and the migrations are in place, Google sign-in creates an
 authenticated browser session and the frontend sends its user token to the API.
 A valid CORS response alone does not replace authentication.
 
-## 7. Prepare OpenRouter (calls activate after C3)
+## 7. Configure OpenRouter for implemented processing
 
 1. Create an account at [OpenRouter](https://openrouter.ai/).
 2. Open [API Keys](https://openrouter.ai/settings/keys), create an inference key
@@ -606,12 +618,12 @@ The local API now runs queued work after submission or an authenticated visit. S
 | Vercel preview URL fails but stable URL works | Current backend allows one configured origin; previews need a separate staging arrangement |
 | API 401 | Missing/expired user access token; sign in again and check Supabase Auth settings |
 | API 503 for auth | Supabase URL/key configured; project awake/reachable; token verification available |
-| API 503 for persistence | Compatible server key; all five migrations applied; DB/API reachable |
-| Submitted item never leaves queued | Matching backend build and migration 000005; API awake; verify worker heartbeat and error stage |
+| API 503 for persistence | Compatible server key; all required migrations through 000022 applied; DB/API reachable |
+| Submitted item never leaves queued | Matching backend build and all required migrations through 000022; API awake; verify worker heartbeat and error stage |
 | First Render request is slow | Free-service cold start; wait for service health before diagnosing credentials |
-| No OpenRouter/X calls | OpenRouter needs a server key, supported model and available budget; X adapter remains deferred |
+| No OpenRouter/X calls | OpenRouter needs a server key, supported model and available budget; X needs a token, X_API_READS_ENABLED=true and the required API access; inspect disclosed failure reasons |
 
-## 12. Release checklist after the remaining coding phases
+## 12. Hosted release acceptance checklist
 
 - [ ] Latest deployable code is committed/pushed and GitHub CI succeeds.
 - [ ] All required local quality gates pass, including `agent-toolkit check`.
@@ -624,7 +636,7 @@ The local API now runs queued work after submission or an authenticated visit. S
 - [ ] Remaining C5/C6 Inbox/detail, paste recovery, deletion and settings work.
 - [ ] C7 chat/X work, or any scope change is explicitly accepted and recorded.
 - [ ] 30-day cleanup actually executes and cascade-deletes; an expiry field alone is insufficient.
-- [ ] Logs omit tokens, provider credentials and source bodies.
+- [ ] Logs omit tokens and provider credentials; opt-in Langfuse/X diagnostics have appropriate content access and retention controls.
 - [ ] Correct CORS/Auth URLs, cold-start smoke checks and the 20-link evaluation pass.
 
 This document prepares manual E1 setup. It does not mark E1 or C8.3 complete:
@@ -671,8 +683,9 @@ print it. The gate refuses remote/non-test destinations and installs nothing:
 uv run --package linksifty python backend/tests/integration/check_processing_database.py
 ```
 
-This runs account/processing/recovery pgTAP (63 assertions) and two overlapping 0.60 USD reservations under
-a 1 USD cap. Only one may be admitted. It cleans up only the random test-owned UUID.
+This runs the current pgTAP suite and concurrency cases enumerated in
+`backend/tests/integration/check_processing_database.py`, including competing
+reservations under one owner cap. It cleans up synthetic test-owned identities.
 Exit **77** means unavailable runtime, not a pass. No database gate has passed just
 because the mocked API suite passed.
 

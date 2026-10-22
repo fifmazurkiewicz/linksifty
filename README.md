@@ -1,207 +1,121 @@
 # Linksifty
 
-Linksifty is an agent-toolkit-assisted personal web app that turns saved web links, including X posts, into source-grounded notes and a repeatable value verdict.
+Linksifty zamienia zapisane linki i wklejony tekst w notatki z cytatami, ocenę
+ośmiu kryteriów i powtarzalny werdykt: `valuable`, `to_review` albo `hype`.
+Użytkownik może porozmawiać z AI o analizie i jej temacie, sprawdzić dodatkowe
+źródła oraz śledzić wykorzystanie miesięcznego budżetu.
 
-It is deliberately paired with a separate implementation of the same product that does not use agent-toolkit. The product contract is shared; workflow, evidence, and delivery process are the comparison surface.
+Aktualny zakres to **analiza tekstu** stron WWW, postów, wątków i Articles z X.
+Obrazy, wideo i audio są pomijane z widoczną informacją w wyniku. Niepełne
+pobranie wymaga wklejenia treści; krótki częściowy podgląd nie stanowi analizy.
 
-## Start here
+## Dokumentacja
 
-- [Product vision](docs/product/vision.md)
-- [Architecture overview](docs/architecture/overview.md)
-- [MVP roadmap](docs/roadmap.md)
-- [Detailed completion tasks](docs/superpowers/plans/2026-10-13-linksifty-completion.md)
-- [Step-by-step service and environment setup](docs/deployment/setup.md)
-- [Implementation Kanban](.agent/context/changes/linksifty-personal-mvp/plan-kanban.html)
-- [Architecture diagram](docs/architecture/overview.md)
-- [Agent instructions](AGENTS.md)
+| Potrzebuję… | Dokument |
+| --- | --- |
+| Zorientować się w projekcie | [Indeks dokumentacji](docs/README.md) |
+| Poznać komponenty i odpowiedzialności | [Architektura](docs/architecture/overview.md) |
+| Prześledzić działanie aplikacji | [Przepływy](docs/flows/README.md) |
+| Obejrzeć diagramy | [Diagramy HTML i edytowalne JSON](docs/diagrams/README.md) |
+| Zrozumieć testy i proces wydania | [CI/CD](docs/deployment/ci-cd.md) |
+| Wdrożyć lub wycofać wersję | [Runbook deploymentu](docs/deployment/README.md) |
+| Skonfigurować usługi i migracje | [Szczegółowy setup](docs/deployment/setup.md), [Supabase](docs/deployment/supabase.md) |
+| Poznać założenia i dalsze prace | [Wizja](docs/product/vision.md), [roadmapa](docs/roadmap.md) |
 
-## Local checks
+## Stack i układ repozytorium
 
-The top-right appearance button switches the entire interface between light and
-dark mode, including sign-in. It initially uses the system preference and saves
-an explicit choice in this browser. If browser storage is blocked, switching still
-works for the current visit.
+```text
+backend/src/linksifty/
+  api/             HTTP, uwierzytelnianie, walidacja transportu
+  application/     przypadki użycia, przetwarzanie, chat
+  domain/          czyste reguły oceny i walidacji treści
+  infrastructure/  Supabase, OpenRouter, X, Brave, Resend, Langfuse
+  main.py          składanie aplikacji i adapterów
+frontend/          React 19, TypeScript, Vite; npm
+supabase/          migracje PostgreSQL, testy SQL, harmonogram retencji
+docs/              dokumentacja i diagramy
+.github/workflows/ testy backendu, frontendu i kontenera
+```
+
+Backend używa Python 3.11+, FastAPI, Pydantic v2 i `uv`. Dane oraz sesje
+obsługuje Supabase. Frontend jest statycznym buildem na Vercel, API osobnym
+kontenerem na Render. Zadania są trwałe w bazie, a wykonuje je ograniczony
+runner wewnątrz API. Nie ma osobnego stale działającego workera ani brokera.
+
+## Start lokalny
+
+Wymagania zgodne z CI: Python 3.11, uv 0.12.17, Node 22.23.2 oraz npm.
+Polecenia backendu uruchamiaj z katalogu głównego, npm wyłącznie z `frontend/`.
+
+```sh
+uv sync --locked --package linksifty --group dev
+uv run --package linksifty uvicorn linksifty.main:app --reload
+```
+
+[Health](http://127.0.0.1:8000/health) działa bez kluczy i zwraca
+`{"status":"ok"}`. [OpenAPI UI](http://127.0.0.1:8000/docs) opisuje kontrakt HTTP.
+Bez konfiguracji Supabase prywatne funkcje nie będą działać.
+
+Dla rzeczywistych danych przygotuj lokalny, nieśledzony `.env` na podstawie
+[`.env.example`](.env.example), nie nadpisując istniejącego pliku. Skonfiguruj
+Supabase, migracje i Google OAuth według [setupu](docs/deployment/setup.md#9-local-development-environment).
+API samo nie wczytuje `.env`; uruchom je przez:
+
+```sh
+uv run --env-file .env --package linksifty uvicorn linksifty.main:app --reload
+```
+
+W `frontend/.env.local` ustaw **tylko publiczne wartości**:
+
+```dotenv
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<public-publishable-or-anon-key>
+```
+
+W osobnym terminalu:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Otwórz `http://localhost:5173` i ustaw tę samą wartość w `FRONTEND_ORIGIN` API
+oraz dozwolonych przekierowaniach Supabase. Backendowe `LINKSIFTY_DEMO_MODE=true`
+udostępnia przykładowe odpowiedzi API bez trwałego zapisu; nie jest pełnym
+obejściem logowania w UI. Na hostingu pozostaw `false`.
+
+## Weryfikacja
 
 ```sh
 uv run --package linksifty pytest backend/tests
 uv run --package linksifty mypy --strict backend/src
 uv run --package linksifty ruff check .
 uv run --package linksifty ruff format --check .
+agent-toolkit check
 ```
 
-If the local agent-toolkit checkout is available, also run `agent-toolkit check` for configuration drift.
+W `frontend/`: `npm run lint`, `npm test -- --run`, `npm run build`.
+Integracje w testach są mockowane. Testy bazy, współbieżności i akceptacja na
+hostingu są osobnymi bramkami opisanymi w [CI/CD](docs/deployment/ci-cd.md).
 
-## Continuous integration
+## Deployment i ważne zasady
 
-[CI](.github/workflows/ci.yml) runs on pushes, pull requests, and manual dispatch.
-The backend job installs `uv.lock` with `uv sync --locked --package linksifty --group dev`
-and runs the Python checks above. The frontend job runs `npm ci`, lint, and the
-production build inside `frontend/`, using `frontend/package-lock.json`.
-CI uses Python 3.11, uv 0.12.17, and Node 22.23.2; no provider credentials are needed.
-A third job builds the Docker backend and smoke-checks health, runtime PORT,
-anonymous authentication and the non-root user.
+[Runbook](docs/deployment/README.md) opisuje kolejność **migracje → API → frontend**,
+zmienne, smoke testy, retencję i rollback. GitHub Actions wykonuje CI; repozytorium
+nie zawiera automatycznego CD ani aplikowania migracji. Ustawienia integracji Git
+w panelach hostingu wymagają osobnego sprawdzenia.
 
-The frontend test step runs `npm test -- --run` and fails on missing/failing tests.
-`agent-toolkit check` remains a separate required local gate because its runtime is
-not installed or bootstrapped here. SQL/RLS/concurrency and hosted acceptance are
-separate gates; a green mocked suite does not certify them.
+Każda operacja na treści jest ograniczona do właściciela, również dla administratora.
+Płatne wywołania najpierw rezerwują budżet; nieznany koszt pozostaje zarezerwowany.
+Klucze service-role, OpenRouter, X, Brave i Resend pozostają na serwerze.
+Szczegóły funkcji, języka wyników i zmian wdrożeniowych zawiera
+[referencja funkcji](docs/product/feature-reference.md). Przełącznik motywu obsługuje
+jasny i ciemny interfejs, preferencję systemową i zapamiętanie wyboru w przeglądarce.
 
-## Run the API
+The Admin tab shows the number of accounts awaiting approval, refreshed on
+navigation and after account decisions. The count is hidden when zero or unavailable.
 
-Copy `.env.example` to `.env` and set server-side values when integrating real providers. The health endpoint runs without provider credentials:
-
-Environment values must be exported in the shell or provided by the hosting platform; copying the file alone does not load it. For local preview only, set `LINKSIFTY_DEMO_MODE=true`. Without this setting, `/v1/` endpoints require a Supabase-verified bearer token. Configure the Supabase URL, anon key, and server-only service-role key and apply all migrations in filename order to enable real item submission, listing, and detail retrieval. Set `FRONTEND_ORIGIN` to the deployed frontend origin for CORS.
-
-```sh
-uv run --package linksifty uvicorn linksifty.main:app --reload
-```
-
-
-## Docker backend
-
-The root Dockerfile packages only the backend, with Python 3.11.16, uv 0.12.17
-and locked production dependencies. Build from the repository root:
-
-```sh
-docker build -t linksifty-api .
-docker run --rm -p 8000:8000 --env-file .env linksifty-api
-```
-
-The API runs as a non-root user, defaults to port 8000 and honors `PORT`.
-Credentials are supplied at runtime; `.env` never enters the build context.
-On Render choose Docker, root context `.`, Dockerfile `./Dockerfile`, leave
-Docker Command unset and set the health path to `/health`.
-See the [setup guide](docs/deployment/setup.md) for environment values and current
-MVP limitations. The frontend remains a separate Vercel build.
-
-
-## Processing and usage
-
-New AI previews, topic titles and assessment prose use Polish for Polish sources
-and English for all other source languages. Chat replies use Polish or English
-according to the user's question, defaulting to English for other languages.
-These are model instructions; proper names, code and verbatim source quotations
-are preserved. Saved results are not automatically translated or regenerated.
-
-Queue entries use concise AI topic titles in All, Needs action and Ready, with
-clickable original URLs. New analyses generate titles in the same model call;
-titles survive assessment validation failures. Existing untitled ready/failed
-items offer **Generate title**, with confirmation before using the monthly AI
-budget. This uses complete saved source text and leaves assessments unchanged.
-Apply migration `20261019_000020_ai_titles.sql` before the matching backend/UI.
-See [title rollout](docs/deployment/setup.md#ai-topic-titles-migration-000020).
-
-The queue now shows persisted live stages, source-backed results, manual-content
-recovery and actual OpenRouter USD spend/reservations. Settings saves the future
-valuable threshold; administrators can edit per-user monthly caps, including zero.
-
-Links awaiting pasted content also offer **Retry**, which fetches the source again
-and starts analysis on the same item. It uses the monthly analysis budget; X reads
-may incur separate charges. **Paste content** remains available. Uncertain X
-attempts and unresolved charges cannot be retried. Deploy migration
-`20261018_000014_retry_fetch.sql` before the matching frontend; no new API is required.
-
-Settings also shows the eight assessment criteria. Each account can edit descriptions and integer weights (1–10), saved together with its valuable threshold. New model analyses capture those rules; completed and interrupted analyses keep their original rubric, visible in detail. Requires migration `20261016_000009_assessment_rubric.sql` and matching backend/frontend.
-
-New analyses select numbered source passages. The backend supplies each saved
-citation’s original text and source, preventing model transcription and attribution
-errors. Existing stored results remain compatible; deploy the backend to activate.
-
-Use server-only `OPENROUTER_API_KEY` and `OPENROUTER_MODEL=openai/gpt-4o-mini`.
-Other model IDs fail closed until their cost bounds are verified. Default monthly
-budget is 10 USD per user; inference first reserves a conservative maximum and
-then settles provider-reported cost.
-
-Migration 000005 and the matching frontend/backend must ship together. Workers
-are bounded and resume on authenticated visits; no paid always-on worker is used.
-Cost records retain 30 days, with unresolved reservations and current-month totals
-preserved. Enable and verify the database retention schedule for inactive users.
-See [setup section 13](docs/deployment/setup.md#13-processing-usage-retention-and-recovery)
-for database gates, activation and recovery. No hosted readiness is implied.
-
-### Optional Brave + Langfuse
-
-The Add screen supports explicit Brave + Jev source checking for public links (one topic-based search, one budgeted relevance-selection call, then up to 20 relevant page fetches; migration 000017), after migration `000007` and server-only key/verified plan-rate configuration. Search charges share the USD cap with actual OpenRouter costs. Langfuse diagnostics are opt-in and cannot block processing; enabled tracing includes bounded article/model content with documented redaction. No secret goes into the frontend. See [setup](docs/deployment/setup.md#brave-source-discovery-and-langfuse-tracing-migration-000007). Real provider activation remains an operator step; source deduplication is heuristic, not proof of independent fact verification.
-
-### Calibrated assessment rules
-
-Migration `20261017_000010_assessment_calibration.sql` introduces purpose-aware
-learning value, explicit Not applicable / Not verified states, and hype judgments
-requiring cited primary-source evidence. New results show scored-criterion
-coverage and explain the verdict; historical results keep their original rules.
-Future settings upgrade default descriptions while preserving custom wording and
-weights. Deploy database, backend and frontend together; see the
-[rollout instructions](docs/deployment/setup.md#calibrated-assessment-and-20-source-checking-migration-000010).
-
-### Delete links and analyses
-
-Each queue entry has **Delete**. Use the checkboxes and **Delete selected** to
-remove a group (up to 50 visible links). Confirm permanent removal of the links,
-source text, analyses, citations, chats and jobs. Billing records remain for
-charge reconciliation; deleting content does not refund charges or trial usage.
-Requires migration `20261017_000011_delete_items.sql`; see the
-[activation notes](docs/deployment/setup.md#permanent-link-deletion-migration-000011).
-
-### Chat about an analysis and its topic
-
-Completed analyses now include a saved conversation with inspectable source
-passages. Chat uses the analysis, original article, saved research and recent
-conversation first. Only missing evidence triggers web research: at most two
-distinct Brave searches per question (one query and one evidence-gap refinement),
-followed by safe page reads and a final answer. Ambiguous subjects prompt clarification.
-Model and search calls share the existing monthly budget. Request IDs prevent
-duplicate paid work after a network error. Deleting/expiring the item removes
-chat content while preserving charge reconciliation.
-
-Requires `20261018_000013_analysis_chat.sql` and matching backend/frontend.
-Existing OpenRouter and optional Brave configuration is reused; chat works
-with saved material when Brave is unavailable. See [rollout and recovery](docs/deployment/setup.md#analysis-and-topic-chat-migration-000013).
-
-New questions first pass a `typesafe/jev-1.13` relevance/safety gate through
-OpenRouter. Relevant questions continue to the answer model; unrelated or unsafe
-requests receive an uncited Polish/English refusal without research or answer
-generation. Invalid or uncertain classification stops the request. Classification
-uses the same monthly budget and server key. Apply migration
-`20261018_000015_chat_classification.sql` before deploying the matching backend;
-`OPENROUTER_MODEL` remains the assessment model. Chat independently uses
-`OPENROUTER_CHAT_MODEL=anthropic/claude-sonnet-5.5` (default), with low reasoning
-effort, explicit reply language and direct follow-up instructions. Set the chat
-variable to `openai/gpt-4o-mini` for rollback. Sonnet reserves up to $2.08192 per
-answer call before settling actual reported cost; the conservative reservation
-can block calls with a smaller available budget. No additional migration. See
-[classification rollout](docs/deployment/setup.md#chat-query-classification-migration-000015).
-
-Two-search chat requires `20261020_000022_chat_research.sql` before the matching
-backend/frontend. Each search and up to three answer-model calls reserve separately;
-uncertain requests are never retried. Older clients remain limited to one search.
-See [research rollout](docs/deployment/setup.md#chat-evidence-gap-research-migration-000022).
-
-### Text-only source analysis
-
-X posts, connected threads, full Article bodies/code and ordinary web pages are
-analyzed as text. Images, video, GIFs and audio are not downloaded or read by AI;
-results show known media types and explicitly disclose the text-only scope.
-Missing, short, truncated or otherwise incomplete text still requests paste.
-With migration 000021 and the matching app, readable partial text also gets an
-automatic one-sentence **Partial preview**, using the monthly AI budget disclosed
-at submission or Retry. It carries no score and does not unlock assessment.
-Old jobs default off; old failures need an explicit Retry. No extra button or
-automatic paid resend is introduced. [Preview rollout](docs/deployment/setup.md#automatic-partial-previews-migration-000021).
-Article embeds accept both X field names (`tweets` and `posts`). Missing embedded
-text is fetched once and deduplicated within the shared twelve-request,
-hundred-post and sixty-second acquisition limits. Unavailable embedded text still
-requests paste; extra X reads can incur the existing disclosed X charges.
-Migration `20261019_000019_text_only_sources.sql` must follow 000018 before the
-matching backend/UI deployment. Historical analyses are not relabeled or rerun;
-existing uncertain image charges retain their accounting safeguards.
-See [text-only rollout](docs/deployment/setup.md#text-only-operation-migration-000019).
-The embedded-text compatibility fix needs only the matching backend deployment,
-with no additional migration. See the [source workflow](.agent/context/changes/x-rich-sources/text-only-workflow.html)
-and [verification evidence](.agent/context/changes/x-rich-sources/evidence.md#embedded-article-text-verification--2026-10-19).
-
-
-Jev selects comparison pages before downloads, using article and candidate
-metadata; unrelated numeric-ID search matches are rejected. The Add opt-in
-shows the separate maximum USD 0.02688 selection hold and data sharing. Apply
-[migration 000017 and coordinated rollout](docs/deployment/setup.md#topic-relevant-source-selection-migration-000017)
-before deploying the matching backend/UI. Existing saved assessments remain unchanged.
+Projekt korzysta z agent-toolkit; reguły współpracy zawiera [AGENTS.md](AGENTS.md).
+Osobna implementacja tego samego produktu służy porównaniu procesu pracy z agent-toolkit.

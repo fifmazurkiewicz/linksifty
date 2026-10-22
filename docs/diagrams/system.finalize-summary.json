@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/Filip/dev/linksifty/docs/diagrams/system.json",
+    "sha256": "375868f91ff702c4d90478699592a3065c5b6c2324d7f20ef7206a06c9580e36",
+    "bytes": 6644
+  },
+  "artifact": {
+    "path": "/Users/Filip/dev/linksifty/docs/diagrams/system.html",
+    "sha256": "80a556ae58d2ecd5934b16fe87266c59cd91d21272d0351df283ae96d66b87ae",
+    "bytes": 759893
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/Filip/dev/linksifty/docs/diagrams/system.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/Filip/dev/linksifty/docs/diagrams/system.finalize.json",
+    "summaryReceipt": "/Users/Filip/dev/linksifty/docs/diagrams/system.finalize-summary.json",
+    "browserCheckReceipt": "/Users/Filip/dev/linksifty/docs/diagrams/system.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 463
+}

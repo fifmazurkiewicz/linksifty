@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Linksifty · Runtime and hosting",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/system.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "763e0824ae20d089de1103e1d5fa746a4f4859bd",
+      "link_mode": "local-only"
+    }
+  },
+  "components": [
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "Browser UI",
+      "sublabel": "React · Vercel assets",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/lib/api.ts",
+          "line": 1,
+          "end_line": 50
+        },
+        {
+          "path": "frontend/src/auth/AuthProvider.tsx",
+          "line": 24,
+          "end_line": 41
+        },
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 135,
+          "end_line": 270
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Supabase Auth",
+      "sublabel": "Google session + identity",
+      "pos": [
+        370,
+        30
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/supabase_auth.py",
+          "line": 1,
+          "end_line": 57
+        },
+        {
+          "path": "frontend/src/auth/AuthProvider.tsx",
+          "line": 24,
+          "end_line": 41
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI · Render",
+      "sublabel": "Verified owner on requests",
+      "pos": [
+        370,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/api/auth.py",
+          "line": 20,
+          "end_line": 63
+        },
+        {
+          "path": "backend/src/linksifty/main.py",
+          "line": 120,
+          "end_line": 240
+        },
+        {
+          "path": "docs/deployment/setup.md",
+          "line": 135,
+          "end_line": 270
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "type": "backend",
+      "label": "Application services",
+      "sublabel": "Owner + budget admission",
+      "pos": [
+        720,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/main.py",
+          "line": 120,
+          "end_line": 240
+        },
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 154,
+          "end_line": 208
+        },
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 181,
+          "end_line": 350
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Supabase data",
+      "sublabel": "Jobs · content · cost ledger",
+      "pos": [
+        720,
+        480
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/processing_repository.py",
+          "line": 1,
+          "end_line": 120
+        },
+        {
+          "path": "supabase/migrations/20261015_000005_processing_usage.sql",
+          "line": 1,
+          "end_line": 120
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Public sources",
+      "sublabel": "Web text · opt-in X reads",
+      "pos": [
+        1080,
+        30
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 465,
+          "end_line": 475
+        },
+        {
+          "path": "backend/src/linksifty/main.py",
+          "line": 120,
+          "end_line": 240
+        }
+      ]
+    },
+    {
+      "id": "models",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "Budgeted model calls",
+      "pos": [
+        1080,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 550,
+          "end_line": 630
+        },
+        {
+          "path": "backend/src/linksifty/application/chat_service.py",
+          "line": 315,
+          "end_line": 350
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-to-auth",
+      "from": "browser",
+      "to": "auth",
+      "label": "OAuth",
+      "variant": "security"
+    },
+    {
+      "id": "browser-to-api",
+      "from": "browser",
+      "to": "api",
+      "label": "Bearer + SSE",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-to-auth",
+      "from": "api",
+      "to": "auth",
+      "label": "verify",
+      "variant": "security"
+    },
+    {
+      "id": "api-to-services",
+      "from": "api",
+      "to": "services",
+      "label": "dispatch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "services-to-store",
+      "from": "services",
+      "to": "store",
+      "label": "HTTP / RPC",
+      "variant": "default"
+    },
+    {
+      "id": "services-to-sources",
+      "from": "services",
+      "to": "sources",
+      "label": "safe fetch",
+      "variant": "default"
+    },
+    {
+      "id": "services-to-models",
+      "from": "services",
+      "to": "models",
+      "label": "reserve first",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Hosting and execution",
+      "items": [
+        "Vercel hosts static assets; Render runs the API container.",
+        "The bounded runner lives inside the API process, with durable database leases.",
+        "Hosting topology is documented configuration, not a live deployment audit."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Optional integrations",
+      "items": [
+        "Brave research needs consent, configuration and a budget reservation; Jev selects analysis sources.",
+        "Resend sends account approval email after the status commit.",
+        "Opt-in Langfuse traces can include redacted article and model content."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust and recovery",
+      "items": [
+        "Every content operation stays scoped to the verified owner, including administrators.",
+        "Only complete text can enter assessment; omitted media is disclosed.",
+        "Unknown costs remain reserved; recovery does not blindly repeat paid calls."
+      ]
+    }
+  ]
+}

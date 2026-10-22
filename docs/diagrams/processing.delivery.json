@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "38fcdab9-381b-47f3-bee9-1f5e30e3583f",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/Filip/dev/linksifty/docs/diagrams/processing.json",
+  "output": "/Users/Filip/dev/linksifty/docs/diagrams/processing.html",
+  "specification": {
+    "sha256": "005baa49430202e0adee408a2803d46f0fc1c7a62820325881fbce9ede1778ab",
+    "bytes": 8995
+  },
+  "artifact": {
+    "sha256": "2d33327425519f72558b6b9a0d6af6e8f9e730b6eaa2f05b220b2495cdd30951",
+    "bytes": 768659
+  }
+}

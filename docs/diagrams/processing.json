@@ -1,0 +1,381 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Linksifty · Text analysis and recovery",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/processing.html",
+    "repository": {
+      "url": "https://github.com/fifmazurkiewicz/linksifty.git",
+      "revision": "763e0824ae20d089de1103e1d5fa746a4f4859bd",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "intake",
+      "label": "Accept and acquire"
+    },
+    {
+      "id": "analysis",
+      "label": "Complete text only"
+    },
+    {
+      "id": "result",
+      "label": "Validate and publish"
+    },
+    {
+      "id": "exception",
+      "label": "Incomplete text",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "submit",
+      "lane": "intake",
+      "col": 0,
+      "type": "frontend",
+      "label": "Submit links",
+      "sublabel": "Owner + access checks",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/main.py",
+          "line": 343,
+          "end_line": 384
+        }
+      ]
+    },
+    {
+      "id": "queue",
+      "lane": "intake",
+      "col": 1,
+      "type": "database",
+      "label": "Persist and claim",
+      "sublabel": "Item + job; fenced lease",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 154,
+          "end_line": 208
+        },
+        {
+          "path": "backend/src/linksifty/application/item_service.py",
+          "line": 1,
+          "end_line": 28
+        }
+      ]
+    },
+    {
+      "id": "fetch",
+      "lane": "intake",
+      "col": 2,
+      "type": "backend",
+      "label": "Fetch source",
+      "sublabel": "Public web or enabled X",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 494,
+          "end_line": 570
+        }
+      ]
+    },
+    {
+      "id": "check",
+      "lane": "intake",
+      "col": 3,
+      "type": "security",
+      "label": "Complete text?",
+      "sublabel": "Validate readability",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 494,
+          "end_line": 570
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "lane": "analysis",
+      "col": 3,
+      "type": "cloud",
+      "label": "Optional research",
+      "sublabel": "Consent + budget gates",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 254,
+          "end_line": 392
+        }
+      ]
+    },
+    {
+      "id": "reserve",
+      "lane": "analysis",
+      "col": 2,
+      "type": "database",
+      "label": "Reserve AI cost",
+      "sublabel": "Capture rubric + threshold",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 550,
+          "end_line": 630
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "lane": "analysis",
+      "col": 1,
+      "type": "cloud",
+      "label": "Generate analysis",
+      "sublabel": "Numbered source passages",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/infrastructure/openrouter_client.py",
+          "line": 1,
+          "end_line": 120
+        },
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 550,
+          "end_line": 630
+        }
+      ]
+    },
+    {
+      "id": "validate",
+      "lane": "result",
+      "col": 0,
+      "type": "security",
+      "label": "Validate result",
+      "sublabel": "Exact source citations",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 630,
+          "end_line": 698
+        }
+      ]
+    },
+    {
+      "id": "settle",
+      "lane": "analysis",
+      "col": 0,
+      "type": "database",
+      "label": "Settle known cost",
+      "sublabel": "Unknown cost stays held",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 550,
+          "end_line": 630
+        }
+      ]
+    },
+    {
+      "id": "score",
+      "lane": "result",
+      "col": 1,
+      "type": "backend",
+      "label": "Score and verdict",
+      "sublabel": "Pure domain calculation",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/domain/scoring.py",
+          "line": 17,
+          "end_line": 101
+        }
+      ]
+    },
+    {
+      "id": "save",
+      "lane": "result",
+      "col": 2,
+      "type": "database",
+      "label": "Commit assessment",
+      "sublabel": "Fence late writes",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 699,
+          "end_line": 729
+        }
+      ]
+    },
+    {
+      "id": "ready",
+      "lane": "result",
+      "col": 3,
+      "type": "frontend",
+      "label": "Ready in queue",
+      "sublabel": "Snapshot + detail + chat",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/api/processing.py",
+          "line": 179,
+          "end_line": 223
+        }
+      ]
+    },
+    {
+      "id": "partial",
+      "lane": "exception",
+      "col": 3,
+      "type": "cloud",
+      "label": "Partial preview",
+      "sublabel": "Only if admitted; no score",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/application/processing_service.py",
+          "line": 477,
+          "end_line": 536
+        }
+      ]
+    },
+    {
+      "id": "manual",
+      "lane": "exception",
+      "col": 2,
+      "type": "frontend",
+      "label": "Paste or Retry",
+      "sublabel": "Full text still required",
+      "width": 175,
+      "sources": [
+        {
+          "path": "backend/src/linksifty/api/processing.py",
+          "line": 142,
+          "end_line": 178
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "submit-to-queue",
+      "from": "submit",
+      "to": "queue",
+      "variant": "default"
+    },
+    {
+      "id": "queue-to-fetch",
+      "from": "queue",
+      "to": "fetch",
+      "variant": "default"
+    },
+    {
+      "id": "fetch-to-check",
+      "from": "fetch",
+      "to": "check",
+      "variant": "default"
+    },
+    {
+      "id": "check-to-research",
+      "from": "check",
+      "to": "research",
+      "label": "complete",
+      "variant": "emphasis"
+    },
+    {
+      "id": "research-to-reserve",
+      "from": "research",
+      "to": "reserve",
+      "variant": "default"
+    },
+    {
+      "id": "reserve-to-model",
+      "from": "reserve",
+      "to": "model",
+      "label": "admitted",
+      "variant": "emphasis"
+    },
+    {
+      "id": "score-to-save",
+      "from": "score",
+      "to": "save",
+      "variant": "default"
+    },
+    {
+      "id": "save-to-ready",
+      "from": "save",
+      "to": "ready",
+      "variant": "default"
+    },
+    {
+      "id": "check-to-partial",
+      "from": "check",
+      "to": "partial",
+      "label": "incomplete",
+      "variant": "security",
+      "route": "outside-right",
+      "fromSide": "right",
+      "toSide": "right",
+      "role": "branch"
+    },
+    {
+      "id": "partial-to-manual",
+      "from": "partial",
+      "to": "manual",
+      "label": "with or without preview",
+      "variant": "dashed"
+    },
+    {
+      "id": "model-to-settle",
+      "from": "model",
+      "to": "settle",
+      "variant": "default"
+    },
+    {
+      "id": "settle-to-validate",
+      "from": "settle",
+      "to": "validate",
+      "variant": "default",
+      "label": "known cost"
+    },
+    {
+      "id": "validate-to-score",
+      "from": "validate",
+      "to": "score",
+      "label": "valid",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Pipeline semantics",
+      "items": [
+        "Model results are saved for recovery; known costs settle before the final assessment is published.",
+        "Research failure can fall back to the primary source; budget denial prevents the affected paid call.",
+        "Invalid output never becomes an assessment, but a paid call still needs cost settlement."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Recovery and manual action",
+      "items": [
+        "Partial preview is optional, admitted once, and never supplies an assessment score.",
+        "Paste returns complete text to validation; Retry returns the same item to fetching when safe.",
+        "A known generation ID enables reconciliation. Unknown outcomes are never automatically resent.",
+        "An unknown model cost stops processing before assessment validation/publication and requires reconciliation."
+      ]
+    }
+  ]
+}

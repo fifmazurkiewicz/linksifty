@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "31ebb4c4-15c4-4498-9f2d-c22e3f0b3d9f",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/Filip/dev/linksifty/docs/diagrams/system.json",
+  "output": "/Users/Filip/dev/linksifty/docs/diagrams/system.html",
+  "specification": {
+    "sha256": "375868f91ff702c4d90478699592a3065c5b6c2324d7f20ef7206a06c9580e36",
+    "bytes": 6644
+  },
+  "artifact": {
+    "sha256": "80a556ae58d2ecd5934b16fe87266c59cd91d21272d0351df283ae96d66b87ae",
+    "bytes": 759893
+  }
+}
