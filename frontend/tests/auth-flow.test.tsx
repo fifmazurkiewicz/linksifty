@@ -104,6 +104,51 @@ it('deletes confirmed links through the API and ignores stale progress snapshots
 })
 
 describe('account access', () => {
+  it.each(['Approve', 'Reject'])('shows pending approvals beside Admin and refreshes after %s', async action => {
+    const session = { access_token: 'test-token', user: { id: 'admin-1' } } as Session
+    const accounts = [
+      { user_id: 'user-1', email: 'first@example.test', status: 'pending' },
+      { user_id: 'user-2', email: 'second@example.test', status: 'pending' },
+      { user_id: 'user-3', email: 'approved@example.test', status: 'approved', approval_email_status: 'pending' },
+      { user_id: 'user-4', email: 'rejected@example.test', status: 'rejected' },
+    ]
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'admin-1', status: 'approved', role: 'admin' }))
+      if (url.endsWith('/v1/admin/accounts')) return new Response(JSON.stringify(accounts))
+      if (init?.method === 'PATCH') {
+        const target = accounts.find(account => url.endsWith(`/accounts/${account.user_id}`))!
+        target.status = JSON.parse(String(init.body)).status
+        return new Response('{}')
+      }
+      return new Response(JSON.stringify({ items: [] }))
+    })
+    renderApp(session)
+    const admin = await screen.findByRole('button', { name: 'Admin 2 pending approvals' })
+    expect(admin).toHaveTextContent('Admin2')
+    expect(screen.getByRole('heading', { name: 'Your reading queue.' })).toBeInTheDocument()
+    fireEvent.click(admin)
+    await screen.findByRole('heading', { name: 'first@example.test' })
+    fireEvent.click(screen.getAllByRole('button', { name: action })[0])
+    expect(await screen.findByRole('button', { name: 'Admin 1 pending approval' })).toHaveTextContent('Admin1')
+    fireEvent.click(screen.getAllByRole('button', { name: action })[0])
+    await waitFor(() => expect(admin).toHaveTextContent(/^Admin$/))
+    expect(admin).toHaveAccessibleName('Admin')
+  })
+
+  it('keeps Admin available without a count when accounts fail to load', async () => {
+    const session = { access_token: 'test-token', user: { id: 'admin-1' } } as Session
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'admin-1', status: 'approved', role: 'admin' }))
+      if (url.endsWith('/v1/admin/accounts')) return new Response('Unavailable', { status: 503 })
+      return new Response(JSON.stringify({ items: [] }))
+    })
+    renderApp(session)
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/v1/admin/accounts'), expect.anything()))
+    expect(screen.getByRole('button', { name: 'Admin' })).toHaveTextContent(/^Admin$/)
+  })
+
   it('shows Google sign in and requests identity scopes', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
     const { signInWithOAuth } = renderApp()
@@ -141,6 +186,7 @@ describe('account access', () => {
     })
     expect(screen.getByRole('button', { name: 'Submit links' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument()
+    expect(globalThis.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/v1/admin/accounts'), expect.anything())
   })
 
   it('shows rejected status without opening the inbox', async () => {

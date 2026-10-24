@@ -3,24 +3,31 @@ import type { Session } from '@supabase/supabase-js'
 import { api, type AdminAccount, type Usage } from '../../lib/api'
 import { AccountBudget } from './AccountBudget'
 
-export function AdminPanel({ session, onBudgetSaved }: { session: Session; onBudgetSaved?: (id: string, usage: Usage) => void }) {
+export function AdminPanel({ session, onBudgetSaved, onPendingCountChange }: { session: Session; onBudgetSaved?: (id: string, usage: Usage) => void; onPendingCountChange?: (count: number | null) => void }) {
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const load = useCallback(async () => {
-    try { setAccounts(await api<AdminAccount[]>('/v1/admin/accounts', session)); setError(null) }
-    catch (e) { setError(e instanceof Error ? e.message : 'Could not load accounts.') }
-  }, [session])
+    try {
+      const result = await api<AdminAccount[]>('/v1/admin/accounts', session)
+      setAccounts(result); setError(null)
+      onPendingCountChange?.(result.filter(account => account.status === 'pending').length)
+    }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not load accounts.'); onPendingCountChange?.(null) }
+  }, [session, onPendingCountChange])
   useEffect(() => {
     let active = true
     void api<AdminAccount[]>('/v1/admin/accounts', session).then(result => {
-      if (active) setAccounts(result)
+      if (active) {
+        setAccounts(result)
+        onPendingCountChange?.(result.filter(account => account.status === 'pending').length)
+      }
     }).catch(e => {
-      if (active) setError(e instanceof Error ? e.message : 'Could not load accounts.')
+      if (active) { setError(e instanceof Error ? e.message : 'Could not load accounts.'); onPendingCountChange?.(null) }
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [session])
+  }, [session, onPendingCountChange])
 
   const update = async (id: string, status: 'approved' | 'rejected') => {
     setBusy(id)

@@ -153,6 +153,7 @@ summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; bo
   .criterion-heading h3 { font-size: 16px; }
   .assessment-detail blockquote { padding: 14px; }
 }
+.app .approval-count{display:inline-block;margin-left:8px;min-width:1.5em;padding:1px 5px;border-radius:999px;background:var(--notice);color:var(--notice-text);font-size:.8em;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
 .queue-source { color: inherit; overflow-wrap: anywhere; text-underline-offset: 0.2em; }
 .queue-source.hint { display: inline-block; max-width: 100%; margin-bottom: 0.5rem; }
 .queue-source:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }

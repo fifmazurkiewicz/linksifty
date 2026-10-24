@@ -10,7 +10,7 @@ import { Queue } from './features/queue/Queue'
 import { AssessmentDetail } from './features/queue/AssessmentDetail'
 import { SettingsPanel } from './features/settings/SettingsPanel'
 import { UsagePanel } from './features/settings/UsagePanel'
-import { api, ApiError, isUsage, watchActivity, type Account, type Item, type Usage } from './lib/api'
+import { api, ApiError, isUsage, watchActivity, type Account, type AdminAccount, type Item, type Usage } from './lib/api'
 import { analysisUrl } from './lib/urls'
 import { ThemeToggle } from './ThemeToggle'
 import './App.css'
@@ -21,6 +21,7 @@ type View = { kind: 'detail' | 'paste'; id: string } | null
 function AuthenticatedApp() {
   const { session, loading: authLoading, signOut } = useAuth()
   const [account, setAccount] = useState<Account | null>(null)
+  const [pendingApprovals, setPendingApprovals] = useState<number | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const deletedIds = useRef(new Set<string>())
   const [usage, setUsage] = useState<Usage | null>(null)
@@ -75,6 +76,15 @@ function AuthenticatedApp() {
     })
     return () => { active = false }
   }, [session, loadItems, report])
+
+  useEffect(() => {
+    if (!session || account?.role !== 'admin' || screen === 'Admin') return
+    const controller = new AbortController()
+    void api<AdminAccount[]>('/v1/admin/accounts', session, { signal: controller.signal }).then(accounts => {
+      if (!controller.signal.aborted) setPendingApprovals(accounts.filter(value => value.status === 'pending').length)
+    }).catch(() => { if (!controller.signal.aborted) setPendingApprovals(null) })
+    return () => controller.abort()
+  }, [session, account?.role, screen])
 
   useEffect(() => {
     if (!session || !account || account.status === 'rejected') return
@@ -208,7 +218,10 @@ function AuthenticatedApp() {
       <nav aria-label="Main navigation">
         {(['Inbox', 'Add', 'Settings', ...(account?.role === 'admin' ? ['Admin'] : [])] as Screen[]).map(value =>
           <button className={screen === value ? 'active' : ''} aria-current={screen === value ? 'page' : undefined}
-            onClick={() => { setScreen(value); setView(null); setMessage(null) }} key={value}>{value}</button>)}
+            aria-label={value === 'Admin' && pendingApprovals ? `Admin ${pendingApprovals} pending approval${pendingApprovals === 1 ? '' : 's'}` : undefined}
+            onClick={() => { setScreen(value); setView(null); setMessage(null) }} key={value}>{value}
+            {value === 'Admin' && pendingApprovals !== null && pendingApprovals > 0 && <span className="approval-count" aria-hidden="true">{pendingApprovals}</span>}
+          </button>)}
       </nav>
       <UsagePanel usage={usage} error={usageError} collapsible />
       <button className="sign-out" onClick={() => void signOut()}>Sign out</button>
@@ -218,7 +231,7 @@ function AuthenticatedApp() {
         Awaiting admin approval · {account.trial_links_remaining} trial links remaining
       </div>}
       {message && <p className="error" role="alert">{message}</p>}
-      {screen === 'Admin' && account?.role === 'admin' && <AdminPanel session={session} onBudgetSaved={(id, updated) => { if (id === account.user_id) setUsage(updated) }} />}
+      {screen === 'Admin' && account?.role === 'admin' && <AdminPanel session={session} onPendingCountChange={setPendingApprovals} onBudgetSaved={(id, updated) => { if (id === account.user_id) setUsage(updated) }} />}
       {screen === 'Inbox' && view?.kind === 'detail' && <AssessmentDetail key={view.id} id={view.id} item={items.find(item => item.id === view.id)} session={session} onBack={() => setView(null)} />}
       {screen === 'Inbox' && view?.kind === 'paste' && <form onSubmit={event => void submitContent(event)}>
         <button type="button" className="secondary" onClick={() => setView(null)}>Back to queue</button>
