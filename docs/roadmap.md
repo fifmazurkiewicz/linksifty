@@ -161,4 +161,4 @@ Hosted availability and quality remain unverified; M6 stays In progress.
 
 ## Sentry error monitoring — approved follow-up
 
-SDK integration and local verification are complete; publication/CI is in progress. [Canonical task plan](../.agent/context/changes/sentry-error-monitoring/plan.md) · [Progress](../.agent/context/changes/sentry-error-monitoring/progress.md) · [Configuration and acceptance](technical/sentry.md). Owner hosting configuration and hosted/device acceptance remain separate external gates.
+SDK integration and local verification are complete; source publication/CI is complete. [Canonical task plan](../.agent/context/changes/sentry-error-monitoring/plan.md) · [Progress](../.agent/context/changes/sentry-error-monitoring/progress.md) · [Configuration and acceptance](technical/sentry.md). Owner hosting configuration and hosted/device acceptance remain separate external gates.

@@ -4,7 +4,7 @@ Comparison base: `5eee0c26c07eb8cfd16ad0c2968fa10e02ef7b0a`. Independent read-on
 
 ## Coverage
 
-SENTRY-01–04: covered by reviewed source, examples and local behavioral tests. SENTRY-05: source review and local checks accepted; publication result pending. SENTRY-06: explicitly open. Security/privacy: technical allowlist, EU-only DSNs, explicit opt-in, no non-error products, and no user payloads. Convention alignment: SDK at delivery edges and injected callbacks for domain/application failures. Trading risk logic and original local WIP are preserved.
+SENTRY-01–04: covered by reviewed source, examples and local behavioral tests. SENTRY-05: source review, local checks, main publication and resulting source CI accepted. SENTRY-06: explicitly open. Security/privacy: technical allowlist, EU-only DSNs, explicit opt-in, no non-error products, and no user payloads. Convention alignment: SDK at delivery edges and injected callbacks for domain/application failures. Trading risk logic and original local WIP are preserved.
 
 ## Findings and dispositions
 
