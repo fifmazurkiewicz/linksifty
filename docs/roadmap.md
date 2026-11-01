@@ -158,3 +158,7 @@ with mocked missing dependencies. No additional migration or dependency is neede
 Hosted availability and quality remain unverified; M6 stays In progress.
 [T9 progress](../.agent/context/changes/x-rich-sources/progress.md#t9-execution--embedded-article-text-compatibility-2026-10-19)
 · [Current source workflow](../.agent/context/changes/x-rich-sources/text-only-workflow.html).
+
+## Sentry error monitoring — approved follow-up
+
+SDK integration and local verification are complete; publication/CI is in progress. [Canonical task plan](../.agent/context/changes/sentry-error-monitoring/plan.md) · [Progress](../.agent/context/changes/sentry-error-monitoring/progress.md) · [Configuration and acceptance](technical/sentry.md). Owner hosting configuration and hosted/device acceptance remain separate external gates.

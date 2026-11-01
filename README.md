@@ -119,3 +119,7 @@ navigation and after account decisions. The count is hidden when zero or unavail
 
 Projekt korzysta z agent-toolkit; reguły współpracy zawiera [AGENTS.md](AGENTS.md).
 Osobna implementacja tego samego produktu służy porównaniu procesu pracy z agent-toolkit.
+
+## Error monitoring
+
+[Sentry tasks, privacy contract and deployment variables](docs/technical/sentry.md). SDK source verification and production activation are tracked separately.

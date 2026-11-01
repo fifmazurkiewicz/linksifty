@@ -41,6 +41,7 @@ from linksifty.infrastructure.supabase_repository import (
     SupabaseRepository,
 )
 from linksifty.infrastructure.x_adapter import XAdapter
+from linksifty.monitoring import capture_error, init_sentry
 
 
 class SourceInput(BaseModel):
@@ -186,6 +187,7 @@ def create_app(
                     processing_repository,
                     provider,
                     fetch_public_text,
+                    error_reporter=capture_error,
                     x_fetch=XAdapter(
                         configuration.x_api_bearer_token,
                         transport=transport,
@@ -240,6 +242,7 @@ def create_app(
                     await processor.close()
                 await asyncio.to_thread(telemetry.close)
 
+    init_sentry("linksifty-api", api=True)
     app = FastAPI(title="Linksifty", lifespan=lifespan)
     app.include_router(accounts.router)
     app.include_router(admin.router)

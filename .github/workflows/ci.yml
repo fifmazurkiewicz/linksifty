@@ -60,6 +60,8 @@ jobs:
         run: npm run lint
       - name: Frontend behavior tests
         run: npm test -- --run
+      - name: Sentry transport/privacy regression
+        run: npm run test:sentry
       - name: Production build
         run: npm run build
 

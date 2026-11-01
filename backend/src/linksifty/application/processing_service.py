@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import logging
 from collections.abc import Awaitable, Callable
-from contextlib import nullcontext
+from contextlib import nullcontext, suppress
 from decimal import Decimal
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
@@ -49,6 +49,7 @@ class ProcessingService:
         search_price: Decimal = Decimal(0),
         selector: SourceSelector | None = None,
         telemetry: Telemetry | None = None,
+        error_reporter: Callable[[Exception], None] | None = None,
         x_fetch: Callable[[str], Awaitable[FetchResult]] | None = None,
     ) -> None:
         self._x_fetch = x_fetch
@@ -56,6 +57,7 @@ class ProcessingService:
         self._selector = selector
         self._search_price = search_price
         self._telemetry = telemetry
+        self._error_reporter = error_reporter
         self._store = store
         self._provider = provider
         self._fetch = fetch
@@ -196,6 +198,7 @@ class ProcessingService:
         except asyncio.CancelledError:
             raise
         except Exception as error:
+            self._report_error(error)
             # Do not log provider payloads, source content or tokens.
             _logger.warning(
                 "processing_interrupted operation=%s error_type=%s cause_type=%s; "
@@ -206,6 +209,11 @@ class ProcessingService:
             )
         finally:
             self._tasks.pop(user_id, None)
+
+    def _report_error(self, error: Exception) -> None:
+        if self._error_reporter is not None:
+            with suppress(Exception):
+                self._error_reporter(error)
 
     def _event(self, name: str, **details: object) -> None:
         if self._telemetry:
@@ -488,6 +496,7 @@ class ProcessingService:
             if result.cost is not None:
                 await self._store.settle(job.user_id, reservation, result.cost)
         except Exception as error:
+            self._report_error(error)
             # Preview is best effort; a failed admitted call is never automatically resent.
             _logger.warning("partial_preview_unavailable error_type=%s", type(error).__name__)
 

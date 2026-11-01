@@ -18,7 +18,9 @@ from linksifty.main import create_app
 USER = UUID("11111111-1111-4111-8111-111111111111")
 
 
+@pytest.mark.parametrize("reporter_fails", [False, True])
 def test_worker_failure_identifies_step_and_cause_without_private_data(
+    reporter_fails: bool,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     async def run() -> None:
@@ -31,9 +33,18 @@ def test_worker_failure_identifies_step_and_cause_without_private_data(
                 raise RepositoryUnavailable("synthetic-private-payload") from error
 
         store.claim.side_effect = unavailable
-        service = ProcessingService(store, None, AsyncMock())
+        observed = []
+
+        def report(error: Exception) -> None:
+            observed.append(error)
+            if reporter_fails:
+                raise OSError("monitoring offline")
+
+        service = ProcessingService(store, None, AsyncMock(), error_reporter=report)
         service.wake(USER)
         await service._tasks[USER]
+        assert len(observed) == 1
+        assert isinstance(observed[0], RepositoryUnavailable)
         assert USER not in service._tasks
         store.claim.assert_awaited_once_with(USER)
         store.reserve.assert_not_awaited()
