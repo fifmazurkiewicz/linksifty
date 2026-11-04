@@ -33,3 +33,9 @@ One synthetic error passed through `monitoringOptions` and the real frontend SDK
 ## Review and publication
 
 Fresh independent reviewer `/root/linksifty_frontend_reporting_review`: approve for frontend source integration, independently19/19 tests. [Review report](reviews/implementation-review.md). Publication result is recorded in the final handoff after push. Native Safari diagnostics were interrupted by the user's browser activity; an isolated read-only IAB tab does not prove page SDK globals or delivery. No blockers or settings were disabled to force a result.
+
+## Completed publication
+
+Source: `d6590a5648885585269010ffe9b97e946d3eb64c` on main. [CI](https://github.com/fifmazurkiewicz/linksifty/actions/runs/41752580193) and [Secrets](https://github.com/fifmazurkiewicz/linksifty/actions/runs/41752580397) completed successfully. Public deployment now serves `/assets/index-Cda6QEGH.js` with the unexpected-failure reporting guard and expected web DSN.
+
+The synthetic adapter probe is visible as [LINKSIFTY-WEB-1](https://fmazurkiewicz.sentry.io/issues/LINKSIFTY-WEB-1), environment test, one event, zero users. Only frontend reporting was changed. The user's Safari transport and backend activation are not claimed as verified. This final record update does not change runtime code.

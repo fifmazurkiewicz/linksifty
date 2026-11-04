@@ -9,7 +9,7 @@ Separate supported defect: the shared frontend API and activity-stream boundarie
 - [x] Reproduce missing telemetry with actual SDK envelopes and mocked network only.
 - [x] Report unexpected failures at both shared HTTP boundaries; preserve exact returned data and thrown errors,4xx/auth/cancellation behavior and stream cleanup.
 - [x] Verify privacy/outage cases, full frontend tests, lint, existing Sentry regressions and production build.
-- [ ] Independent review, publish to main, inspect CI and live frontend artifact.
+- [x] Independent review, publish to main, inspect CI and live frontend artifact.
 - [x] Separately verify a synthetic event through the frontend adapter into Sentry. Disclose that this verifies ingestion/adapter, not the user's Safari transport or backend initialization.
 
 High-impact privacy/outage risks retain existing testing-strategy depth. Monitoring gap: medium impact/medium likelihood. External browser/runtime acceptance remains explicitly separate from local proof. No logs, sessions, tracing, replay or metrics are enabled.
