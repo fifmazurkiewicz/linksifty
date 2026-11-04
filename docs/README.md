@@ -20,3 +20,10 @@ Opisy bieżącej implementacji nie potwierdzają stanu środowisk zewnętrznych.
 sekrety i aktywność retencji wymagają sprawdzenia w konkretnym środowisku.
 Starsze specyfikacje i plany w `superpowers/` oraz materiały w `.agent/context/`
 zachowują kontekst decyzji, lecz nie zastępują aktualnej dokumentacji.
+
+## Zgłoszenie 10xBuilder
+
+- [Plan najważniejszych testów](test-plan.md)
+- [CRUD, logika biznesowa i komentarz do zgłoszenia](certification/10xbuilder.md)
+- [Konfiguracja i sprawdzenie Resend](certification/resend.md)
+- [Wyniki weryfikacji — 4 listopada 2026](certification/verification-2026-11-04.md)

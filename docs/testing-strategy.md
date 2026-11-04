@@ -25,3 +25,7 @@ Inspect actual envelopes, use sentinel strings in nested input, and ask a fresh 
 ## Cookbook
 
 Backend: `tests/test_sentry_monitoring.py`, run `python -m pytest tests/test_sentry_monitoring.py -q` from backend. Use synthetic data and an in-memory Sentry Transport. Frontend uses existing Vitest transport tests plus lint/types/build. Record regressions and actual results in the Sentry task evidence; hosted activation stays open until a real synthetic event is verified.
+
+## Product acceptance and 10xBuilder
+
+The product risk map, key user scenarios, existing regression suites and verification boundaries are recorded in [the product test plan](test-plan.md). The Sentry-specific map above remains applicable to monitoring.
