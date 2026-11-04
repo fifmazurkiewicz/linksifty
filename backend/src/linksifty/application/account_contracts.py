@@ -1,5 +1,6 @@
 """Account identity and profile contracts shared by application and adapters."""
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Protocol
@@ -79,7 +80,9 @@ class MailDeliveryError(Exception):
 
 
 class ApprovalMailer(Protocol):
-    async def send_approval(self, email: str, event_id: UUID) -> DeliveryReceipt: ...
+    async def send_account_request(
+        self, recipient: str, user_email: str, event_id: UUID
+    ) -> DeliveryReceipt: ...
 
 
 class AccountRepository(Protocol):
@@ -110,6 +113,7 @@ class AccountRepository(Protocol):
         failure_code: str | None,
     ) -> None: ...
 
+    # Legacy method/API names are retained for compatibility; events now concern first login.
     async def get_approval_notification(
         self, user_id: UUID
     ) -> tuple[UUID, EmailDeliveryStatus, str | None] | None: ...
@@ -135,16 +139,29 @@ class AccountService:
         repository: AccountRepository,
         admin_email: str | None,
         mailer: ApprovalMailer | None = None,
+        *,
+        notification_recipient: str = "fifmazurkiewicz@gmail.com",
     ) -> None:
         self._repository = repository
         self._admin_email = admin_email.strip().casefold() if admin_email else None
         self._mailer = mailer
+        self._notification_recipient = notification_recipient
 
     async def profile(self, identity: AuthenticatedIdentity) -> AccountSummary:
         is_admin = self.is_admin(identity)
         profile = await self._repository.get_or_create_profile(
             identity.user_id, identity.email, is_admin=is_admin
         )
+        # The event is created atomically with the first profile insert, never on login refresh.
+        # Failed/sending events require explicit admin action; login never retries them.
+        if not is_admin and identity.email_verified and profile.status != "rejected":
+            try:
+                notification = await self._repository.get_approval_notification(identity.user_id)
+                if notification is not None and notification[1] == "pending":
+                    await self._deliver_approval(notification[0])
+            except Exception:
+                # Notification persistence/transport failure must not deny account access.
+                logging.getLogger(__name__).error("account_request_notification_failed")
         role: AccountRole = "admin" if is_admin else "user"
         return AccountSummary(
             user_id=profile.user_id,
@@ -186,18 +203,16 @@ class AccountService:
         changed = await self._repository.set_profile_status(target_user_id, status)
         if changed is None:
             raise AccountNotFound
-        previous_status, profile, notification_id = changed
-        if notification_id is None:
-            return previous_status, profile, None, None
-        delivery_status, failure_code = await self._deliver_approval(notification_id)
-        return previous_status, profile, delivery_status, failure_code
+        previous_status, profile, _ = changed
+        # Approval grants access; it does not send another notification.
+        return previous_status, profile, None, None
 
     async def retry_approval_email(
         self, identity: AuthenticatedIdentity, target_user_id: UUID
     ) -> tuple[EmailDeliveryStatus, str | None] | None:
         self.require_admin(identity)
         profile = await self._repository.get_profile(target_user_id)
-        if profile is None or profile.status != "approved":
+        if profile is None or profile.status == "rejected":
             return None
         current = await self._repository.get_approval_notification(target_user_id)
         if current is None:
@@ -218,8 +233,8 @@ class AccountService:
         try:
             if self._mailer is None:
                 raise MailDeliveryError("not_configured")
-            receipt = await self._mailer.send_approval(
-                notification.email, notification.notification_id
+            receipt = await self._mailer.send_account_request(
+                self._notification_recipient, notification.email, notification.notification_id
             )
         except MailDeliveryError as error:
             await self._repository.finish_approval_notification(

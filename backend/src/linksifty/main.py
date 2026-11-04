@@ -167,7 +167,10 @@ def create_app(
                     else None
                 )
                 application.state.accounts = AccountService(
-                    repository, configuration.linksifty_admin_email, mailer
+                    repository,
+                    configuration.linksifty_admin_email,
+                    mailer,
+                    notification_recipient=configuration.resend_admin_email,
                 )
                 processing_repository = ProcessingRepository(
                     configuration.supabase_url, configuration.supabase_service_role_key, client

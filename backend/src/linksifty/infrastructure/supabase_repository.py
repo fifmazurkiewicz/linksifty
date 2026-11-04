@@ -303,7 +303,7 @@ class SupabaseRepository:
             "account_notifications",
             params={
                 "user_id": f"eq.{user_id}",
-                "kind": "eq.account_approved",
+                "kind": "eq.account_requested",
                 "select": "id,status,failure_code",
                 "order": "created_at.desc",
                 "limit": "1",

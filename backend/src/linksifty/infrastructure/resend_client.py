@@ -1,5 +1,6 @@
-"""Send account approval notifications through Resend's HTTP API."""
+"""Send first-login notifications to the application owner through Resend's HTTP API."""
 
+from html import escape
 from uuid import UUID
 
 import httpx
@@ -22,13 +23,24 @@ class ResendApprovalMailer:
         self._from_email = from_email
         self._client = client
 
-    async def send_approval(self, email: str, event_id: UUID) -> DeliveryReceipt:
+    async def send_account_request(
+        self, recipient: str, user_email: str, event_id: UUID
+    ) -> DeliveryReceipt:
         payload = {
             "from": self._from_email,
-            "to": [email],
-            "subject": "Your Linksifty account is approved",
-            "text": "Your Linksifty account has been approved. Sign in to continue.",
-            "html": "<p>Your Linksifty account has been approved.</p><p>Sign in to continue.</p>",
+            "to": [recipient],
+            "subject": "Linksifty: new account awaiting approval",
+            "text": (
+                f"{user_email} signed in to Linksifty for the first time and wants to use "
+                "the application. Review the account in the Admin panel: "
+                "https://linksifty.fmazurkiewicz.dev"
+            ),
+            "html": (
+                f"<p>{escape(user_email)} signed in to Linksifty for the first time "
+                "and wants to use the application.</p>"
+                '<p><a href="https://linksifty.fmazurkiewicz.dev">'
+                "Open Linksifty and review the account in Admin</a></p>"
+            ),
         }
         try:
             response = await self._client.post(

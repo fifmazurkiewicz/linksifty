@@ -26,6 +26,7 @@ class Settings:
     langfuse_base_url: str = "https://cloud.langfuse.com"
     resend_api_key: str | None = field(default=None, repr=False)
     resend_from_email: str | None = None
+    resend_admin_email: str = "fifmazurkiewicz@gmail.com"
     x_api_bearer_token: str | None = field(default=None, repr=False)
     x_api_reads_enabled: bool = False
     x_api_debug: bool = False
@@ -70,6 +71,7 @@ class Settings:
             openrouter_image_model=os.getenv("OPENROUTER_IMAGE_MODEL", "openai/gpt-4.1-mini"),
             resend_api_key=os.getenv("RESEND_API_KEY"),
             resend_from_email=os.getenv("RESEND_FROM_EMAIL"),
+            resend_admin_email=os.getenv("RESEND_ADMIN_EMAIL", "fifmazurkiewicz@gmail.com"),
             x_api_bearer_token=os.getenv("X_API_BEARER_TOKEN"),
             x_api_reads_enabled=os.getenv("X_API_READS_ENABLED", "false").lower() == "true",
             x_api_debug=os.getenv("X_API_DEBUG", "false").lower() == "true",

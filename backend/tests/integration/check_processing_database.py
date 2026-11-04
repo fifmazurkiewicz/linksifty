@@ -621,6 +621,7 @@ def main() -> int:
     title_concurrency(environment)
     for name in (
         "account_approval.test.sql",
+        "first_login_notification.test.sql",
         "processing_usage.test.sql",
         "processing_recovery.test.sql",
         "processing_hash.test.sql",

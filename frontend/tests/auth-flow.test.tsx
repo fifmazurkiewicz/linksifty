@@ -232,7 +232,7 @@ describe('account access', () => {
     ))
   })
 
-  it('lets an admin retry a failed approval email', async () => {
+  it('lets an admin retry a failed first-login notification for a pending account', async () => {
     const session = { access_token: 'test-token', user: { id: 'admin-1' } } as Session
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
       const url = String(input)
@@ -241,7 +241,7 @@ describe('account access', () => {
         role: 'admin', trial_links_used: 0, trial_links_remaining: 3,
       }), { status: 200 })
       if (url.endsWith('/v1/admin/accounts')) return new Response(JSON.stringify([{
-        user_id: 'user-5', email: 'reader@example.com', status: 'approved', role: 'user',
+        user_id: 'user-5', email: 'reader@example.com', status: 'pending', role: 'user',
         trial_links_used: 3, trial_links_remaining: 0, created_at: '2026-10-14T00:00:00Z',
         approval_email_status: 'failed', approval_email_failure_code: 'timeout',
       }]), { status: 200 })

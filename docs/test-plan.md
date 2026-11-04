@@ -24,7 +24,7 @@ Oceny prawdopodobieństwa są konserwatywnymi założeniami planu, nie statystyk
 | Wynik i werdykt | Niski wynik sam w sobie nie oznacza hype. Brak wiedzy nie jest zerową oceną. Brak mocnych kryteriów kluczowych blokuje valuable. | Średni / średnie | `backend/tests/unit/test_scoring.py`, `test_calibrated_scoring.py`, w tym `test_hype_requires_explicit_cited_signal`, `test_unknown_critical_evidence_cannot_become_valuable`, `test_all_unknown_has_no_percentage` |
 | Aktualizacja i odczyt | Użytkownik może uzupełnić treść swojego wpisu i zapisać własne kryteria; widok odróżnia wynik od oczekiwania na analizę. Próba aktualizacji cudzego wpisu nie ujawnia danych. | Wysoki / średnie | `backend/tests/unit/test_processing_api.py`, `frontend/tests/queue.test.tsx`, `frontend/tests/assessment.test.tsx` |
 | Usunięcie i izolacja | Usuwanie wymaga potwierdzenia; anonimowy użytkownik i właściciel innego konta nie mogą usuwać ani odczytywać wpisu. | Wysoki / średnie | `backend/tests/unit/test_item_deletion.py`, `test_production_items_api.py::test_other_users_item_remains_not_found_after_authentication`, `frontend/tests/queue-delete.test.tsx` |
-| Resend | Zatwierdzenie konta pozostaje skuteczne mimo awarii maila. Ponowienie korzysta z tego samego zdarzenia; błąd dostawcy nie ujawnia danych. | Średni / średnie | `backend/tests/unit/test_resend_client.py`, `test_account_service.py` |
+| Resend | Pierwsze logowanie wysyła jedno powiadomienie właścicielowi; kolejne wejścia i zatwierdzenie nie wysyłają maila. Awaria maila nie blokuje logowania. Ponowienie korzysta z tego samego zdarzenia; błąd dostawcy nie ujawnia danych. | Średni / średnie | `backend/tests/unit/test_resend_client.py`, `test_account_service.py` |
 
 Źródła oczekiwań: `context/foundation/prd.md`, `docs/product/vision.md`, `docs/product/feature-reference.md`, `docs/deployment/setup.md`, projektowe reguły w `AGENTS.md`. Scenariusze opisują ryzyka produktu; istniejące testy mają różną głębokość i nie wszystkie są pełnymi testami integracyjnymi.
 
@@ -57,6 +57,6 @@ Przed odtworzeniem lokalnych zależności frontendowy build i test Sentry nie st
 3. W oddzielnym źródle włączyć Brave i sprawdzić źródła porównawcze oraz zużycie budżetu.
 4. Dodać niedostępny artykuł, uzupełnić treść ręcznie i sprawdzić analizę tego samego wpisu.
 5. Usunąć własny wpis po potwierdzeniu. Drugie konto nie może odczytać jego szczegółów.
-6. Po konfiguracji Resend zatwierdzić własne konto testowe, sprawdzić status dostawcy i odbiór wiadomości.
+6. Po konfiguracji Resend zalogować nowe konto testowe, sprawdzić pojedynczą wiadomość do właściciela. Ponowne logowanie i zatwierdzenie konta nie powinny wysłać kolejnej wiadomości.
 
 Te kroki mogą zużywać limity usług. Nie były wykonywane w automatycznych zestawach opisanych powyżej.

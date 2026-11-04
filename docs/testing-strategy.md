@@ -29,3 +29,14 @@ Backend: `tests/test_sentry_monitoring.py`, run `python -m pytest tests/test_sen
 ## Product acceptance and 10xBuilder
 
 The product risk map, key user scenarios, existing regression suites and verification boundaries are recorded in [the product test plan](test-plan.md). The Sentry-specific map above remains applicable to monitoring.
+
+## First-login notification risk map — 2026-11-04
+
+Source: owner request to notify fifmazurkiewicz@gmail.com once on the first login; approval grants access. Likelihood ratings are conservative assumptions.
+
+| Scenario | Impact | Likelihood | Verification |
+| --- | --- | --- | --- |
+| Repeated/concurrent profile requests send duplicate messages | High | Medium | Unique database event, atomic claim SQL tests and repeated-login behavior |
+| New user's address becomes recipient or injects HTML | High | Medium | Mock HTTP payload recipient and escaping regression |
+| Resend or notification persistence outage blocks login | High | Medium | Login succeeds with failed/missing mailer and broken notification repository |
+| Approval triggers extra mail or loses trial/access behavior | High | Medium | Service, API and SQL approval/trial tests |

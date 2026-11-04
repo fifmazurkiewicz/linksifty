@@ -208,8 +208,8 @@ quotes. Keep secret values in the host's secret/environment storage.
 | `LINKSIFTY_DEMO_MODE` | `false` | Yes; real environment |
 | `FRONTEND_ORIGIN` | `https://linksifty.fmazurkiewicz.dev` with no trailing slash | Set after step 5, then restart/redeploy |
 | `LINKSIFTY_ADMIN_EMAIL` | Verified Google account email for the initial administrator | Yes for owner admin access; private server setting |
-| `RESEND_API_KEY` | Resend API key with permission to send from the verified sender domain | Yes for approval email; server-only |
-| `RESEND_FROM_EMAIL` | Sender identity on a domain verified in Resend, e.g. `Linksifty <noreply@example.com>` | Yes for approval email |
+| `RESEND_API_KEY` | Resend API key with permission to send from the verified sender domain | Yes for first-login notification; server-only |
+| `RESEND_FROM_EMAIL` | Sender identity on a domain verified in Resend, e.g. `Linksifty <noreply@example.com>` | Yes for first-login notification |
 | `OPENROUTER_API_KEY` | Server-only OpenRouter inference key | Required for assessment; missing key yields an explicit not-configured state |
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | This verified model is supported; other IDs fail closed before inference |
 | `OPENROUTER_CHAT_MODEL` | `anthropic/claude-sonnet-5.5` | Independent chat answer model; `openai/gpt-4o-mini` is the verified rollback |
@@ -301,13 +301,19 @@ its short-lived bearer token. There is no separate `/auth/callback` route.
 5. Save Vercel's three `VITE_` values and redeploy. Sign in from the production
    domain and confirm `/v1/me` reports the admin role before inviting other users.
 
-## 5.2 Configure approval email in Resend
+## 5.2 Configure first-login notification in Resend
 
 1. Verify a sending domain in Resend and publish the DNS records Resend provides.
 2. Create an API key with sending access and set `RESEND_API_KEY` on Render.
-3. Set `RESEND_FROM_EMAIL` to a sender on that verified domain. The app sends
-   email only after an administrator approves an account; a failed delivery does
-   not undo approval and can be retried from the admin panel.
+3. Set `RESEND_FROM_EMAIL=Linksifty <noreply@fmazurkiewicz.dev>` on Render;
+   the owner confirmed `fmazurkiewicz.dev` is verified. Set
+   `RESEND_ADMIN_EMAIL=fifmazurkiewicz@gmail.com` (also the default).
+   This recipient is separate from `LINKSIFTY_ADMIN_EMAIL`, which controls admin access.
+   Apply `20261104_000023_first_login_notification.sql` before the matching API.
+   First login of a new regular user creates one durable notification to the owner.
+   Subsequent logins and account approval do not send mail. Existing profiles are not
+   backfilled. Failed mail does not block login or approval; see
+   [delivery recovery](../certification/resend.md) before manually retrying.
 4. Set `LINKSIFTY_ADMIN_EMAIL` to the verified owner Google email and set
    `FRONTEND_ORIGIN` to `https://linksifty.fmazurkiewicz.dev`. Save and redeploy
    Render after changing server variables.
@@ -530,7 +536,8 @@ From the repository root, copy `.env.example` to an untracked `.env` **only if
 ```dotenv
 LINKSIFTY_ADMIN_EMAIL=<verified-owner-google-email>
 RESEND_API_KEY=<resend-key>
-RESEND_FROM_EMAIL=<verified-sender>
+RESEND_FROM_EMAIL=Linksifty <noreply@fmazurkiewicz.dev>
+RESEND_ADMIN_EMAIL=fifmazurkiewicz@gmail.com
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<sb_publishable-key-or-legacy-anon-JWT>
 SUPABASE_SERVICE_ROLE_KEY=<sb_secret-key-or-legacy-service-role-JWT>
@@ -591,9 +598,10 @@ fields in `Settings`.
 4. Sign in with a second verified Google account. It should show `pending` and
    three trial links remaining. Submit three staging URLs, then confirm another
    submission is rejected without creating partial rows.
-5. From the admin account, approve the second user. Confirm the account becomes
-   approved and the Resend approval message arrives. If delivery fails, retry from
-   the admin panel and verify approval remains active.
+5. At the second user's first login, confirm one new-account notification reaches
+   `RESEND_ADMIN_EMAIL`. Sign out/in and refresh: no additional mail should appear.
+   From Admin approve the second user: access becomes approved without another email.
+   Check delivery/recovery in [the Resend guide](../certification/resend.md).
 6. In the second account, confirm `/v1/items` shows only its own records. In the
    admin account, verify the admin panel lists account metadata only.
 7. In Supabase Table Editor confirm submitted items and jobs have the second

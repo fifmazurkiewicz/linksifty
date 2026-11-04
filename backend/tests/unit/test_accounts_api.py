@@ -44,6 +44,9 @@ class ProfileRepository:
             created_at=datetime(2026, 10, 14, tzinfo=UTC),
         )
 
+    async def get_approval_notification(self, user_id: UUID) -> None:
+        return None
+
     async def list_profiles(self) -> list[AccountProfile]:
         return self.profiles
 

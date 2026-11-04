@@ -91,7 +91,7 @@ są zachowywane; szczegóły kosztów mają 30-dniową retencję.
   wynik wyszukiwarki sam nie jest dowodem. Dopiero pobrane fragmenty mogą być cytowane.
 - Czytane są teksty. Moduły historycznego odczytu obrazów pozostają w repozytorium,
   ale nie są podłączone do bieżącego przetwarzania nowych analiz.
-- Resend wysyła powiadomienie po zatwierdzeniu konta. Langfuse jest opcjonalny;
+- Resend wysyła właścicielowi jedno powiadomienie po pierwszym logowaniu nowego użytkownika. Langfuse jest opcjonalny;
   jego awaria nie zatrzymuje pracy, a włączone ślady mogą zawierać ograniczoną,
   zredagowaną treść artykułów i modeli. Retencja śladów jest osobną konfiguracją.
 

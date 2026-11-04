@@ -80,7 +80,7 @@ async def set_account_status(
 async def retry_approval_email(
     user_id: UUID, request: Request, identity: CurrentIdentity
 ) -> ApprovalEmailRetryResponse:
-    """Explicitly retry the latest approval notification for a user."""
+    """Explicitly retry the first-login notification to the owner (legacy route name)."""
     try:
         result = await _service(request).retry_approval_email(identity, user_id)
     except AccountAccessDenied as error:

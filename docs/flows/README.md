@@ -14,8 +14,10 @@ Stan implementacji: 2026-10-22. [Architektura](../architecture/overview.md) ·
    Odrzucone konto nie może korzystać z prywatnych funkcji.
 4. Zweryfikowany adres zgodny z `LINKSIFTY_ADMIN_EMAIL` daje uprawnienia admina.
    Administrator zatwierdza/odrzuca konta i zmienia limity, bez wglądu w cudzą treść.
-5. Po zatwierdzeniu transakcji statusu opcjonalny Resend wysyła powiadomienie.
-   Błąd emaila nie cofa zatwierdzenia; osobna akcja pozwala ponowić wysyłkę.
+5. Pierwsze logowanie nowego użytkownika tworzy jedno trwałe powiadomienie
+   do właściciela (`RESEND_ADMIN_EMAIL`, domyślnie `fifmazurkiewicz@gmail.com`).
+   Kolejne logowania i zatwierdzenie konta nie wysyłają maila. Błąd powiadomienia
+   nie blokuje logowania. Odzyskiwanie opisuje [instrukcja Resend](../certification/resend.md).
 6. Wylogowanie lub wygaśnięcie sesji usuwa prywatny stan UI i przerywa strumień
    poprzedniego użytkownika. Licznik Admin pokazuje oczekujące konta i znika dla zera
    albo niedostępnego wyniku.

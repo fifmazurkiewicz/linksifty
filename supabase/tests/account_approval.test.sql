@@ -96,7 +96,7 @@ select * from public.set_account_profile_status(
 select is(
   (select count(*)::integer from public.account_notifications where user_id = '11111111-1111-4111-8111-111111111111'),
   1,
-  'approval transaction creates one durable notification'
+  'approval keeps the single first-login notification'
 );
 select * from public.set_account_profile_status(
   '11111111-1111-4111-8111-111111111111', 'approved'
