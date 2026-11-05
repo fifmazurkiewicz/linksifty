@@ -38,3 +38,11 @@ No rating was lowered. No real credentials are used in checks.
 | Credential beside hash | Scanner reports finding | Broadening hash-line pattern or provider exclusions |
 
 Status: implemented, awaiting actual scanner evidence and toolkit generator fix.
+
+## Main publication follow-up
+
+Commit 7556ed3 published; application CI passed. Full-history Secrets scan exposed
+seven legitimate historical lock hashes not accepted by the line-based matcher.
+Changed the matcher to the extracted secret, exactly 64 lowercase hex characters,
+with the same path AND generic-api-key restriction. Provider rules remain active.
+The canary-beside-hash regression continues to require detection by provider rules.
