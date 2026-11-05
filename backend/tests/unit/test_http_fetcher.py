@@ -36,6 +36,31 @@ def test_login_page_requires_manual_content() -> None:
     assert result.text is None
 
 
+def test_short_bare_sign_in_page_is_still_a_login_wall() -> None:
+    result = fetch("https://example.com/a", lambda _: httpx.Response(200, text="Sign in"))
+    assert result.failure is FetchFailure.LOGIN_REQUIRED
+
+
+def test_long_article_with_sign_in_button_is_readable() -> None:
+    body = "Detailed readable article paragraph with concrete evidence. " * 10
+    html = (
+        "<html><body><header><button>Sign in</button> <a>Log in</a></header>"
+        f"<article>{body}</article></body></html>"
+    )
+    result = fetch("https://github.com/org/repo", lambda _: httpx.Response(200, text=html))
+    assert result.failure is None
+    assert result.text is not None and body.strip() in result.text
+
+
+def test_long_page_with_explicit_login_prompt_still_requires_manual_content() -> None:
+    body = "Detailed readable article paragraph with concrete evidence. " * 10
+    result = fetch(
+        "https://example.com/a",
+        lambda _: httpx.Response(200, text=f"<html><body>{body} Please sign in</body></html>"),
+    )
+    assert result.failure is FetchFailure.LOGIN_REQUIRED
+
+
 @pytest.mark.parametrize(
     "url",
     [

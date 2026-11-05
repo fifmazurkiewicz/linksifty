@@ -483,7 +483,9 @@ class XAdapter:
             reposts.add(selected.id)
             original = available.get(original_id)
             if original is None:
-                raise _Failure(FetchFailure.PARTIAL, "missing_referenced_post")
+                if len(available) >= _MAX_POSTS:
+                    raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
+                original = await self._lookup(client, original_id, available, media)
             selected = original
         identifier = selected.id
         root = (
@@ -631,7 +633,7 @@ class XAdapter:
                 if ref.type == "replied_to" and post.id in thread_ids:
                     continue  # The author's thread parents are validated by _thread.
                 target = available.get(ref.id)
-                if target is None and ref.type == "embedded":
+                if target is None and ref.type in {"embedded", "quoted", "retweeted"}:
                     if len(available) >= _MAX_POSTS:
                         raise _Failure(FetchFailure.TOO_LARGE, "post_count_limit")
                     # Successful lookups populate available; any failure ends the fetch.

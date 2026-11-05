@@ -13,6 +13,7 @@ import httpx
 from linksifty.domain.acquisition import MAX_PARTIAL_TEXT, MediaType
 from linksifty.domain.acquisition import FetchFailure as FetchFailure
 from linksifty.domain.acquisition import FetchResult as FetchResult
+from linksifty.domain.content_policy import is_login_wall
 from linksifty.domain.x_urls import X_HOSTS
 
 
@@ -203,7 +204,7 @@ async def _fetch(url: str, transport: httpx.AsyncBaseTransport | None) -> FetchR
             return FetchResult(failure=FetchFailure.TOO_LARGE, partial_text=fragment)
         if partial:
             return FetchResult(failure=FetchFailure.PARTIAL, partial_text=fragment)
-        if "log in" in text.lower() or "sign in" in text.lower():
+        if is_login_wall(text):
             return FetchResult(failure=FetchFailure.LOGIN_REQUIRED, partial_text=fragment)
         return FetchResult(text=text, omitted_media=tuple(sorted(parser.media)))
     return FetchResult(failure=FetchFailure.UNAVAILABLE)

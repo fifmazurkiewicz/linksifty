@@ -93,11 +93,12 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
                 else:
                     posts.append(_post_id(entity.get("id") if isinstance(entity, dict) else entity))
         snippets = value.get("code", [])
+        # Code snippets are optional supplements: omit malformed ones, never the Article.
         if not isinstance(snippets, list):
-            raise _invalid("article_code_invalid")
+            return
         for snippet in snippets:
             if not isinstance(snippet, dict):
-                raise _invalid("article_code_invalid")
+                continue
             code = snippet.get("code")
             language = snippet.get("language", "")
             content = snippet.get("content", code)
@@ -111,7 +112,7 @@ def parse_article(article: dict[str, object]) -> ArticleContent:
                 or "\x00" in content
                 or code not in content
             ):
-                raise _invalid("article_code_invalid")
+                continue
             code_blocks.append(
                 (
                     code,

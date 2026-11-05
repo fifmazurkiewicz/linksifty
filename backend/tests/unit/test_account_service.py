@@ -12,6 +12,7 @@ from linksifty.application.account_contracts import (
 
 USER = UUID("11111111-1111-4111-8111-111111111111")
 EVENT = UUID("33333333-3333-4333-8333-333333333333")
+REQUEST_AGAIN_EVENT = UUID("44444444-4444-4444-8444-444444444444")
 
 
 class NotificationRepository:
@@ -19,6 +20,7 @@ class NotificationRepository:
         self.status = "pending"
         self.email_status = "pending"
         self.failure_code: str | None = None
+        self.access_requests: list[UUID] = []
         self.profile = AccountProfile(
             user_id=USER,
             email="user@example.com",
@@ -49,6 +51,18 @@ class NotificationRepository:
         self.profile = self.profile.model_copy(update={"status": status})
         notification_id = EVENT if status == "approved" and previous != "approved" else None
         return previous, self.profile, notification_id
+
+    async def request_access_again(
+        self, user_id: UUID
+    ) -> tuple[AccountProfile, UUID | None] | None:
+        self.access_requests.append(user_id)
+        if user_id != USER:
+            return None
+        if self.profile.status != "rejected":
+            return self.profile, None
+        self.profile = self.profile.model_copy(update={"status": "pending"})
+        self.email_status = "pending"
+        return self.profile, REQUEST_AGAIN_EVENT
 
     async def claim_approval_notification(
         self, notification_id: UUID
@@ -203,6 +217,75 @@ def test_interrupted_sending_event_is_not_resent_on_login_or_admin_retry() -> No
             UUID("99999999-9999-4999-8999-999999999999"), "admin@example.com", True
         )
         assert await service.retry_approval_email(admin, USER) == ("sending", None)
+        assert mailer.events == []
+
+    import asyncio
+
+    asyncio.run(run())
+
+
+def test_blocked_user_requests_access_again_with_one_new_owner_notification() -> None:
+    async def run() -> None:
+        repository = NotificationRepository()
+        repository.profile = repository.profile.model_copy(update={"status": "rejected"})
+        mailer = FakeMailer()
+        service = AccountService(repository, "admin@example.com", mailer)
+        user = AuthenticatedIdentity(USER, "user@example.com", True)
+        summary = await service.request_access_again(user)
+        assert summary.status == "pending"
+        assert summary.trial_links_used == 1
+        assert mailer.events == [REQUEST_AGAIN_EVENT]
+        assert repository.email_status == "sent"
+        # A second click on the now-pending account neither changes state nor sends mail.
+        assert (await service.request_access_again(user)).status == "pending"
+        assert repository.access_requests == [USER]
+        assert mailer.events == [REQUEST_AGAIN_EVENT]
+        admin = AuthenticatedIdentity(
+            UUID("99999999-9999-4999-8999-999999999999"), "admin@example.com", True
+        )
+        approved = await service.set_status(admin, USER, "approved")
+        assert approved[1].status == "approved"
+        assert mailer.events == [REQUEST_AGAIN_EVENT]
+
+    import asyncio
+
+    asyncio.run(run())
+
+
+def test_access_request_succeeds_when_owner_mail_fails_and_admin_can_retry() -> None:
+    async def run() -> None:
+        repository = NotificationRepository()
+        repository.profile = repository.profile.model_copy(update={"status": "rejected"})
+        mailer = FakeMailer(fail_once=True)
+        service = AccountService(repository, "admin@example.com", mailer)
+        summary = await service.request_access_again(
+            AuthenticatedIdentity(USER, "user@example.com", True)
+        )
+        assert summary.status == "pending"
+        assert repository.email_status == "failed"
+        admin = AuthenticatedIdentity(
+            UUID("99999999-9999-4999-8999-999999999999"), "admin@example.com", True
+        )
+        assert await service.retry_approval_email(admin, USER) == ("sent", None)
+
+    import asyncio
+
+    asyncio.run(run())
+
+
+def test_access_request_never_touches_unblocked_or_administrator_accounts() -> None:
+    async def run() -> None:
+        repository = NotificationRepository()
+        mailer = FakeMailer()
+        service = AccountService(repository, "admin@example.com", mailer)
+        user = AuthenticatedIdentity(USER, "user@example.com", True)
+        assert (await service.request_access_again(user)).status == "pending"
+        admin = await service.request_access_again(
+            AuthenticatedIdentity(USER, "admin@example.com", True)
+        )
+        assert admin.status == "approved"
+        assert admin.role == "admin"
+        assert repository.access_requests == []
         assert mailer.events == []
 
     import asyncio

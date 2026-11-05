@@ -25,6 +25,12 @@ Never transmit saved/private URLs, fetched articles and X content, pasted source
 
 Monitoring initialization/transport failure must not change application results. Normal authorization/validation denials, cancellations and spend limits are not application failures. Do not add public debug routes or send real user data for verification.
 
+## Acquisition failures are not Sentry issues
+
+Source acquisition failures such as `login_required`, `x_article_incomplete` and `partial_content` that leave an item in `awaiting_manual_content` are product outcomes, not application errors. They are logged as warnings and recorded in Langfuse, and they must not create Sentry issues. Silence in Sentry for these items is by design. Never send source URLs or fetched/pasted content to Sentry to diagnose them.
+
+To investigate, check the Render backend logs and the Langfuse trace, using its `reason` and `check` fields.
+
 ## Manual environment setup
 
 DSNs come from Sentry → Settings → Projects → the exact project → Client Keys (DSN). A DSN selects the Sentry project independently of the Render/Vercel account. Example files contain names and empty values only. Keep all enable flags `false` until verification is accepted, then set `true` in the selected environment.

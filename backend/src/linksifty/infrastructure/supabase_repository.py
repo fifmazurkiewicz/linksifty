@@ -260,6 +260,25 @@ class SupabaseRepository:
         except ValidationError as error:
             raise RepositoryUnavailable("Persistence temporarily unavailable") from error
 
+    async def request_access_again(
+        self, user_id: UUID
+    ) -> tuple[AccountProfile, UUID | None] | None:
+        rows = await self._profile_request(
+            "POST",
+            "rpc/request_account_access_again",
+            payload={"p_user_id": str(user_id)},
+        )
+        if not rows:
+            return None
+        try:
+            change = _ProfileStatusChange.model_validate(rows[0])
+            profile = AccountProfile.model_validate(
+                change.model_dump(exclude={"previous_status", "approval_notification_id"})
+            )
+            return profile, change.approval_notification_id
+        except ValidationError as error:
+            raise RepositoryUnavailable("Persistence temporarily unavailable") from error
+
     async def claim_approval_notification(
         self, notification_id: UUID
     ) -> ApprovalNotification | None:

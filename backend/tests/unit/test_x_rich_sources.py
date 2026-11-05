@@ -375,13 +375,33 @@ def test_quoted_article_preserves_code_without_hydrating_or_downloading_media() 
         [{"code": "print(1)", "content": "contradictory"}],
     ],
 )
-def test_malformed_article_code_is_explicitly_rejected(code: object) -> None:
+def test_malformed_article_code_is_omitted_when_body_is_valid(code: object) -> None:
+    from linksifty.infrastructure.x_content import parse_article
+
+    result = parse_article({"title": "Article", "plain_text": TEXT, "entities": {"code": code}})
+    assert result.text == f"Article\n\n{TEXT}"
+
+
+def test_valid_code_is_kept_while_malformed_sibling_is_omitted() -> None:
+    from linksifty.infrastructure.x_content import parse_article
+
+    result = parse_article(
+        {
+            "title": "Article",
+            "plain_text": TEXT,
+            "entities": {"code": [{"code": 5}, {"code": "print(7)", "language": "python"}]},
+        }
+    )
+    assert "print(7)" in result.text
+
+
+def test_malformed_article_code_never_replaces_missing_body() -> None:
     from linksifty.infrastructure.x_content import XContentFailure, parse_article
 
     with pytest.raises(XContentFailure) as failure:
-        parse_article({"title": "Article", "plain_text": TEXT, "entities": {"code": code}})
+        parse_article({"title": "Article", "entities": {"code": [{"code": 5}]}})
     assert failure.value.reason == "x_article_incomplete"
-    assert failure.value.check == "article_code_invalid"
+    assert failure.value.check == "article_body_missing"
 
 
 def test_article_code_already_present_in_body_is_not_duplicated() -> None:

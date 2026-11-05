@@ -143,7 +143,9 @@ function AuthenticatedApp() {
     return <main className="auth-screen"><p role="status">Loading your account…</p></main>
   }
   if (!session) return <LoginScreen />
-  if (account?.status === 'rejected') return <AccountStatusScreen account={account} />
+  if (account?.status === 'rejected') {
+    return <AccountStatusScreen account={account} onRequested={value => { setAccount(value); if (value.status !== 'rejected') void loadItems() }} />
+  }
 
   const refreshAccount = async () => {
     try { setAccount(await api<Account>('/v1/me', session)) }

@@ -100,6 +100,10 @@ class AccountRepository(Protocol):
         self, user_id: UUID, status: AccountStatus
     ) -> tuple[AccountStatus, AccountProfile, UUID | None] | None: ...
 
+    async def request_access_again(
+        self, user_id: UUID
+    ) -> tuple[AccountProfile, UUID | None] | None: ...
+
     async def claim_approval_notification(
         self, notification_id: UUID
     ) -> ApprovalNotification | None: ...
@@ -162,6 +166,31 @@ class AccountService:
             except Exception:
                 # Notification persistence/transport failure must not deny account access.
                 logging.getLogger(__name__).error("account_request_notification_failed")
+        return self._summary(profile, is_admin)
+
+    async def request_access_again(self, identity: AuthenticatedIdentity) -> AccountSummary:
+        """Let a blocked caller return to pending and notify the owner once."""
+        if self.is_admin(identity):
+            return await self.profile(identity)
+        profile = await self._repository.get_or_create_profile(
+            identity.user_id, identity.email, is_admin=False
+        )
+        if profile.status != "rejected":
+            return self._summary(profile, False)
+        changed = await self._repository.request_access_again(identity.user_id)
+        if changed is None:
+            raise AccountNotFound
+        profile, notification_id = changed
+        if notification_id is not None:
+            try:
+                await self._deliver_approval(notification_id)
+            except Exception:
+                # The pending event stays visible to the admin retry; the request itself succeeded.
+                logging.getLogger(__name__).error("account_request_notification_failed")
+        return self._summary(profile, False)
+
+    @staticmethod
+    def _summary(profile: AccountProfile, is_admin: bool) -> AccountSummary:
         role: AccountRole = "admin" if is_admin else "user"
         return AccountSummary(
             user_id=profile.user_id,

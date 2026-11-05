@@ -601,22 +601,88 @@ def test_repost_uses_original_author_thread_instead_of_truncated_rt_preview() ->
 
 
 @pytest.mark.parametrize("kind", ["quoted", "retweeted"])
-def test_missing_reference_never_returns_outer_post_or_retries(
-    caplog: pytest.LogCaptureFixture, kind: str
-) -> None:
+def test_missing_reference_never_returns_outer_post_or_retries(kind: str) -> None:
     calls: list[str] = []
 
     def respond(request: httpx.Request) -> httpx.Response:
         calls.append(request.url.path)
-        return httpx.Response(
-            200, json={"data": post(referenced_posts=[{"type": kind, "id": "90"}])}
-        )
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200, json={"data": post(referenced_posts=[{"type": kind, "id": "90"}])}
+            )
+        return httpx.Response(404, json={})
 
     result = acquire(respond)
     assert result.text is None
-    assert result.failure == "partial_content"
-    assert "check=missing_referenced_post" in caplog.text
-    assert len(calls) == 1
+    assert result.failure == "x_not_found"
+    assert calls == ["/2/tweets/100", "/2/tweets/90"]
+
+
+def test_nested_quote_missing_from_includes_is_looked_up_once() -> None:
+    nested_text = "Nested quoted source evidence with enough detail. " * 8
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_posts=[{"type": "quoted", "id": "90"}]),
+                    "includes": {
+                        "tweets": [
+                            post(
+                                "90",
+                                author_id="70",
+                                conversation_id="90",
+                                referenced_posts=[{"type": "quoted", "id": "80"}],
+                            )
+                        ]
+                    },
+                },
+            )
+        if request.url.path == "/2/tweets/80":
+            return httpx.Response(
+                200,
+                json={"data": post("80", author_id="60", conversation_id="80", text=nested_text)},
+            )
+        return httpx.Response(200, json={"meta": {"result_count": 0}})
+
+    result = acquire(respond)
+    assert result.failure is None
+    assert result.text is not None
+    assert nested_text in result.text
+    assert "quoted: https://x.com/i/web/status/80" in result.text
+    assert calls.count("/2/tweets/80") == 1
+
+
+def test_failed_nested_quote_lookup_never_returns_partial_text_or_retries() -> None:
+    calls: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/2/tweets/100":
+            return httpx.Response(
+                200,
+                json={
+                    "data": post(referenced_posts=[{"type": "quoted", "id": "90"}]),
+                    "includes": {
+                        "tweets": [
+                            post(
+                                "90",
+                                conversation_id="90",
+                                referenced_posts=[{"type": "quoted", "id": "80"}],
+                            )
+                        ]
+                    },
+                },
+            )
+        return httpx.Response(404, json={})
+
+    result = acquire(respond)
+    assert result.text is None
+    assert result.failure == "x_not_found"
+    assert calls.count("/2/tweets/80") == 1
 
 
 @pytest.mark.parametrize(
@@ -624,7 +690,6 @@ def test_missing_reference_never_returns_outer_post_or_retries(
     [
         {"article": {}},
         {"text": "preview…"},
-        {"referenced_posts": [{"type": "quoted", "id": "80"}]},
         {"referenced_posts": [{"type": "quoted", "id": "100"}]},
     ],
 )

@@ -145,8 +145,10 @@ it('explains historical uncertain relevance failures without encouraging an unch
   const turn = { ...completed, status: 'failed', answer: [], error: 'classification_uncertain' }
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ...empty, turns: [turn] })))
   render(<AnalysisChat id="item" session={session} />)
-  expect(await screen.findByText(/stopped by the relevance check/i)).toBeVisible()
-  expect(screen.getByText(/before an answer or search could run/i)).toBeVisible()
+  expect(await screen.findByText(/could not confidently connect this question to this analysis/i)).toBeVisible()
+  expect(screen.getByText(/no answer or web search was run/i)).toBeVisible()
+  expect(screen.getByText(/question is saved/i)).toBeVisible()
+  expect(screen.getByText(/rephrasing it/i)).toBeVisible()
   expect(screen.queryByText(/submit the question again|charge remains reserved/i)).not.toBeInTheDocument()
 })
 
