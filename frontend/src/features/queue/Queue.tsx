@@ -51,6 +51,11 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTi
   const [verdict, setVerdict] = useState('all')
   const [selected, setSelected] = useState<string[]>([])
   const [deletedCount, setDeletedCount] = useState(0)
+  const [retries, setRetries] = useState<Record<string, number>>({})
+  const retryFetch = (id: string) => {
+    setRetries(current => ({ ...current, [id]: (current[id] || 0) + 1 }))
+    onResume(id)
+  }
   const group = (item: Item) => item.status === 'completed' ? 'Ready' : ['queued', 'processing'].includes(item.status) ? 'In progress' : 'Needs action'
   const visible = items.filter(item => (filter === 'All' || group(item) === filter)
     && (verdict === 'all' || item.verdict === verdict))
@@ -115,6 +120,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTi
             <p className="hint">Based only on incomplete fetched text; this is not an assessment.</p>
           </section>}
           {canRetryFetch && <p className="hint" id={`retry-cost-${item.id}`}>Retry fetches the source text again and starts a text-only analysis using your monthly budget. If text is incomplete, an automatic one-sentence preview may use that budget instead. Media is not analyzed. X reads may incur separate charges.</p>}
+          {canRetryFetch && (retries[item.id] || 0) >= 2 && <p className="hint">Further Retries only re-fetch the source text. Once the source is readable, attached static images may be read with the vision model using your monthly budget. Video and other media may still need pasted content.</p>}
           {item.updated_at && <p className="hint">Updated {new Date(item.updated_at).toLocaleTimeString()}</p>}
           {stage === 'invalid_model_output' && item.failure_reason && modelReasons[item.failure_reason] && <p>{modelReasons[item.failure_reason]}</p>}
           {stage === 'cost_unknown' && <p>The amount remains reserved. This paid request will not be repeated.</p>}
@@ -127,7 +133,7 @@ export function Queue({ items, onOpen, onPaste, onResume, onDelete, onGenerateTi
             }}>{generatingTitleId === item.id ? 'Generating title…' : 'Generate title'}</button>
             <small id={`title-cost-${item.id}`}>Uses your monthly AI budget.</small></>}
           {item.status === 'completed' && <><strong>{item.score === null ? 'Not scored' : `${item.score}%`}</strong><small>{item.verdict?.replaceAll('_', ' ')}</small><button className="secondary" onClick={() => onOpen(item.id)}>Read assessment</button></>}
-          {canRetryFetch && <button className="secondary" disabled={busy} aria-describedby={`retry-cost-${item.id}`} onClick={() => onResume(item.id)}>Retry</button>}
+          {canRetryFetch && <button className="secondary" disabled={busy} aria-describedby={`retry-cost-${item.id}`} onClick={() => retryFetch(item.id)}>Retry</button>}
           {item.status === 'awaiting_manual_content' && <button className="secondary" disabled={busy} onClick={() => onPaste(item.id)}>Paste content</button>}
           {item.status === 'failed' && retryable.has(stage) && <button className="secondary" disabled={busy} onClick={() => onResume(item.id)}>Resume analysis</button>}
           {item.status === 'failed' && retryable.has(stage) && <small>Uses your monthly budget.</small>}

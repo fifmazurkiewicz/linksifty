@@ -200,6 +200,70 @@ describe('account access', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
   })
 
+  it('lets a blocked user request access again and continue with pending status', async () => {
+    const session = { access_token: 'test-token', user: { id: 'user-3' } } as Session
+    const blocked = { user_id: 'user-3', email: 'reader@example.com', status: 'rejected', role: 'user', trial_links_used: 3, trial_links_remaining: 0 }
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url.endsWith('/v1/me/access-request')) {
+        expect(init?.method).toBe('POST')
+        return new Response(JSON.stringify({ ...blocked, status: 'pending' }))
+      }
+      if (url.endsWith('/v1/me')) return new Response(JSON.stringify(blocked))
+      return new Response(JSON.stringify({ items: [] }))
+    })
+    renderApp(session)
+    fireEvent.click(await screen.findByRole('button', { name: 'Request access again' }))
+    expect(await screen.findByText(/awaiting admin approval/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Request access again' })).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/me/access-request'),
+      expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer test-token' }) }),
+    )
+  })
+
+  it('keeps a blocked user on the unavailable screen when the access request fails', async () => {
+    const session = { access_token: 'test-token', user: { id: 'user-3' } } as Session
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async input => String(input).endsWith('/v1/me/access-request')
+      ? new Response(JSON.stringify({ detail: 'Account access is not configured' }), { status: 503 })
+      : new Response(JSON.stringify({ user_id: 'user-3', email: 'reader@example.com', status: 'rejected', role: 'user', trial_links_used: 0, trial_links_remaining: 3 })))
+    renderApp(session)
+    fireEvent.click(await screen.findByRole('button', { name: 'Request access again' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Account access is not configured')
+    expect(screen.getByRole('button', { name: 'Request access again' })).toBeEnabled()
+  })
+
+  it('offers Block for approved accounts and hides blocked accounts from the admin list', async () => {
+    const session = { access_token: 'test-token', user: { id: 'admin-1' } } as Session
+    const accounts = [
+      { user_id: 'user-1', email: 'approved@example.test', status: 'approved', approval_email_status: null },
+      { user_id: 'user-2', email: 'blocked@example.test', status: 'rejected', approval_email_status: null },
+    ]
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url.endsWith('/v1/me')) return new Response(JSON.stringify({ user_id: 'admin-1', status: 'approved', role: 'admin' }))
+      if (url.endsWith('/v1/admin/accounts')) return new Response(JSON.stringify(accounts))
+      if (init?.method === 'PATCH') {
+        accounts[0].status = JSON.parse(String(init.body)).status
+        return new Response('{}')
+      }
+      return new Response(JSON.stringify({ items: [] }))
+    })
+    renderApp(session)
+    fireEvent.click(await screen.findByRole('button', { name: 'Admin' }))
+    await screen.findByRole('heading', { name: 'approved@example.test' })
+    expect(screen.queryByRole('heading', { name: 'blocked@example.test' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Block' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/admin/accounts/user-1'),
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ status: 'rejected' }) }),
+    ))
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'approved@example.test' })).not.toBeInTheDocument())
+    expect(await screen.findByText('No accounts to review.')).toBeInTheDocument()
+  })
+
   it('signs out when the API rejects an expired bearer token', async () => {
     const session = { access_token: 'expired-token', user: { id: 'user-4' } } as Session
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Unauthorized', { status: 401 }))

@@ -293,9 +293,10 @@ class OpenRouterClient:
                         "relevant": (
                             "A safe substantive question or request about this analysis, its "
                             "verdict, criteria, sources or original topic, including practical "
-                            "and brief contextual follow-ups. A greeting followed by a relevant "
-                            "question is relevant. General safety/educational discussion "
-                            "is allowed."
+                            "and brief contextual follow-ups, e.g. short comparisons such as "
+                            "'is it like X?' about the analysis topic. A greeting followed by "
+                            "a relevant question is relevant. General safety/educational "
+                            "discussion is allowed."
                         ),
                         "off_topic": (
                             "Unrelated requests, topic changes, standalone greetings/small talk "

@@ -32,8 +32,14 @@ class ContentEvaluation:
     reason: IncompleteReason | None = None
 
 
+_LOGIN_PHRASES = (
+    "please sign in",
+    "please log in",
+    "sign in to continue",
+    "log in to continue",
+    "login required",
+)
 _FETCH_MARKERS: tuple[tuple[IncompleteReason, tuple[str, ...]], ...] = (
-    (IncompleteReason.LOGIN_REQUIRED, ("log in", "sign in", "login required")),
     (IncompleteReason.PAYWALLED, ("subscribe to continue", "paywall", "subscription required")),
     (IncompleteReason.SCRIPT_ONLY, ("enable javascript", "javascript is required")),
     (IncompleteReason.BLOCKED, ("access denied", "request blocked", "forbidden")),
@@ -41,10 +47,23 @@ _FETCH_MARKERS: tuple[tuple[IncompleteReason, tuple[str, ...]], ...] = (
 _MINIMUM_CHARACTERS = 200
 
 
+def is_login_wall(text: str) -> bool:
+    """A bare "Sign in" is page chrome; only explicit prompts or tiny pages are walls."""
+    lower_text = " ".join(text.split()).lower()
+    if any(phrase in lower_text for phrase in _LOGIN_PHRASES):
+        return True
+    short = len(lower_text) < _MINIMUM_CHARACTERS
+    return short and ("sign in" in lower_text or "log in" in lower_text)
+
+
 def evaluate_content(text: str, *, fetched: bool) -> ContentEvaluation:
     """Return readiness without permitting an assessment of incomplete fetched text."""
     normalized = " ".join(text.split())
     if fetched:
+        if is_login_wall(normalized):
+            return ContentEvaluation(
+                ContentReadiness.AWAITING_MANUAL_CONTENT, IncompleteReason.LOGIN_REQUIRED
+            )
         lower_text = normalized.lower()
         for reason, markers in _FETCH_MARKERS:
             if any(marker in lower_text for marker in markers):

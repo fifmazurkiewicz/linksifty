@@ -311,6 +311,9 @@ its short-lived bearer token. There is no separate `/auth/callback` route.
    This recipient is separate from `LINKSIFTY_ADMIN_EMAIL`, which controls admin access.
    Apply `20261104_000023_first_login_notification.sql` before the matching API.
    First login of a new regular user creates one durable notification to the owner.
+   Apply `20261105_000024_account_access_rerequest.sql` before the matching API: a blocked
+   user may use "Request access again", which returns them to pending and creates one new
+   owner notification (at most one unfinished request per user).
    Subsequent logins and account approval do not send mail. Existing profiles are not
    backfilled. Failed mail does not block login or approval; see
    [delivery recovery](../certification/resend.md) before manually retrying.

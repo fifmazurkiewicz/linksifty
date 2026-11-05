@@ -22,6 +22,7 @@ class ProfileRepository:
         self.status = status
         self.trials = trials
         self.is_admin: bool | None = None
+        self.access_requests: list[UUID] = []
         self.profiles = [
             AccountProfile(
                 user_id=USER,
@@ -54,6 +55,22 @@ class ProfileRepository:
         return [
             AdminAccountSummary.model_validate(profile.model_dump()) for profile in self.profiles
         ]
+
+    async def request_access_again(
+        self, user_id: UUID
+    ) -> tuple[AccountProfile, UUID | None] | None:
+        self.access_requests.append(user_id)
+        self.status = "pending"
+        return (
+            AccountProfile(
+                user_id=user_id,
+                email="user@example.com",
+                status="pending",
+                trial_links_used=self.trials,
+                created_at=datetime(2026, 10, 14, tzinfo=UTC),
+            ),
+            None,
+        )
 
     async def set_profile_status(
         self, user_id: UUID, status: str
@@ -110,6 +127,34 @@ def test_rejected_account_is_denied_before_private_data_access() -> None:
 
     assert response.status_code == 403
     assert response.json()["detail"] == "This account is not approved"
+
+
+def test_blocked_user_can_request_access_again_only_for_themselves() -> None:
+    identity = AuthenticatedIdentity(USER, "user@example.com", True)
+    app = create_app(Settings(linksifty_admin_email="admin@example.com"))
+    app.dependency_overrides[current_identity] = lambda: identity
+    repository = ProfileRepository(status="rejected", trials=3)
+    app.state.accounts = AccountService(repository, "admin@example.com")
+
+    with TestClient(app) as client:
+        response = client.post("/v1/me/access-request")
+        # The route accepts no target account; a body naming another user is ignored.
+        other = client.post("/v1/me/access-request", json={"user_id": str(OTHER)})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending"
+    assert response.json()["trial_links_used"] == 3
+    assert other.status_code == 200
+    assert repository.access_requests == [USER]
+
+
+def test_access_request_requires_sign_in() -> None:
+    app = create_app(Settings())
+
+    with TestClient(app) as client:
+        response = client.post("/v1/me/access-request")
+
+    assert response.status_code == 401
 
 
 def test_admin_can_list_and_approve_accounts_without_content_fields() -> None:

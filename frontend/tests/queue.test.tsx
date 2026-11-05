@@ -20,6 +20,20 @@ it.each(['x_not_configured', 'unsupported', 'unavailable', 'x_access_denied'])('
   expect(resume).toHaveBeenCalledTimes(1)
 })
 
+it('shows the image-reading hint only after the second Retry click', () => {
+  const resume = vi.fn()
+  render(<Queue items={[{ id: 'retry-me', title: 'Unread source', status: 'awaiting_manual_content',
+    score: null, verdict: null, failure_reason: 'unavailable' }]} onOpen={vi.fn()} onPaste={vi.fn()}
+    onResume={resume} onDelete={vi.fn()} busy={false} />)
+  const hint = /attached static images may be read with the vision model/i
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(screen.queryByText(hint)).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(resume).toHaveBeenCalledTimes(2)
+  expect(screen.getByText(hint)).toBeVisible()
+  expect(screen.getByText(/Video and other media may still need pasted content/i)).toBeVisible()
+})
+
 it('does not offer retry for an uncertain X attempt', () => {
   render(<Queue items={[{ id: 'uncertain', title: 'Interrupted X read', status: 'awaiting_manual_content',
     score: null, verdict: null, failure_reason: 'x_attempt_uncertain' }]} onOpen={vi.fn()} onPaste={vi.fn()}

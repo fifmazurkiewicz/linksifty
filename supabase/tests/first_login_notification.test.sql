@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(14);
 insert into auth.users(id,email) values
  ('77777777-7777-4777-8777-777777777777','new@example.test'),
  ('88888888-8888-4888-8888-888888888888','owner@example.test');
@@ -16,5 +16,16 @@ select is((select count(*)::int from public.account_notifications where user_id=
 select is((select status::text from public.account_profiles where user_id='77777777-7777-4777-8777-777777777777'),'approved','approval grants access');
 update public.account_profiles set trial_links_used=3 where user_id='77777777-7777-4777-8777-777777777777';
 select is((select count(*)::int from public.submit_fetch_items('77777777-7777-4777-8777-777777777777',array['https://a.example','https://b.example','https://c.example','https://d.example'])),4,'approved regular user can exceed exhausted trial allowance');
+select * from public.finish_account_notification((select id from public.account_notifications where user_id='77777777-7777-4777-8777-777777777777'),'sent','message-1',null);
+select * from public.set_account_profile_status('77777777-7777-4777-8777-777777777777','rejected');
+select * from public.request_account_access_again('77777777-7777-4777-8777-777777777777');
+select is((select status::text from public.account_profiles where user_id='77777777-7777-4777-8777-777777777777'),'pending','blocked user can return to pending');
+select is((select trial_links_used from public.account_profiles where user_id='77777777-7777-4777-8777-777777777777'),3,'re-request preserves trial usage');
+select is((select count(*)::int from public.account_notifications where user_id='77777777-7777-4777-8777-777777777777' and kind='account_requested'),2,'re-request enqueues one new owner notification');
+select * from public.request_account_access_again('77777777-7777-4777-8777-777777777777');
+select is((select count(*)::int from public.account_notifications where user_id='77777777-7777-4777-8777-777777777777'),2,'repeat request for a pending account adds no notification');
+select * from public.set_account_profile_status('77777777-7777-4777-8777-777777777777','rejected');
+select is((select approval_notification_id from public.request_account_access_again('77777777-7777-4777-8777-777777777777')),(select id from public.account_notifications where user_id='77777777-7777-4777-8777-777777777777' and status='pending'),'an unfinished request is reused');
+select is((select count(*)::int from public.account_notifications where user_id='77777777-7777-4777-8777-777777777777'),2,'unfinished request is never duplicated');
 select * from finish();
 rollback;

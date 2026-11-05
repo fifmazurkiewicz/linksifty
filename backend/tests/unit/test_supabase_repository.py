@@ -193,6 +193,39 @@ def test_account_status_update_uses_locked_transition_rpc() -> None:
     asyncio.run(run())
 
 
+def test_access_request_uses_locked_rerequest_rpc_scoped_to_user() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/rpc/request_account_access_again")
+        assert request.read() == b'{"p_user_id":"11111111-1111-4111-8111-111111111111"}'
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "previous_status": "rejected",
+                    "user_id": str(USER),
+                    "email": "user@example.com",
+                    "status": "pending",
+                    "trial_links_used": 3,
+                    "created_at": "2026-10-14T10:00:00Z",
+                    "approval_notification_id": "44444444-4444-4444-8444-444444444444",
+                }
+            ],
+        )
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            change = await SupabaseRepository(
+                "https://supabase.example", "test-key", client
+            ).request_access_again(USER)
+            assert change is not None
+            profile, notification_id = change
+            assert profile.status == "pending"
+            assert profile.trial_links_used == 3
+            assert notification_id == UUID("44444444-4444-4444-8444-444444444444")
+
+    asyncio.run(run())
+
+
 def test_notification_claim_and_delivery_update_use_private_rpcs() -> None:
     calls = 0
 
