@@ -11,3 +11,6 @@ REV-001: fixed by Docker working directory /src and scanning `.`.
 Outcome: source correction complete; release verification remains incomplete.
 Actual scanner unavailable locally; CI not triggered. Toolkit generator still
 restores the unsafe exception. SEC-001 remains in progress, not verified.
+
+2026-11-06 independent generator review: collision finding REV-002 fixed with
+a pre-write diagnostic and regression. 26 tests pass; Linksifty update/check clean.

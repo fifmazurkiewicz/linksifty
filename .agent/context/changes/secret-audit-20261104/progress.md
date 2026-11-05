@@ -53,3 +53,19 @@ instead; preserve inherited detector and all other rules.
 
 Full-history scan now passes. Regression caught an ineffective alphabet-sequence
 canary (default scanner stopword); replaced with a synthetic non-sequential value.
+
+## Generator correction — 2026-11-06
+
+Owner requested update/check and publication to main. Initial update reproduced the
+unsafe whole-file exception. Fixed the local agent-toolkit source generator to
+emit the exact verified Linksifty configuration and added a generated-TOML
+regression. All 26 toolkit tests pass (cache-write warnings only). Reinstalled
+from the local source, then ran update and check: `agent-toolkit: clean`.
+The generated Linksifty files are unchanged from main. Graft index build still
+fails with exit 126; this does not certify the index. Earlier scanner/runtime
+limitations above are historical: Linksifty CI and all four scanner regressions
+passed for f391f6d (Secrets run 42075492079).
+
+Independent generator review identified conflicting project overrides of the same
+rule ID. Generator now rejects that input before writes with an actionable error;
+a dedicated regression passes. Existing check-read-only tests remain passing.
