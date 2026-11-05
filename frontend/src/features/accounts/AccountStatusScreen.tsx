@@ -22,8 +22,10 @@ export function AccountStatusScreen({ account, onRequested }: { account: Account
         ? <p>{account.trial_links_remaining} trial links remaining. You can use them while your account is pending.</p>
         : <p>This account has been declined or blocked. You can request access again, or contact the Linksifty administrator if you think this is a mistake.</p>}
       {error && <p className="error" role="alert">{error}</p>}
-      {!pending && <button disabled={busy} onClick={() => void requestAgain()}>Request access again</button>}
-      <button className="secondary" onClick={() => void signOut()}>Sign out</button>
+      <div className="auth-actions">
+        {!pending && <button type="button" className="primary" disabled={busy} onClick={() => void requestAgain()}>{busy ? 'Requesting…' : 'Request access again'}</button>}
+        <button type="button" className="secondary" onClick={() => void signOut()}>Sign out</button>
+      </div>
     </section>
   </main>
 }
