@@ -46,3 +46,7 @@ seven legitimate historical lock hashes not accepted by the line-based matcher.
 Changed the matcher to the extracted secret, exactly 64 lowercase hex characters,
 with the same path AND generic-api-key restriction. Provider rules remain active.
 The canary-beside-hash regression continues to require detection by provider rules.
+
+Gitleaks v8.28.0 config source reveals targetRules attachment is skipped after
+default extension (extendDepth guard). Use explicit generic-api-key rule allowlist
+instead; preserve inherited detector and all other rules.

@@ -2,10 +2,12 @@
 useDefault = true
 
 # agent-toolkit:gitleaks start
-[[allowlists]]
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
 description = "agent-toolkit lock: SHA-256 hashes of vendored skill files, not secrets"
 condition = "AND"
-targetRules = ["generic-api-key"]
 regexTarget = "secret"
 regexes = ['''^[a-f0-9]{64}$''']
 paths = ['''^\.agent/lock\.yaml$''']
