@@ -10,7 +10,7 @@ def main() -> None:
     config = Path(__file__).resolve().parents[1] / ".gitleaks.toml"
     digest = "31d82cafe9476b025fa8d4c193be7602d5a9138ecb047f69d2c85170fa4be639"
     # Construct a nonfunctional provider-shaped canary, never a real credential.
-    canary = "ghp_" + "0123456789abcdefghijklmnopqrstuvwxyz"
+    canary = "ghp_" + "7mQ2vR9xK4pN8sT3wY6aB1cD5eF0gH2jL9zV"
     cases = [
         ("hash in lock", ".agent/lock.yaml", f"    api-key.md: {digest}\n", 0),
         ("hash outside lock", "other.yaml", f"    api-key.md: {digest}\n", 1),

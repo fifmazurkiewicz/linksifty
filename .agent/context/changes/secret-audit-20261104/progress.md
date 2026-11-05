@@ -50,3 +50,6 @@ The canary-beside-hash regression continues to require detection by provider rul
 Gitleaks v8.28.0 config source reveals targetRules attachment is skipped after
 default extension (extendDepth guard). Use explicit generic-api-key rule allowlist
 instead; preserve inherited detector and all other rules.
+
+Full-history scan now passes. Regression caught an ineffective alphabet-sequence
+canary (default scanner stopword); replaced with a synthetic non-sequential value.
